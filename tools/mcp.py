@@ -1,8 +1,9 @@
 """Minimal MCP (Model Context Protocol) stdio client.
 
-Reads server definitions from config/mcp.json:
+Reads server definitions from config/mcp.json. Accepts the standard
+"mcpServers" key (same as Claude Code / .mcp.json) or "servers":
 
-    {"servers": {"<name>": {"command": "npx", "args": ["-y", "some-mcp"], "env": {}}}}
+    {"mcpServers": {"<name>": {"command": "npx", "args": ["-y", "some-mcp"], "env": {}}}}
 
 Each call spawns the server, performs the JSON-RPC handshake over
 newline-delimited stdio, runs one request, and shuts it down. Stateless and
@@ -21,7 +22,8 @@ _PROTOCOL = "2024-11-05"
 def _load_servers() -> dict:
     try:
         if CONFIG_PATH.exists():
-            return json.loads(CONFIG_PATH.read_text(encoding="utf-8")).get("servers", {})
+            cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+            return cfg.get("mcpServers") or cfg.get("servers") or {}
     except (json.JSONDecodeError, OSError):
         pass
     return {}
