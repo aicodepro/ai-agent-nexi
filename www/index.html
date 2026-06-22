@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>N.E.X.I</title>
+  <link rel="shortcut icon" href="assets/nexi-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app" class="app-shell">
+
+    <!-- ===== HEADER ===== -->
+    <header id="top-header" class="top-header">
+      <span class="header-left">NEXI v1.0</span>
+      <div class="header-center">
+        <span class="header-title">N.E.X.I</span>
+        <span class="header-subtitle">Neural Executive Intelligence</span>
+      </div>
+      <span id="header-clock" class="header-clock">00:00:00</span>
+    </header>
+
+    <!-- ===== LEFT PANEL: System Monitor ===== -->
+    <aside id="left-panel" class="left-panel">
+      <div class="panel-label">SYSTEM MONITOR</div>
+
+      <div class="metric-block">
+        <div class="metric-label">CPU</div>
+        <div class="metric-bar-bg"><div id="metric-cpu" class="metric-bar cpu" style="width:0%"></div></div>
+        <div id="metric-cpu-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">MEM</div>
+        <div class="metric-bar-bg"><div id="metric-mem" class="metric-bar mem" style="width:0%"></div></div>
+        <div id="metric-mem-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">NET</div>
+        <div class="metric-bar-bg"><div id="metric-net" class="metric-bar net" style="width:0%"></div></div>
+        <div id="metric-net-val" class="metric-val">--</div>
+      </div>
+
+      <div class="info-block">
+        <div id="uptime-val" class="info-row">UP --:--</div>
+        <div id="proc-val" class="info-row">PROC --</div>
+        <div id="os-val" class="info-row">OS WIN</div>
+      </div>
+
+      <div class="status-badges">
+        <div class="status-badge ai-core">AI CORE<br>ACTIVE</div>
+        <div class="status-badge sec">SEC<br>CLEARED</div>
+      </div>
+    </aside>
+
+    <!-- ===== CENTER: HUD Stage ===== -->
+    <main id="center-stage" class="center-stage">
+      <canvas id="hud-canvas"></canvas>
+      <div id="nexi-state" class="state-badge nexi-state-sleep">SLEEP MODE</div>
+      <div id="nexi-source" class="wake-hint">Say Hey Nexi or double clap to wake</div>
+      <div id="nexi-transcript" class="bridge-line"></div>
+      <div id="nexi-response" class="bridge-line bridge-response"></div>
+      <div id="waveform" class="waveform-strip"></div>
+    </main>
+
+    <!-- ===== RIGHT PANEL ===== -->
+    <aside id="right-panel" class="right-panel">
+      <div class="panel-label">ACTIVITY LOG</div>
+      <div id="nexi-log" class="activity-log">
+        <div class="log-msg sys">SYS: Sleep mode</div>
+      </div>
+
+      <div class="panel-label">FILE UPLOAD</div>
+      <div id="file-drop-zone" class="file-drop-zone">
+        <div id="file-drop-hint" class="file-drop-hint">
+          <span class="file-drop-icon">&#8682;</span>
+          <span>Drop file here</span>
+        </div>
+      </div>
+      <div id="file-status" class="file-status">No file loaded</div>
+
+      <div class="panel-label">TOOLS</div>
+      <div id="suggestion-list" class="suggestion-list"></div>
+    </aside>
+
+    <!-- ===== BOTTOM COMMAND BAR ===== -->
+    <footer id="command-bar" class="command-bar">
+      <div class="command-group">
+        <input type="text" id="command-input" class="command-input" placeholder="Ask Nexi or type a command..." autofocus>
+        <button id="mic-button" class="cmd-btn" title="Voice">&#127908;</button>
+        <button id="send-button" class="cmd-btn glow" title="Send">&#9654;</button>
+        <button id="power-button" class="cmd-btn" title="Sleep / Wake">&#9210;</button>
+        <button id="settings-button" class="cmd-btn" title="Settings">&#9881;</button>
+        <button id="log-toggle-btn" class="cmd-btn" title="Debug Log">&#9776;</button>
+      </div>
+      <div class="command-shortcuts">
+        <span>[F11] Fullscreen</span>
+        <span>NEXI v1.0</span>
+        <span id="provider-status-short"></span>
+      </div>
+    </footer>
+
+    <!-- ===== SETTINGS OVERLAY ===== -->
+    <div id="settings-overlay" class="overlay hidden">
+      <div class="overlay-backdrop"></div>
+      <div class="overlay-panel">
+        <div class="overlay-header">
+          <span>SETTINGS</span>
+          <button id="settings-close" class="close-btn">&times;</button>
+        </div>
+        <div class="overlay-body">
+          <div class="setting-section">
+            <div class="section-title">PROVIDERS</div>
+            <div id="provider-list" class="provider-list"></div>
+          </div>
+          <div class="setting-section">
+            <div class="section-title">RUNTIME</div>
+            <div id="runtime-list" class="runtime-list"></div>
+          </div>
+          <div class="setting-section">
+            <div class="section-title">SETUP</div>
+            <p>Copy <code>.env.example</code> to <code>.env</code> and add your API keys.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DEBUG LOG OVERLAY ===== -->
+    <div id="debug-panel" class="overlay hidden">
+      <div class="debug-panel-box">
+        <div class="overlay-header">
+          <span>DEBUG LOG</span>
+          <select id="log-level-filter" class="log-filter">
+            <option value="all">ALL</option><option value="info">INFO</option><option value="warn">WARN</option>
+            <option value="error">ERROR</option><option value="route">ROUTE</option>
+          </select>
+          <button id="debug-close" class="close-btn">&times;</button>
+        </div>
+        <div id="debug-log-body" class="debug-log-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="hud_orb.js"></script>
+  <script src="controller.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

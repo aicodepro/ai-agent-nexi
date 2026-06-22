@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.6"/>
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.3"/>
+  <line x1="100" y1="5" x2="100" y2="25" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+  <line x1="100" y1="175" x2="100" y2="195" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+  <line x1="5" y1="100" x2="25" y2="100" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+  <line x1="175" y1="100" x2="195" y2="100" stroke="#00d4ff" stroke-width="1.5" opacity="0.5"/>
+  <text x="100" y="97" text-anchor="middle" fill="#00d4ff" font-family="Consolas, monospace" font-size="22" font-weight="bold">N.E.X.I</text>
+  <text x="100" y="118" text-anchor="middle" fill="#007a99" font-family="Consolas, monospace" font-size="10">ONLINE</text>
+  <polygon points="100,8 104,16 96,16" fill="#00d4ff" opacity="0.6"/>
+  <polygon points="100,192 104,184 96,184" fill="#00d4ff" opacity="0.6"/>
+  <polygon points="8,100 16,96 16,104" fill="#00d4ff" opacity="0.6"/>
+  <polygon points="192,100 184,96 184,104" fill="#00d4ff" opacity="0.6"/>
+</svg>

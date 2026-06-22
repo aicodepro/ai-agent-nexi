@@ -1,0 +1,30 @@
+# ============================================================
+# NEXI — Python dependencies
+# ============================================================
+# Install:  pip install -r requirements.txt
+# Cloud LLM/ASR/TTS (Gemini, Groq) are called over REST via `requests`
+# — no vendor SDKs required.
+# ============================================================
+
+# --- Core runtime ---
+python-dotenv          # .env configuration loading
+eel                    # Python <-> JS desktop UI bridge
+requests               # Gemini / Groq REST calls, connectivity checks
+numpy                  # audio DSP (clap detection, framing)
+psutil                 # process / system checks
+
+# --- Audio I/O & wake detection ---
+sounddevice            # microphone capture
+openwakeword           # local hotword detection ("Hey Nexi")
+playsound3             # TTS playback (maintained fork; builds on Python 3.13)
+pyttsx3                # offline TTS fallback
+
+# --- Desktop automation ---
+pyautogui              # keyboard/mouse + system control
+pyperclip              # clipboard operations
+
+# --- Web / parsing (skills) ---
+beautifulsoup4         # lightweight HTML parsing for web skills
+
+# --- Optional (heavy; only needed for neural VAD / advanced wake) ---
+# torch                # Silero VAD backend; install only if VAD_BACKEND=silero
