@@ -95,6 +95,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
 .suggestion-list { display: flex; flex-direction: column; gap: 3px; }
 .suggestion-chip { padding: 4px 8px; font-size: 9px; background: var(--panel2); border: 1px solid var(--border); border-radius: 3px; color: var(--text-med); cursor: pointer; transition: all 0.15s; }
 .suggestion-chip:hover { color: var(--pri); border-color: var(--pri); background: var(--pri-gho); }
+.tool-categories { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+.tool-cat { padding: 2px 6px; font-size: 8px; background: var(--pri-gho); border: 1px solid var(--border); border-radius: 3px; color: var(--text-med); cursor: default; }
 
 /* Command Bar */
 .command-bar { grid-column: 1 / -1; grid-row: 3; background: var(--dark); border-top: 1px solid var(--border); padding: 4px 16px; display: flex; flex-direction: column; gap: 2px; }
@@ -104,6 +106,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
 .cmd-btn { background: transparent; border: 1px solid var(--border); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-med); cursor: pointer; font-size: 12px; flex-shrink: 0; transition: all 0.15s; }
 .cmd-btn:hover { color: var(--pri); border-color: var(--pri); box-shadow: 0 0 8px rgba(0,212,255,0.2); }
 .cmd-btn.glow { color: var(--pri); border-color: var(--pri); }
+.cmd-btn.estop-on { color: #ff3355; border-color: #ff3355; box-shadow: 0 0 8px rgba(255,51,85,0.4); }
 .command-shortcuts { display: flex; justify-content: space-between; font-size: 7px; color: var(--text-dim); max-width: 700px; margin: 0 auto; width: 100%; padding: 0 4px; }
 
 /* Overlays */
@@ -119,6 +122,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
 .provider-dot { width: 7px; height: 7px; border-radius: 50%; }
 .provider-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .provider-dot.off { background: var(--text-dim); }
+.memory-list { font-size: 10px; color: var(--text-med); line-height: 1.5; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
+.workspace-panel { width: 620px; }
+.workspace-content { font-size: 12px; color: var(--white); line-height: 1.6; white-space: pre-wrap; max-height: 46vh; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 10px; }
+.workspace-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ws-btn { padding: 5px 10px; font-size: 10px; font-family: var(--font-mono); background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; color: var(--text-med); cursor: pointer; transition: all 0.15s; }
+.ws-btn:hover { color: var(--pri); border-color: var(--pri); background: var(--pri-gho); }
+.workspace-status { font-size: 9px; color: var(--text-dim); min-height: 12px; }
 .close-btn { background: transparent; border: 1px solid var(--border); border-radius: 50%; width: 26px; height: 26px; color: var(--text-med); cursor: pointer; font-size: 14px; }
 
 .debug-panel-box { position: relative; width: 440px; max-height: 380px; background: var(--dark); border: 1px solid var(--pri); border-radius: 8px; box-shadow: 0 0 40px rgba(0,212,255,0.15); overflow: hidden; }

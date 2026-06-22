@@ -26,13 +26,15 @@ LOCAL_INTENTS = {
     "history", "bookmarks", "dev_tools", "private_window",
     "take_screenshot", "play_music", "get_time", "get_weather",
     "read_clipboard", "google_search", "send_email", "find_places",
+    "set_reminder", "set_alarm", "show_reminders", "play_game",
+    "start_hand_control", "start_eye_control", "stop_camera",
 }
 
 ALL_INTENTS = BRAIN_INTENTS | OUTPUT_INTENTS | LOCAL_INTENTS | {
     "greeting", "identity", "repeat", "sleep", "wake",
     "remember", "forget", "show_notes", "recall",
     "train_rule", "show_rules", "clear_rules", "explain_intent",
-    "cancel_workflow", "unknown",
+    "cancel_workflow", "run_plan", "list_tools", "unknown",
 }
 
 

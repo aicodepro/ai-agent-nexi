@@ -28,6 +28,9 @@ _LOCAL_PREFIXES = [
     ("save note", "save_note"), ("send email", "send_email"),
     ("find ", "find_places"), ("where is", "find_places"),
     ("youtube ", "youtube_search"), ("play on youtube", "youtube_search"),
+    ("remind me to ", "set_reminder"), ("remind me ", "set_reminder"),
+    ("set a reminder", "set_reminder"), ("set reminder", "set_reminder"),
+    ("set an alarm", "set_alarm"), ("set alarm", "set_alarm"),
 ]
 
 _LOCAL_EXACT = {
@@ -46,6 +49,18 @@ _LOCAL_EXACT = {
     "what's the time": "get_time", "current time": "get_time",
     "read clipboard": "read_clipboard", "read selected": "read_clipboard",
     "what's the weather": "get_weather", "weather": "get_weather",
+    "show reminders": "show_reminders", "show my reminders": "show_reminders",
+    "my reminders": "show_reminders", "list reminders": "show_reminders",
+    "play rock paper scissors": "play_game", "rock paper scissors": "play_game",
+    "lets play a game": "play_game", "play a game": "play_game",
+    "lets play": "play_game",
+    "start hand control": "start_hand_control", "hand control": "start_hand_control",
+    "control mouse with hand": "start_hand_control", "control with hand": "start_hand_control",
+    "start eye control": "start_eye_control", "eye control": "start_eye_control",
+    "face control": "start_eye_control", "control with face": "start_eye_control",
+    "stop camera": "stop_camera", "stop camera control": "stop_camera",
+    "stop hand control": "stop_camera", "stop eye control": "stop_camera",
+    "stop face control": "stop_camera",
 }
 
 _QA_PREFIXES = [
@@ -124,6 +139,15 @@ def _deterministic(text: str) -> dict:
     # Identity
     if n in _IDENTITY:
         return _result("identity", "identity", 1.0)
+
+    # Multi-step plan
+    if n.startswith("plan ") or n.startswith("do all of") or n.startswith("step by step"):
+        return _result("workflow", "run_plan", 0.95, entity=text.strip())
+
+    # MCP tools
+    if n in {"list tools", "what tools do you have", "mcp tools",
+             "show tools", "available tools"}:
+        return _result("tool", "list_tools", 0.95)
 
     # Output actions
     for pattern, intent in _OUTPUT_PATTERNS:
@@ -222,6 +246,13 @@ def route_intent(text: str) -> dict:
     """Route user text to an intent. Deterministic first, Groq LLM fallback."""
     if not text or not text.strip():
         return empty_result()
+
+    # Normalize Hindi/Hinglish commands to English before routing.
+    try:
+        from intent.bilingual import normalize
+        text = normalize(text)
+    except Exception:
+        pass
 
     result = _deterministic(text)
     if result["confidence"] >= 0.7:

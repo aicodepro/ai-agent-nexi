@@ -26,5 +26,9 @@ pyperclip              # clipboard operations
 # --- Web / parsing (skills) ---
 beautifulsoup4         # lightweight HTML parsing for web skills
 
+# --- Vision (hand / face cursor control; loaded only in the camera subprocess) ---
+mediapipe              # hand & face landmark detection
+opencv-python          # webcam capture & display
+
 # --- Optional (heavy; only needed for neural VAD / advanced wake) ---
 # torch                # Silero VAD backend; install only if VAD_BACKEND=silero

@@ -1,6 +1,6 @@
 """Skill dispatcher — routes intents to skill handlers."""
 
-from skills import apps, web, files, browser, system, communication
+from skills import apps, web, files, browser, system, communication, games, scheduler, vision_control
 
 SKILL_MAP = {
     # Apps
@@ -47,6 +47,19 @@ SKILL_MAP = {
     # Communication
     "send_email": lambda e: communication.send_email(e, "From Nexi", ""),
     "find_places": lambda e: communication.find_places(e),
+
+    # Games
+    "play_game": lambda _: games.start_rps(),
+
+    # Scheduler
+    "set_reminder": lambda e: scheduler.set_reminder(e),
+    "set_alarm": lambda e: scheduler.set_alarm(e),
+    "show_reminders": lambda _: scheduler.show_reminders(),
+
+    # Vision
+    "start_hand_control": lambda _: vision_control.start_hand_control(),
+    "start_eye_control": lambda _: vision_control.start_eye_control(),
+    "stop_camera": lambda _: vision_control.stop_camera(),
 }
 
 
