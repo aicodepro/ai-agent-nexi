@@ -72,6 +72,12 @@ def handle_active_workflow(query: str) -> str | None:
     if name == "create_project":
         return _continue_create_project(query, step, data)
 
+    # Rock-paper-scissors
+    if name == "rps":
+        from skills.games import play_rps
+        clear_workflow()
+        return play_rps(query)
+
     clear_workflow()
     return None
 
