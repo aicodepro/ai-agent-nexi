@@ -35,7 +35,7 @@ def _query(cfg: dict, method: str, params: dict):
     proc = subprocess.Popen(
         [cfg["command"], *cfg.get("args", [])],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-        text=True, bufsize=1, env=env,
+        text=True, encoding="utf-8", errors="replace", bufsize=1, env=env,
     )
 
     def send(obj):
