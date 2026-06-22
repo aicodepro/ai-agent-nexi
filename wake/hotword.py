@@ -63,14 +63,24 @@ class HotwordDetector:
                           f"falling back to bundled models", flush=True)
                 self._model = Model(inference_framework="onnx")
                 print(f"[HOTWORD] loaded bundled models phrases={self._phrases}", flush=True)
-                # Warn if none of the requested phrases map to a loaded model.
+                # If none of the requested phrases map to a loaded model (e.g. no
+                # custom "hey_nexi" model is installed), fall back to a bundled
+                # model so voice wake still works out-of-the-box.
                 try:
                     available = [k.lower() for k in self._model.models.keys()]
                     if not any(any(p in k for k in available) for p in self._phrases):
-                        print(f"[HOTWORD] WARNING: none of phrases={self._phrases} match "
-                              f"available models={available}; voice wake will not fire. "
-                              f"Set OPENWAKEWORD_MODEL_PATH to a custom model or use a "
-                              f"bundled phrase.", flush=True)
+                        fallback = os.getenv("OPENWAKEWORD_FALLBACK_MODEL", "hey_jarvis").lower()
+                        chosen = next((k for k in available if fallback in k),
+                                      available[0] if available else "")
+                        if chosen:
+                            self._phrases = [chosen]
+                            print(f"[HOTWORD] no model for requested phrase; falling back to "
+                                  f"bundled '{chosen}'. Say it to wake, or set "
+                                  f"OPENWAKEWORD_MODEL_PATH to a custom 'hey nexi' model.",
+                                  flush=True)
+                        else:
+                            print("[HOTWORD] WARNING: no bundled models available; "
+                                  "voice wake will not fire (use double clap).", flush=True)
                 except Exception:
                     pass
             self._loaded = True
