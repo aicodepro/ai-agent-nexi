@@ -101,6 +101,7 @@
     var el = document.getElementById('nexi-response');
     if (el) el.textContent = 'Nexi: ' + String(msg).slice(0, 300);
     addLog('ai', 'Nexi: ' + msg.slice(0, 300));
+    if (String(msg).length > 400 && window.openWorkspace) window.openWorkspace(String(msg));
   };
 
   window.updateState = function (s) { window.updateNexiState(typeof s === 'string' ? { state: s } : s); };

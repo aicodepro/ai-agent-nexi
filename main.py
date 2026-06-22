@@ -25,6 +25,30 @@ def ui_submit_text(text):
 
 
 @eel.expose
+def ui_submit_file_drop(paths):
+    from ui.adapter import submit_file_drop
+    return submit_file_drop(paths)
+
+
+@eel.expose
+def ui_get_metrics():
+    from ui.adapter import get_metrics
+    return get_metrics()
+
+
+@eel.expose
+def ui_get_last_response():
+    from ui.adapter import get_last_response
+    return get_last_response()
+
+
+@eel.expose
+def ui_output_action(action):
+    from ui.adapter import output_action
+    return output_action(action)
+
+
+@eel.expose
 def ui_get_env_status():
     from ui.adapter import get_env_status
     return get_env_status()
@@ -61,9 +85,9 @@ def submitUserCommand(text):
 
 
 @eel.expose
-def wakeNexiFromUi():
+def wakeNexiFromUi(source="ui_button"):
     from core.ui_state import emit_state
-    emit_state("listening", source="ui_button")
+    emit_state("listening", source=source)
 
 
 @eel.expose
@@ -100,6 +124,13 @@ def _start_server(command_queue=None, stop_event=None, wake_ready=None):
         register_defaults()
     except Exception as e:
         print(f"[NEXI] control_registry_failed: {e}", flush=True)
+
+    # Start reminder/alarm scheduler
+    try:
+        from skills.scheduler import start_scheduler
+        start_scheduler(stop_event)
+    except Exception as e:
+        print(f"[NEXI] scheduler_failed: {e}", flush=True)
 
     # Start bridge pump
     if command_queue is not None:

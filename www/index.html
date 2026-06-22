@@ -80,6 +80,7 @@
       <div id="file-status" class="file-status">No file loaded</div>
 
       <div class="panel-label">TOOLS</div>
+      <div id="tool-categories" class="tool-categories"></div>
       <div id="suggestion-list" class="suggestion-list"></div>
     </aside>
 
@@ -90,6 +91,8 @@
         <button id="mic-button" class="cmd-btn" title="Voice">&#127908;</button>
         <button id="send-button" class="cmd-btn glow" title="Send">&#9654;</button>
         <button id="power-button" class="cmd-btn" title="Sleep / Wake">&#9210;</button>
+        <button id="estop-button" class="cmd-btn" title="Emergency Stop">&#9632;</button>
+        <button id="workspace-button" class="cmd-btn" title="Output Workspace">&#128196;</button>
         <button id="settings-button" class="cmd-btn" title="Settings">&#9881;</button>
         <button id="log-toggle-btn" class="cmd-btn" title="Debug Log">&#9776;</button>
       </div>
@@ -118,9 +121,36 @@
             <div id="runtime-list" class="runtime-list"></div>
           </div>
           <div class="setting-section">
+            <div class="section-title">MEMORY</div>
+            <div id="memory-list" class="memory-list">No memory yet.</div>
+          </div>
+          <div class="setting-section">
             <div class="section-title">SETUP</div>
             <p>Copy <code>.env.example</code> to <code>.env</code> and add your API keys.</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== OUTPUT WORKSPACE OVERLAY ===== -->
+    <div id="workspace-overlay" class="overlay hidden">
+      <div class="overlay-backdrop"></div>
+      <div class="overlay-panel workspace-panel">
+        <div class="overlay-header">
+          <span>OUTPUT WORKSPACE</span>
+          <button id="workspace-close" class="close-btn">&times;</button>
+        </div>
+        <div class="overlay-body">
+          <div id="workspace-content" class="workspace-content"></div>
+          <div class="workspace-actions">
+            <button class="ws-btn" data-action="copy">Copy</button>
+            <button class="ws-btn" data-action="save_md">Save .md</button>
+            <button class="ws-btn" data-action="save_txt">Save .txt</button>
+            <button class="ws-btn" data-action="shorten">Shorten</button>
+            <button class="ws-btn" data-action="regenerate">Regenerate</button>
+            <button class="ws-btn" data-action="read">Read aloud</button>
+          </div>
+          <div id="workspace-status" class="workspace-status"></div>
         </div>
       </div>
     </div>
