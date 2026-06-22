@@ -82,8 +82,18 @@ def submit_user_command(text: str, source: str = "ui_text", mode: str = "text") 
         _local.source = ""
 
 
-def _dispatch(text: str, source: str) -> str:
+def _dispatch(text: str, source: str, _depth: int = 0) -> str:
     """Priority-based dispatch chain."""
+
+    # 0. Learned rule ("when I say X do Y") — execute the mapped action
+    if _depth == 0:
+        try:
+            from memory.rules import match_rule
+            action = match_rule(text)
+            if action:
+                return _dispatch(action, source, _depth=1)
+        except Exception:
+            pass
 
     # 1. Active workflow
     try:
@@ -152,6 +162,13 @@ def _dispatch(text: str, source: str) -> str:
 
     if route == "training":
         return _handle_training_intent(intent, entity)
+
+    if route == "workflow" and intent == "run_plan":
+        from brain.planner import run_plan
+        return run_plan(entity)
+
+    if route == "tool":
+        return _handle_tool_intent(intent, entity)
 
     # 5. Local action → skill dispatch
     if route == "local_action" and confidence >= 0.7:
@@ -230,27 +247,44 @@ def _handle_output_intent(intent: str) -> str:
 def _handle_training_intent(intent: str, entity: str) -> str:
     if intent == "train_rule":
         try:
-            from memory.manager import remember
-            return remember(entity, category="rules", source="training")
+            from memory.rules import learn_rule
+            return learn_rule(entity)
         except Exception:
             return "Couldn't save rule."
     if intent == "show_rules":
         try:
-            from memory.manager import recall
-            rules = [i for i in recall(limit=20) if i.get("category") == "rules"]
+            from memory.rules import list_rules
+            rules = list_rules()
             if rules:
-                return "Rules:\n" + "\n".join(f"- {r['text'][:80]}" for r in rules)
+                return "Rules:\n" + "\n".join(
+                    f"- when I say '{r['trigger']}' -> {r['action']}" for r in rules)
             return "No rules saved."
         except Exception:
             return "Couldn't load rules."
     if intent == "clear_rules":
         try:
-            from memory.manager import forget
-            forget("")  # This won't clear all — intentional safety
-            return "Rules cleared."
+            from memory.rules import clear_rules
+            n = clear_rules()
+            return f"Cleared {n} rule{'s' if n != 1 else ''}."
         except Exception:
             return "Couldn't clear rules."
     return "Unknown training command."
+
+
+def _handle_tool_intent(intent: str, entity: str) -> str:
+    if intent == "list_tools":
+        try:
+            from tools.mcp import list_tools
+            tools = list_tools()
+            if not tools:
+                return "No MCP servers are configured."
+            lines = []
+            for server, names in tools.items():
+                lines.append(f"{server}: {', '.join(names) if names else '(none)'}")
+            return "Available tools:\n" + "\n".join(lines)
+        except Exception:
+            return "Couldn't list tools."
+    return "Tool action not available."
 
 
 def _handle_clarification_answer(answer: dict) -> str:
