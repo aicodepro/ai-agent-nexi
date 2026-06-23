@@ -17,6 +17,22 @@ FRAME_SAMPLES = int(cfg.sample_rate * cfg.frame_ms / 1000)
 FRAME_BYTES = FRAME_SAMPLES * 2  # 16-bit PCM
 
 
+def _apply_gain(frame: bytes, gain: float) -> bytes:
+    """Scale an int16 PCM frame by `gain` (with clipping). For weak mics."""
+    import numpy as np
+    a = np.frombuffer(frame, dtype=np.int16).astype(np.float32) * gain
+    np.clip(a, -32768, 32767, out=a)
+    return a.astype(np.int16).tobytes()
+
+
+def _resolve_device(spec: str):
+    """Map an AUDIO_INPUT_DEVICE env value to a sounddevice device id."""
+    spec = (spec or "").strip()
+    if not spec:
+        return None
+    return int(spec) if spec.isdigit() else spec
+
+
 class AudioWakePipeline:
     def __init__(self, command_queue=None):
         self._command_queue = command_queue
@@ -39,6 +55,14 @@ class AudioWakePipeline:
         self._preroll_ms = env_int("VAD_PREROLL_MS", 400)
         self._post_wake_delay_ms = env_int("POST_WAKE_DELAY_MS", 200)
         self._flush_ms = env_int("WAKE_FLUSH_AUDIO_MS", 300)
+
+        # Input gain for weak microphones (applied before wake detection).
+        # A separate, larger clap gain lets a close-talk mic (earbuds) still
+        # catch faint, far-from-mic claps without clipping the strong voice
+        # signal the hotword model needs.
+        self._input_gain = env_float("WAKE_INPUT_GAIN", 1.0)
+        self._clap_gain = env_float("CLAP_INPUT_GAIN", 1.0)
+        self._input_device = _resolve_device(os.getenv("AUDIO_INPUT_DEVICE", ""))
 
         # Preroll buffer
         preroll_frames = max(1, int(self._preroll_ms / cfg.frame_ms))
@@ -106,9 +130,12 @@ class AudioWakePipeline:
                 channels=cfg.channels,
                 dtype="int16",
                 blocksize=FRAME_SAMPLES,
+                device=self._input_device,
                 callback=_callback,
             )
             self._stream.start()
+            if self._input_device is not None or self._input_gain != 1.0:
+                print(f"[WAKE] mic device={self._input_device} gain={self._input_gain}x", flush=True)
         except Exception as e:
             print(f"[WAKE] mic_failed reason={type(e).__name__}", flush=True)
             self._stream = None
@@ -129,15 +156,17 @@ class AudioWakePipeline:
 
     def _process_frame(self, frame: bytes) -> dict:
         """Check all wake sources on one frame."""
-        # Hotword
+        # Hotword (uses the raw/voice-gained signal)
         if self._hotword:
-            result = self._hotword.process_frame(frame, cfg.sample_rate)
+            hw_frame = _apply_gain(frame, self._input_gain) if self._input_gain != 1.0 else frame
+            result = self._hotword.process_frame(hw_frame, cfg.sample_rate)
             if result.get("detected"):
                 return result
 
-        # Clap
+        # Clap (separately boosted so faint claps register on a close-talk mic)
         if self._clap:
-            result = self._clap.process_frame(frame)
+            clap_frame = _apply_gain(frame, self._clap_gain) if self._clap_gain != 1.0 else frame
+            result = self._clap.process_frame(clap_frame)
             if result.get("detected"):
                 return result
 
