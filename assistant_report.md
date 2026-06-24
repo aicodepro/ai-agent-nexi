@@ -13,7 +13,7 @@ Status legend: **DONE** = implemented, voice-reachable, and test-covered · **PA
 | # | Feature | Goal | Implemented Features | Status | Notes |
 |---|---------|------|----------------------|--------|-------|
 | 1 | OS Awareness Layer | Know the PC state | active window/app, CPU/RAM, battery, network, IP, disk, **running apps**, **idle time** | **DONE** | Added `get_running_apps`, `get_idle_time` + dedicated `test_os_awareness.py` this session. GPU% and mic/cam-in-use still open. |
-| 2 | Intelligent App Resolver | Open the right app for a task | `resolve_app_name` (hardcoded alias map) used by router | PARTIAL | No installed-apps index / fuzzy confidence yet. Medium risk; deferred this session. |
+| 2 | Intelligent App Resolver | Open the right app for a task | `resolve_app_for_task` + `open_app_for_task` (task→app map, Start-Menu install index, confidence) | **DONE** | Net-new `engine/app_intelligence.py`; router `_task_app_match` extracts the task before the generic open-app handler. |
 | 3 | Windows Settings Controller | Open Settings pages safely | `open_settings`, `open_wifi/bluetooth/display/sound/microphone/camera/startup_settings`, `open_windows_update`, `open_settings_page` | **DONE** | Net-new `engine/windows_settings.py`, ms-settings: URIs, open-only (low risk). |
 | 4 | Hotword Barge-In While Speaking | Interrupt TTS by voice | `barge_in_manager`, interrupt controller, voice state machine | **DONE** | Already complete pre-session (audit confirmed end-to-end). |
 | 5 | Echo / Self-TTS Guard | Don't hear itself | `post_tts_cleanup` cooldown + buffer flush; **`echo_guard_status`** query tool | PARTIAL→**DONE (read)** | Guard logic existed; added voice-reachable status. |
@@ -111,7 +111,6 @@ pre-existing baseline. The set-diff of failing tests vs the pre-session baseline
 | #10 Human Approval Queue v2 | Requires invasive refactor of `execute_tool`/`react_planner`/`command.py` to route HIGH/CRITICAL through a gate | Approval test harness + risk policy wiring |
 | #9 Browser write-path | Form-fill/click add state+timing risk | Build read-only `page_reader`/`console_reader` first (Playwright MCP) |
 | #13 Skill replay | Persistent record/replay breaks on tool-signature drift | Verifier-gated replay + JSON skill schema |
-| #2 Intelligent App Resolver | Medium risk; needs registry/Program-Files index + fuzzy confidence | `installed_apps_index` module |
 | #6 One-utterance tool, #12 reflection query | Need live mic / are read-mostly | Safe headless test strategy |
 
 ---

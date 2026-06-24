@@ -162,6 +162,23 @@ _SETTINGS_ROUTES = {
 }
 
 
+_TASK_APP_RE = re.compile(
+    r"(open (?:the |an |a )?(?:best )?app for|best app for|what app (?:should i use )?for|which app (?:should i use )?for|app for)\s+(.+)$"
+)
+
+
+def _task_app_match(q: str, text: str) -> dict[str, Any] | None:
+    """Route 'best app for <task>' / 'open the best app for <task>' before the generic open handler."""
+    m = _TASK_APP_RE.search(q)
+    if not m:
+        return None
+    task = m.group(2).strip(" .?!")
+    if not task:
+        return None
+    intent = "open_app_for_task" if m.group(1).startswith("open") else "resolve_app_for_task"
+    return exact_schema(empty_result(route="tool", intent=intent, domain="desktop", confidence=0.9, reason="task_app") | {"slots": {"task": task}})
+
+
 def _settings_match(q: str) -> dict[str, Any] | None:
     """Match Windows Settings phrases. Longest phrase wins so 'open wifi settings' beats 'settings'."""
     best_intent = ""
@@ -204,7 +221,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
 
-    # ── Windows Settings pages must beat the generic "open <app>" handler ─────
+    # ── Task->app and Windows Settings must beat the generic "open <app>" handler ─
+    _task_app = _task_app_match(q, str(text or ""))
+    if _task_app:
+        return _task_app
     _settings = _settings_match(q)
     if _settings:
         return _settings

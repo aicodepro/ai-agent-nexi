@@ -118,6 +118,8 @@ _TOOLS: dict[str, ToolSpec] = {
     "get_monitor_state": _spec("get_monitor_state", "Report what Nexi's background monitor is tracking", handler="engine.runtime_awareness.get_monitor_state", aliases=("monitor state", "monitor status", "what are you monitoring", "show monitor", "world monitor", "dashboard state"), examples=["monitor state", "what are you monitoring"], category="system"),
     "echo_guard_status": _spec("echo_guard_status", "Report the echo / self-TTS guard cooldown state", handler="engine.runtime_awareness.echo_guard_status", aliases=("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status"), examples=["echo guard status", "are you in cooldown"], category="system"),
     "get_hud_state": _spec("get_hud_state", "Report Nexi's HUD / presence state (mode, focus, goal)", handler="engine.runtime_awareness.get_hud_state", aliases=("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status"), examples=["show hud", "hud state"], category="system"),
+    "resolve_app_for_task": _spec("resolve_app_for_task", "Pick the best app for a task (e.g. coding, presentation) with confidence", optional=["task"], handler="engine.app_intelligence.resolve_app_for_task", examples=["what's the best app for coding", "which app for presentation"], category="desktop"),
+    "open_app_for_task": _spec("open_app_for_task", "Open the best app for a task", optional=["task"], handler="engine.app_intelligence.open_app_for_task", examples=["open the best app for coding"], category="desktop"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
     "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
     "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
@@ -543,6 +545,9 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"show_diagnostics", "get_monitor_state", "echo_guard_status", "get_hud_state"}:
         from engine import runtime_awareness
         return getattr(runtime_awareness, name)(slots)
+    if name in {"resolve_app_for_task", "open_app_for_task"}:
+        from engine import app_intelligence
+        return getattr(app_intelligence, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":
