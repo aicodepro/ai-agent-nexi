@@ -41,12 +41,14 @@ class SileroVAD:
 
     name = "silero"
 
-    def __init__(self, threshold: float | None = None, frame_size: int = 320):
+    def __init__(self, threshold: float | None = None, frame_size: int = 512):
         self._threshold = (
-            float(threshold) if threshold is not None else _env_float("VAD_THRESHOLD", 0.4)
+            float(threshold) if threshold is not None else _env_float("VAD_THRESHOLD", 0.35)
         )
-        # 320 samples = 20 ms @ 16 kHz; divides the 80 ms (1280-sample) wake
-        # frames evenly so no partial chunk is ever fed to the model.
+        # 512 samples = 32 ms @ 16 kHz — Silero's effective window. Smaller
+        # windows (e.g. 320) dilute the speech signal so real speech never
+        # crosses the threshold. The 1280-sample wake frame is padded to a
+        # multiple of 512 before scoring.
         self._frame_size = int(frame_size)
         self._rms_floor = _env_float("VAD_FALLBACK_RMS", 0.012)
         self._vad = None
@@ -72,16 +74,19 @@ class SileroVAD:
             if samples.size == 0:
                 return False
 
+            # Normalised RMS energy — a robust gate that fires on any
+            # speech-level audio, OR'd with the neural score so a deliberately
+            # spoken command is never dropped if Silero under-reads on a mic.
+            rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2))) / 32768.0
+
             if self._mode == "silero" and self._vad is not None:
                 remainder = samples.size % self._frame_size
                 if remainder:
                     pad = np.zeros(self._frame_size - remainder, dtype=np.int16)
                     samples = np.concatenate([samples, pad])
                 prob = float(self._vad.predict(samples, frame_size=self._frame_size))
-                return prob >= self._threshold
+                return prob >= self._threshold or rms >= self._rms_floor
 
-            # Energy fallback: normalised RMS over the frame.
-            rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2))) / 32768.0
             return rms >= self._rms_floor
         except Exception as exc:
             _safe_log(f"[VAD] is_speech_failed reason={type(exc).__name__}")
