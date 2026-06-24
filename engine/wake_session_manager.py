@@ -27,6 +27,12 @@ def _env_float(key: str, default: float) -> float:
 # returns within a few seconds of speech actually stopping, never mid-response.
 _AUTO_FINISH_TIMEOUT_SECONDS = max(1.0, _env_float("NEXI_SESSION_IDLE_TIMEOUT_SECONDS", 3.0))
 
+# Before NEXI has spoken (still thinking / awaiting the bridge's response in the
+# other process), allow a longer grace so the session never finishes mid-turn
+# and drops the next hotword. Capped so a hung turn can't pause detectors forever.
+_PRE_SPEECH_GRACE_SECONDS = max(_AUTO_FINISH_TIMEOUT_SECONDS,
+                                _env_float("NEXI_SESSION_PRE_SPEECH_GRACE_SECONDS", 20.0))
+
 _POST_SESSION_WAKE_SUPPRESS_MS = max(0, _env_int("NEXI_POST_SESSION_WAKE_SUPPRESS_MS", 800))
 
 
@@ -47,6 +53,7 @@ class WakeSessionManager:
         self._started_at: float = 0.0
         self._last_event_at: float = 0.0
         self._last_finished_at: float = 0.0
+        self._has_spoken: bool = False
         self._session_lock = threading.Lock()
 
     @staticmethod
@@ -69,6 +76,7 @@ class WakeSessionManager:
             self._started_at = time.time()
             self._last_event_at = time.time()
             self._last_finished_at = 0.0
+            self._has_spoken = False
             try:
                 from engine.memory.session_memory import clear_session_memory
                 clear_session_memory()
@@ -124,6 +132,7 @@ class WakeSessionManager:
             self._detectors_paused = False
             self._started_at = 0.0
             self._last_event_at = 0.0
+            self._has_spoken = False
             if sid and reason not in {"test", "reset"}:
                 self._last_finished_at = finished_at
         if sid:
@@ -176,37 +185,42 @@ class WakeSessionManager:
             return time.time() - self._last_event_at
 
     def check_timeout(self) -> bool:
-        # The turn is still in progress while NEXI is speaking — keep the idle
-        # window from accumulating so we measure idle only from when speech
-        # actually stops, and never re-arm/echo mid-response.
+        speaking = False
         try:
             from engine.interrupt_controller import is_speaking
-            if is_speaking():
-                with self._session_lock:
-                    if self._session_id is not None:
-                        self._last_event_at = time.time()
-                return False
+            speaking = bool(is_speaking())
         except Exception:
-            pass
+            speaking = False
         with self._session_lock:
             if self._session_id is None:
                 return False
+            if speaking:
+                # Turn in progress (NEXI is talking): keep the session alive and
+                # remember it spoke so we re-arm quickly once speech stops.
+                self._has_spoken = True
+                self._last_event_at = time.time()
+                return False
             idle = time.time() - self._last_event_at
-            if idle >= _AUTO_FINISH_TIMEOUT_SECONDS:
+            # After speech: short re-arm. Before speech (still thinking): long
+            # grace so the session never finishes mid-turn.
+            timeout = _AUTO_FINISH_TIMEOUT_SECONDS if self._has_spoken else _PRE_SPEECH_GRACE_SECONDS
+            if idle >= timeout:
                 sid = self._session_id
+                spoke = self._has_spoken
                 self._session_id = None
                 self._source = ""
                 self._state = "sleep"
                 self._detectors_paused = False
                 self._started_at = 0.0
                 self._last_event_at = 0.0
+                self._has_spoken = False
                 self._last_finished_at = time.time()
                 try:
                     from engine.memory.session_memory import clear_session_memory
                     clear_session_memory()
                 except Exception:
                     pass
-                print(f"[SESSION] auto_timeout_finish id={sid} idle_seconds={idle:.1f}", flush=True)
+                print(f"[SESSION] auto_timeout_finish id={sid} idle_seconds={idle:.1f} spoke={str(spoke).lower()}", flush=True)
                 print(f"[SLEEP] entering_sleep hotword_rearmed=true reason=idle_timeout idle_s={idle:.1f}", flush=True)
                 print(f"[SESSION] detectors_resumed=true", flush=True)
                 return True
