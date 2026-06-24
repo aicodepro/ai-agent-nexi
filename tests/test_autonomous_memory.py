@@ -8,7 +8,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _fresh(monkeypatch):
-    monkeypatch.setenv("JARVIS_LAST_EXCHANGE_LIMIT", "10")
+    monkeypatch.setenv("NEXI_LAST_EXCHANGE_LIMIT", "10")
     import importlib
     import engine.session_summary_manager as ssm
     import engine.autonomous_memory as am

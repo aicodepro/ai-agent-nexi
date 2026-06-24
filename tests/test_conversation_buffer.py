@@ -71,7 +71,7 @@ class TestConversationBufferFormat(unittest.TestCase):
         buf.append_turn("hello", "hi there")
         formatted = buf.get_formatted_context()
         self.assertIn("User: hello", formatted)
-        self.assertIn("Jarvis: hi there", formatted)
+        self.assertIn("Nexi: hi there", formatted)
 
     def test_get_formatted_context_multiple(self):
         buf = ConversationBuffer()

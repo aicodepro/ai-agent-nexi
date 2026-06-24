@@ -50,7 +50,7 @@ class TestWwwMarkLayoutStructure:
         assert 'metric-cpu' in text
         assert 'metric-mem' in text
 
-    def test_html_has_jarvis_logo_section(self):
+    def test_html_has_nexi_logo_section(self):
         text = _read(WWW_MARK / "index.html")
         assert 'J.A.R.V.I.S' in text
 

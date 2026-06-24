@@ -8,7 +8,7 @@ RATE = int(os.getenv("AUDIO_SAMPLE_RATE", "16000"))
 BLOCK = int(os.getenv("AUDIO_FRAME_SAMPLES", "1280"))
 DURATION = 30
 MODEL_PATH = (os.getenv("OPENWAKEWORD_MODEL_PATH", "") or "").strip()
-PRETRAINED = (os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_jarvis") or "hey_jarvis").strip()
+PRETRAINED = (os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_nexi") or "hey_nexi").strip()
 THRESHOLD = float(os.getenv("OPENWAKEWORD_SCORE_THRESHOLD", "0.5"))
 DEVICE = os.getenv("AUDIO_INPUT_DEVICE", "").strip() or None
 if DEVICE and DEVICE.isdigit():

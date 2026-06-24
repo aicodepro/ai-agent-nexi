@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 def test_local_first_commands_do_not_call_gemini(tmp_path, monkeypatch):
     import engine.command as command
     from engine import memory_store, workflow_state
-    monkeypatch.setattr(memory_store, "MEMORY_PATH", tmp_path / "jarvis_memory.json")
+    monkeypatch.setattr(memory_store, "MEMORY_PATH", tmp_path / "nexi_memory.json")
     commands = [
         "remember that tomorrow is my presentation",
         "what do you remember",

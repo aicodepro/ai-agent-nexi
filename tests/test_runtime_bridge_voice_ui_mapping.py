@@ -19,7 +19,7 @@ def test_required_voice_ui_status_sequence():
         {"type": "status", "status": "asr_started", "source": "hotword"},
         {"type": "status", "status": "asr_result", "source": "hotword", "text": "what is AI"},
     ]
-    with patch("eel.updateJarvisState", create=True) as update, patch("eel.senderText", create=True):
+    with patch("eel.updateNexiState", create=True) as update, patch("eel.senderText", create=True):
         for event in events:
             handle_bridge_event(event)
     assert _states(update) == ["online", "listening", "recognising", "recognising", "recognising", "thinking"]
@@ -28,7 +28,7 @@ def test_required_voice_ui_status_sequence():
 def test_tts_status_sequence_maps_to_speaking_and_online():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update:
+    with patch("eel.updateNexiState", create=True) as update:
         handle_bridge_event({"type": "status", "status": "speaking_started", "source": "tts"})
         handle_bridge_event({"type": "status", "status": "idle", "source": "tts"})
     assert _states(update) == ["saying", "sleep"]

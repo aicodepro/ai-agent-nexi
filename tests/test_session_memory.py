@@ -27,7 +27,7 @@ def test_session_memory_context_string():
     memory.add_assistant_turn("AI means artificial intelligence.")
     context = memory.to_context_string()
     assert "User: what is ai" in context
-    assert "Jarvis: AI means artificial intelligence." in context
+    assert "Nexi: AI means artificial intelligence." in context
 
 
 def test_session_memory_filters_secret_text():

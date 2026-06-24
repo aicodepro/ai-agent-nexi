@@ -24,9 +24,9 @@ class TestMarkUiVisualArtifacts:
         assert "{" in text
 
     def test_logo_file_exists(self):
-        path = WWW_MARK / "assets" / "jarvis-logo.svg"
-        assert path.exists(), "jarvis-logo.svg missing"
-        assert path.stat().st_size > 50, "jarvis-logo.svg too small"
+        path = WWW_MARK / "assets" / "nexi-logo.svg"
+        assert path.exists(), "nexi-logo.svg missing"
+        assert path.stat().st_size > 50, "nexi-logo.svg too small"
 
     def test_hud_js_valid(self):
         text = (WWW_MARK / "hud_orb.js").read_text(encoding="utf-8")
@@ -40,7 +40,7 @@ class TestMarkUiVisualArtifacts:
 
     def test_controller_js_valid(self):
         text = (WWW_MARK / "controller.js").read_text(encoding="utf-8")
-        assert "updateJarvisState" in text
+        assert "updateNexiState" in text
         assert "senderText" in text
 
     def test_all_files_utf8(self):

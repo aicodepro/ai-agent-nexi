@@ -25,7 +25,7 @@ class TestDspClapRejectsSustainedSpeech:
             assert r.is_clap is False
 
     def test_sustained_speech_no_wake_through_manager(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
 
@@ -64,7 +64,7 @@ class TestDspClapRejectsSustainedSpeech:
             assert r.is_clap is False
 
     def test_rapid_speech_no_clap_wake(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000, clock=lambda: 0.0)
 

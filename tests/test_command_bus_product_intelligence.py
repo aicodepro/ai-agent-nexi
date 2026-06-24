@@ -26,7 +26,7 @@ def _decision(route, intent, slots=None, confidence=0.95):
 def test_tool_route_does_not_call_gemini(monkeypatch):
     import engine.command as command
 
-    monkeypatch.setenv("JARVIS_INTENT_V2_ENABLED", "true")
+    monkeypatch.setenv("NEXI_INTENT_V2_ENABLED", "true")
     with patch("engine.groq_intent_router_v2.route_intent_v2", return_value=_decision("tool", "open_app", {"app_name": "chrome"})), \
         patch("engine.tool_registry.execute_tool", return_value={"success": True, "verified": True, "message": "Opening chrome."}) as execute_tool, \
         patch("engine.command._safe_chatbot") as safe_chatbot, \
@@ -43,7 +43,7 @@ def test_tool_route_does_not_call_gemini(monkeypatch):
 def test_brain_route_does_not_call_tool(monkeypatch):
     import engine.command as command
 
-    monkeypatch.setenv("JARVIS_INTENT_V2_ENABLED", "true")
+    monkeypatch.setenv("NEXI_INTENT_V2_ENABLED", "true")
     with patch("engine.groq_intent_router_v2.route_intent_v2", return_value=_decision("brain", "general_qa")), \
         patch("engine.tool_registry.execute_tool") as execute_tool, \
         patch("engine.command._safe_chatbot", return_value="brain answer") as safe_chatbot, \
@@ -60,7 +60,7 @@ def test_brain_route_does_not_call_tool(monkeypatch):
 def test_product_tool_route_blocks_fake_success_without_verification(monkeypatch):
     import engine.command as command
 
-    monkeypatch.setenv("JARVIS_INTENT_V2_ENABLED", "true")
+    monkeypatch.setenv("NEXI_INTENT_V2_ENABLED", "true")
     unverified = {"success": True, "verified": False, "expects_user_reply": False, "message": "Done. Opened Chrome."}
     with patch("engine.groq_intent_router_v2.route_intent_v2", return_value=_decision("tool", "open_app", {"app_name": "chrome"})), \
         patch("engine.tool_registry.execute_tool", return_value=unverified), \

@@ -18,12 +18,12 @@ STATES = [
 ]
 
 TARGETS = [
-    "jarvis-state",
-    "jarvis-center-state",
-    "jarvis-bottom-state",
-    "jarvis-status-badge",
-    "jarvis-mode",
-    "jarvis-orb-state",
+    "nexi-state",
+    "nexi-center-state",
+    "nexi-bottom-state",
+    "nexi-status-badge",
+    "nexi-mode",
+    "nexi-orb-state",
 ]
 
 
@@ -52,21 +52,21 @@ def main() -> int:
         page = browser.new_page()
         page.add_init_script(
             """
-            window.__jarvisAcks = [];
+            window.__nexiAcks = [];
             window.eel = {
               expose: function () {},
               ui_state_ack: function (sessionId, state, label) {
-                window.__jarvisAcks.push({ sessionId: sessionId, state: state, label: label });
+                window.__nexiAcks.push({ sessionId: sessionId, state: state, label: label });
               }
             };
             """
         )
         page.goto(INDEX.as_uri(), wait_until="domcontentloaded")
-        page.wait_for_function("() => typeof window.jarvisApplyState === 'function'")
+        page.wait_for_function("() => typeof window.nexiApplyState === 'function'")
 
         for state, label, check_name in STATES:
             page.evaluate(
-                "([state, label]) => window.jarvisApplyState({ state, label, source: 'debug', session_id: 'debug-session' })",
+                "([state, label]) => window.nexiApplyState({ state, label, source: 'debug', session_id: 'debug-session' })",
                 [state, label],
             )
             values = page.evaluate(
@@ -90,7 +90,7 @@ def main() -> int:
             failures += 1
             _fail("mark_ui_all_targets_match", values)
 
-        ack_count = page.evaluate("() => window.__jarvisAcks.length")
+        ack_count = page.evaluate("() => window.__nexiAcks.length")
         if ack_count >= len(STATES):
             _pass("ui_ack_received")
         else:

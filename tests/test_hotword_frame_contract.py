@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 def test_hotword_frame_contract_defaults(monkeypatch):
-    monkeypatch.delenv("JARVIS_WAKE_SAMPLE_RATE", raising=False)
-    monkeypatch.delenv("JARVIS_WAKE_FRAME_MS", raising=False)
+    monkeypatch.delenv("NEXI_WAKE_SAMPLE_RATE", raising=False)
+    monkeypatch.delenv("NEXI_WAKE_FRAME_MS", raising=False)
     from engine.hotword_engine_manager import HotwordEngineManager
 
     manager = HotwordEngineManager({"scorer": lambda audio: 0.0})

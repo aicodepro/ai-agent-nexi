@@ -15,7 +15,7 @@ def test_clap_nn_rejects_silence():
     assert result.reason != "clap_detected"
 
 
-def test_clap_nn_rejects_hey_jarvis_like_frame():
+def test_clap_nn_rejects_hey_nexi_like_frame():
     """Random speech-like noise must not be clap without model."""
     from engine.clap_nn_backend import ClapNNBackend
     backend = ClapNNBackend(model_path="/nonexistent/model.pth")
@@ -24,7 +24,7 @@ def test_clap_nn_rejects_hey_jarvis_like_frame():
     assert not result.is_clap
 
 
-def test_clap_nn_rejects_jarvis_like_frame():
+def test_clap_nn_rejects_nexi_like_frame():
     from engine.clap_nn_backend import ClapNNBackend
     backend = ClapNNBackend(model_path="/nonexistent/model.pth")
     for _ in range(3):

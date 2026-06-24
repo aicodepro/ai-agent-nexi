@@ -1,4 +1,4 @@
-"""Debug JARVIS microphone input. Lists devices, records 3s, computes RMS.
+"""Debug NEXI microphone input. Lists devices, records 3s, computes RMS.
 
 Usage: python scripts/debug_mic_input.py
 """
@@ -15,7 +15,7 @@ if _root not in sys.path:
 from dotenv import load_dotenv
 load_dotenv()
 
-print("=== JARVIS Microphone Input Debug ===")
+print("=== NEXI Microphone Input Debug ===")
 print()
 
 # 1. List all audio devices via pyaudio

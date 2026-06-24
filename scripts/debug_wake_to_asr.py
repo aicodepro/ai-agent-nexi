@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", default="data/wake_calibration/last_command.wav")
     args = parser.parse_args(argv)
 
-    print("Jarvis wake-to-ASR debug")
+    print("Nexi wake-to-ASR debug")
     print("Wake detection is local. Groq ASR is called only after VAD accepts command speech.")
     try:
         import sounddevice as sd

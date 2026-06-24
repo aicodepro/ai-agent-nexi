@@ -27,7 +27,7 @@ def test_ui_state_payload_includes_presence():
     reset_presence_state()
     get_ui_state_manager().reset()
 
-    with patch("eel.updateJarvisState", create=True) as update:
+    with patch("eel.updateNexiState", create=True) as update:
         emit_state("saying", source="tts", status="speaking_started", session_id="sid1", force=True)
 
     payload = update.call_args[0][0]

@@ -30,8 +30,8 @@ async def main() -> int:
               ui_get_runtime_status: function() { return function(cb) { cb({wake_enabled:true, active_workflow:false}); }; },
               ui_submit_text: function(text) { window.__submittedText = text; return function(cb) { cb({ok:true, text:text}); }; },
               ui_submit_file_drop: function(paths) { return function(cb) { cb({ok:false}); }; },
-              wakeJarvisFromUi: function(source) { window.__wakeSource = source; return function(cb) { if (cb) cb('awake'); }; },
-              toggleJarvisSleepWake: function() { return function(cb) { if (cb) cb('awake'); }; }
+              wakeNexiFromUi: function(source) { window.__wakeSource = source; return function(cb) { if (cb) cb('awake'); }; },
+              toggleNexiSleepWake: function() { return function(cb) { if (cb) cb('awake'); }; }
             };
             """
         )
@@ -39,7 +39,7 @@ async def main() -> int:
         await page.screenshot(path=str(OUT / "online.png"), full_page=True)
 
         async def state(name: str, source: str = "test", text: str = ""):
-            await page.evaluate("([name, source, text]) => window.updateJarvisState({state:name, source:source, text:text})", [name, source, text])
+            await page.evaluate("([name, source, text]) => window.updateNexiState({state:name, source:source, text:text})", [name, source, text])
 
         await state("hotword_detected", "hotword")
         await page.screenshot(path=str(OUT / "hotword_detected.png"), full_page=True)
@@ -64,7 +64,7 @@ async def main() -> int:
         log_text = await page.text_content("#activity-log")
         await browser.close()
 
-    required = ["WAKE: Hotword detected.", "SYS: Listening", "You: what is AI", "JARVIS: AI is", "WAKE: Double clap detected."]
+    required = ["WAKE: Hotword detected.", "SYS: Listening", "You: what is AI", "NEXI: AI is", "WAKE: Double clap detected."]
     missing = [item for item in required if item not in (log_text or "")]
     if missing:
         errors.append("missing activity log entries: " + ", ".join(missing))

@@ -12,9 +12,9 @@ def test_log_status_contains_hotword_config():
     engine = HotwordEngineManager(config={"enabled": False})
     log_lines = []
     original_log = engine.log_status
-    engine._last_prediction_keys = ["hey jarvis"]
-    engine._last_prediction_key = "hey jarvis"
-    engine._model_name = "hey_jarvis_v0.1.onnx"
+    engine._last_prediction_keys = ["hey nexi"]
+    engine._last_prediction_key = "hey nexi"
+    engine._model_name = "hey_nexi_v0.1.onnx"
     buffer = io.StringIO()
     import sys as _sys
     old_stdout = _sys.stdout
@@ -45,8 +45,8 @@ def test_log_status_contains_model_path():
 
 
 def test_normalise_oww_name_handles_onnx():
-    assert _normalise_oww_name("hey_jarvis_v0.1.onnx") == "hey_jarvis_v0.1.onnx"
+    assert _normalise_oww_name("hey_nexi_v0.1.onnx") == "hey_nexi_v0.1.onnx"
 
 
 def test_normalise_oww_name_converts_underscores():
-    assert _normalise_oww_name("hey_jarvis") == "hey jarvis"
+    assert _normalise_oww_name("hey_nexi") == "hey nexi"

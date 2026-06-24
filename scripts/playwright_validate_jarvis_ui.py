@@ -1,4 +1,4 @@
-"""Comprehensive Playwright UI validation for Jarvis.
+"""Comprehensive Playwright UI validation for Nexi.
 
 Supports:
   --mode legacy|mark     (which UI to validate)
@@ -8,14 +8,14 @@ Static mode:
   Opens HTML directly, injects mock window.eel, validates DOM/console/screenshots.
 
 Eel runtime mode:
-  Starts python main.py as subprocess with JARVIS_UI_MODE set, waits for
+  Starts python main.py as subprocess with NEXI_UI_MODE set, waits for
   localhost:8000, opens with Playwright, validates live state.
 
 Usage:
-  python scripts/playwright_validate_jarvis_ui.py --mode legacy --runtime static
-  python scripts/playwright_validate_jarvis_ui.py --mode mark --runtime static
-  python scripts/playwright_validate_jarvis_ui.py --mode legacy --runtime eel
-  python scripts/playwright_validate_jarvis_ui.py --mode mark --runtime eel
+  python scripts/playwright_validate_nexi_ui.py --mode legacy --runtime static
+  python scripts/playwright_validate_nexi_ui.py --mode mark --runtime static
+  python scripts/playwright_validate_nexi_ui.py --mode legacy --runtime eel
+  python scripts/playwright_validate_nexi_ui.py --mode mark --runtime eel
 """
 
 import argparse
@@ -39,9 +39,9 @@ window.eel = {
     ui_get_tool_categories: () => Promise.resolve({}),
     ui_get_suggestions: () => Promise.resolve([]),
     allCommands: () => Promise.resolve(),
-    toggleJarvisSleepWake: () => Promise.resolve(),
-    wakeJarvisFromUi: () => Promise.resolve(),
-    updateJarvisState: () => {},
+    toggleNexiSleepWake: () => Promise.resolve(),
+    wakeNexiFromUi: () => Promise.resolve(),
+    updateNexiState: () => {},
     senderText: () => {},
     ShowHood: () => {},
 };
@@ -108,10 +108,10 @@ def validate_static(mode: str, playwright) -> dict:
         state_names = ["idle", "listening", "thinking", "speaking", "sleeping", "error"]
         for state in state_names:
             try:
-                page.evaluate(f"""window.updateJarvisState({{state: "{state}"}})""")
+                page.evaluate(f"""window.updateNexiState({{state: "{state}"}})""")
             except Exception:
                 try:
-                    page.evaluate(f"""window.eel.updateJarvisState(JSON.stringify({{state: "{state}"}}))""")
+                    page.evaluate(f"""window.eel.updateNexiState(JSON.stringify({{state: "{state}"}}))""")
                 except Exception:
                     pass
             page.wait_for_timeout(500)
@@ -279,9 +279,9 @@ def validate_eel(mode: str, playwright) -> dict:
     os.makedirs(ARTIFACTS, exist_ok=True)
 
     env = os.environ.copy()
-    env["JARVIS_UI_MODE"] = mode
+    env["NEXI_UI_MODE"] = mode
 
-    _log(f"[EEL] starting main.py with JARVIS_UI_MODE={mode}")
+    _log(f"[EEL] starting main.py with NEXI_UI_MODE={mode}")
     proc = subprocess.Popen(
         [sys.executable, str(ROOT / "main.py")],
         cwd=str(ROOT),
@@ -356,7 +356,7 @@ def validate_eel(mode: str, playwright) -> dict:
             # State transition
             for state in ["idle", "listening", "thinking", "speaking"]:
                 try:
-                    page.evaluate(f"""window.eel.updateJarvisState(JSON.stringify({{state: "{state}"}}))""")
+                    page.evaluate(f"""window.eel.updateNexiState(JSON.stringify({{state: "{state}"}}))""")
                     page.wait_for_timeout(500)
                     path = ARTIFACTS / f"{mode}_eel_{state}.png"
                     page.screenshot(path=str(path), full_page=False)
@@ -420,7 +420,7 @@ def report(results: dict) -> bool:
 # ====================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Playwright UI validation for Jarvis")
+    parser = argparse.ArgumentParser(description="Playwright UI validation for Nexi")
     parser.add_argument("--mode", choices=["legacy", "mark"], default="mark")
     parser.add_argument("--runtime", choices=["static", "eel"], default="static")
     args = parser.parse_args()

@@ -37,8 +37,8 @@ def main() -> int:
       ui_get_runtime_status: function() { return function(cb) { if (cb) cb({wake_enabled:true, active_workflow:false}); }; },
       ui_submit_text: function() { return function(cb) { if (cb) cb({ok:true}); }; },
       ui_submit_file_drop: function() { return function(cb) { if (cb) cb({ok:true, files:[]}); }; },
-      wakeJarvisFromUi: function() { return function(cb) { if (cb) cb({ok:true}); }; },
-      toggleJarvisSleepWake: function() { return function(cb) { if (cb) cb({ok:true}); }; }
+      wakeNexiFromUi: function() { return function(cb) { if (cb) cb({ok:true}); }; },
+      toggleNexiSleepWake: function() { return function(cb) { if (cb) cb({ok:true}); }; }
     };
     """
 
@@ -48,8 +48,8 @@ def main() -> int:
         page.add_init_script(eel_mock)
         page.goto(index.as_uri(), wait_until="load")
 
-        state = page.locator("#jarvis-state")
-        log = page.locator("#jarvis-log")
+        state = page.locator("#nexi-state")
+        log = page.locator("#nexi-log")
         expect(state).to_have_text("SLEEP MODE")
         print("PASS playwright initial sleep")
 
@@ -61,7 +61,7 @@ def main() -> int:
             if label:
                 payload["label"] = label
                 payload["message"] = label
-            page.evaluate("payload => window.updateJarvisState(payload)", payload)
+            page.evaluate("payload => window.updateNexiState(payload)", payload)
 
         def text(selector: str) -> str:
             return page.locator(selector).inner_text(timeout=3000)
@@ -81,7 +81,7 @@ def main() -> int:
         emit("thinking", "assistant", log_message="SYS: Thinking...")
         expect(state).to_have_text("THINKING")
         page.evaluate("text => window.receiverText(text)", "Opening Notepad.")
-        _assert("JARVIS: Opening Notepad." in log_text(), "assistant response missing")
+        _assert("NEXI: Opening Notepad." in log_text(), "assistant response missing")
         emit("saying", "tts", log_message="SYS: Saying...")
         expect(state).to_have_text("SAYING")
         emit("sleep", "system", log_message="SYS: Sleep mode")
@@ -126,7 +126,7 @@ def main() -> int:
         expect(state).to_have_text("SAYING")
         emit("sleep", "system", log_message="SYS: Sleep mode")
         expect(state).to_have_text("SLEEP MODE")
-        _assert(text("#jarvis-state") == "SLEEP MODE", "stale listening after sleep")
+        _assert(text("#nexi-state") == "SLEEP MODE", "stale listening after sleep")
         print("PASS playwright no duplicate states")
 
         browser.close()

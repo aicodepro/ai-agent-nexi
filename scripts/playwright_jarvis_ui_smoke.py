@@ -106,12 +106,12 @@ def main() -> int:
             try:
                 page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded", timeout=30000)
                 page.add_style_tag(content=BOOTSTRAP_CSS)
-                page.wait_for_function("Boolean(window.updateJarvisState && window.showOutputWorkspace)", timeout=5000)
-                page.evaluate("window.updateJarvisState({ state: 'idle', source: 'ready' })")
+                page.wait_for_function("Boolean(window.updateNexiState && window.showOutputWorkspace)", timeout=5000)
+                page.evaluate("window.updateNexiState({ state: 'idle', source: 'ready' })")
                 page.screenshot(path=str(idle_png), full_page=True)
-                page.evaluate("window.updateJarvisState({ state: 'speaking', source: 'tts', text: 'Demo speech' })")
+                page.evaluate("window.updateNexiState({ state: 'speaking', source: 'tts', text: 'Demo speech' })")
                 page.screenshot(path=str(speaking_png), full_page=True)
-                page.evaluate("window.updateJarvisState({ state: 'listening', source: 'wake' })")
+                page.evaluate("window.updateNexiState({ state: 'listening', source: 'wake' })")
                 page.screenshot(path=str(listening_png), full_page=True)
                 result = page.evaluate(
                     """
@@ -120,9 +120,9 @@ def main() -> int:
                       const badges = Array.from(document.querySelectorAll('.source-badge')).filter((el) => getComputedStyle(el).display !== 'none');
                       const orb = document.querySelector('.square').getBoundingClientRect();
                       const input = document.getElementById('TextInput').getBoundingClientRect();
-                      window.updateJarvisState({ state: 'speaking', source: 'tts' });
+                      window.updateNexiState({ state: 'speaking', source: 'tts' });
                       const speakingBadge = badge.textContent;
-                      window.updateJarvisState({ state: 'listening', source: 'wake' });
+                      window.updateNexiState({ state: 'listening', source: 'wake' });
                       const listeningBadge = badge.textContent;
                       return {
                         one_badge: badges.length === 1,

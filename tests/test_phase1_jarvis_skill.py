@@ -1,10 +1,10 @@
-from skills.jarvis import agent_status, cancel_agent, run_agent, add_rule
+from skills.nexi import agent_status, cancel_agent, run_agent, add_rule
 
 
 def test_agent_status_returns_string():
     result = agent_status()
     assert isinstance(result, str)
-    assert "Jarvis route" in result
+    assert "Nexi route" in result
 
 
 def test_cancel_agent_returns_string():

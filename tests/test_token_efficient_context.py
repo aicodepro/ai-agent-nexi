@@ -27,6 +27,6 @@ def test_gemini_context_includes_only_last_5_turns_and_excludes_secrets():
 
 def test_gemini_prompt_uses_supplied_compact_context():
     from engine.gemini_brain import _build_prompt
-    prompt = _build_prompt("make it shorter", "Recent turns:\nJarvis: a long answer")
+    prompt = _build_prompt("make it shorter", "Recent turns:\nNexi: a long answer")
     assert "Recent turns" in prompt
     assert "make it shorter" in prompt

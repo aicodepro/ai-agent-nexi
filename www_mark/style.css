@@ -1,4 +1,4 @@
-/* ===== MARK-STYLE JARVIS EEL UI ===== */
+/* ===== MARK-STYLE NEXI EEL UI ===== */
 /* Based on Mark ui.py color scheme + layout */
 
 :root {
@@ -86,7 +86,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
 .info-row:nth-child(3) { color: var(--acc2); }
 .state-info-block { margin-top: 4px; }
 .state-info-block .info-row:first-child { color: var(--text-dim); font-size: 7px; letter-spacing: 1px; }
-#jarvis-status-badge { font-size: 10px; font-weight: bold; letter-spacing: 1px; }
+#nexi-status-badge { font-size: 10px; font-weight: bold; letter-spacing: 1px; }
 
 .status-badges { display: flex; flex-direction: column; gap: 3px; margin-top: auto; }
 .status-badge {
@@ -134,7 +134,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
 .transcript-entry { display: grid; grid-template-columns: 54px 1fr; gap: 6px; font-size: 9px; line-height: 1.35; }
 .entry-label { color: var(--text-dim); letter-spacing: 1px; font-weight: bold; }
 .entry-text { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jarvis-entry .entry-text { color: var(--pri); }
+.nexi-entry .entry-text { color: var(--pri); }
 .entry-meta { grid-column: 2; color: var(--text-dim); font-size: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .presence-panel {
   position: absolute; bottom: 118px; width: min(420px, 68%);
@@ -143,13 +143,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg);
   border-radius: 5px; color: var(--text-dim); font-size: 7px; letter-spacing: 1px;
 }
 .presence-panel span { color: var(--text-med); }
-.jarvis-state-sleep { color: var(--text-dim); }
-.jarvis-state-online { color: var(--pri); }
-.jarvis-state-listening { color: var(--green); }
-.jarvis-state-recognising { color: var(--acc2); }
-.jarvis-state-thinking { color: var(--pri); }
-.jarvis-state-saying { color: var(--acc); }
-.jarvis-state-error { color: var(--red); }
+.nexi-state-sleep { color: var(--text-dim); }
+.nexi-state-online { color: var(--pri); }
+.nexi-state-listening { color: var(--green); }
+.nexi-state-recognising { color: var(--acc2); }
+.nexi-state-thinking { color: var(--pri); }
+.nexi-state-saying { color: var(--acc); }
+.nexi-state-error { color: var(--red); }
 body.tone-calm .state-badge { text-shadow: 0 0 10px rgba(0,212,255,0.45); }
 body.tone-friendly .state-badge { color: var(--green); text-shadow: 0 0 12px rgba(0,255,136,0.45); }
 body.tone-focused .state-badge { color: var(--pri); text-shadow: 0 0 14px rgba(0,212,255,0.65); }
@@ -251,11 +251,11 @@ body.tone-uncertain .state-badge { color: var(--acc2); text-shadow: 0 0 12px rgb
 }
 .bottom-state { font-weight: bold; letter-spacing: 1px; min-width: 74px; }
 
-body.jarvis-ui-state-online .command-bar,
-body.jarvis-ui-state-listening .command-bar,
-body.jarvis-ui-state-recognising .command-bar,
-body.jarvis-ui-state-thinking .command-bar,
-body.jarvis-ui-state-saying .command-bar {
+body.nexi-ui-state-online .command-bar,
+body.nexi-ui-state-listening .command-bar,
+body.nexi-ui-state-recognising .command-bar,
+body.nexi-ui-state-thinking .command-bar,
+body.nexi-ui-state-saying .command-bar {
   border-top-color: var(--pri);
 }
 

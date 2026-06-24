@@ -8,7 +8,7 @@ from pathlib import Path
 def update_env_example():
     print("=== UPDATING .env.example WITH HOTWORD FIXES ===\n")
     
-    env_path = Path("E:\\jarvis-main\\.env.example")
+    env_path = Path("E:\\nexi-main\\.env.example")
     if not env_path.exists():
         print(f"ERROR: {env_path} not found!")
         return False
@@ -18,10 +18,10 @@ def update_env_example():
     
     # Update settings
     updates = [
-        ("JARVIS_HOTWORD_MIN_RMS", "JARVIS_HOTWORD_MIN_RMS=0.010"),
+        ("NEXI_HOTWORD_MIN_RMS", "NEXI_HOTWORD_MIN_RMS=0.010"),
         ("OPENWAKEWORD_SCORE_THRESHOLD", "OPENWAKEWORD_SCORE_THRESHOLD=0.35"),
         ("OPENWAKEWORD_CONSECUTIVE_HITS", "OPENWAKEWORD_CONSECUTIVE_HITS=2"),
-        ("JARVIS_HOTWORD_DEBUG", "JARVIS_HOTWORD_DEBUG=true"),
+        ("NEXI_HOTWORD_DEBUG", "NEXI_HOTWORD_DEBUG=true"),
     ]
     
     updated = False

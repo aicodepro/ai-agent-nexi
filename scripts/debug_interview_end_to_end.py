@@ -40,17 +40,17 @@ def main() -> int:
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     LOG_PATH.write_text("", encoding="utf-8")
 
-    os.environ.setdefault("JARVIS_UI_MODE", "mark")
-    os.environ.setdefault("JARVIS_CONSOLE_LOG_LEVEL", "clean")
-    os.environ.setdefault("JARVIS_DEBUG_LOG_FILE", "artifacts/jarvis_interview_debug.log")
+    os.environ.setdefault("NEXI_UI_MODE", "mark")
+    os.environ.setdefault("NEXI_CONSOLE_LOG_LEVEL", "clean")
+    os.environ.setdefault("NEXI_DEBUG_LOG_FILE", "artifacts/nexi_interview_debug.log")
 
-    failures += not check("mark_ui_mode", os.getenv("JARVIS_UI_MODE") == "mark", "set JARVIS_UI_MODE=mark")
+    failures += not check("mark_ui_mode", os.getenv("NEXI_UI_MODE") == "mark", "set NEXI_UI_MODE=mark")
 
     index = (ROOT / "www_mark" / "index.html").read_text(encoding="utf-8")
     controller = (ROOT / "www_mark" / "controller.js").read_text(encoding="utf-8")
-    required_ids = ["jarvis-state", "jarvis-source", "jarvis-log", "jarvis-bottom-state", "jarvis-center-state", "jarvis-status-badge", "jarvis-mode", "jarvis-orb-state"]
+    required_ids = ["nexi-state", "nexi-source", "nexi-log", "nexi-bottom-state", "nexi-center-state", "nexi-status-badge", "nexi-mode", "nexi-orb-state"]
     missing = [item for item in required_ids if item not in index]
-    failures += not check("mark_ui_dom_all_state_targets_sync", not missing and "window.jarvisApplyState" in controller, f"missing={missing}")
+    failures += not check("mark_ui_dom_all_state_targets_sync", not missing and "window.nexiApplyState" in controller, f"missing={missing}")
 
     live_required("hotword_audio_seen", "scripts/debug_hotword_live.py")
     live_required("hotword_scores_seen", "scripts/debug_hotword_live.py")
@@ -88,7 +88,7 @@ def main() -> int:
     command_text = (ROOT / "engine" / "command.py").read_text(encoding="utf-8")
     failures += not check("tts_saying_state", "_set_ui_state(\"saying\"" in command_text, "command.speak saying state missing")
     failures += not check("final_sleeping_state", "else \"sleep\"" in command_text and "_set_ui_state(" in command_text, "command.speak sleep state missing")
-    failures += not check("clean_console_mode", os.getenv("JARVIS_CONSOLE_LOG_LEVEL") == "clean", "JARVIS_CONSOLE_LOG_LEVEL not clean")
+    failures += not check("clean_console_mode", os.getenv("NEXI_CONSOLE_LOG_LEVEL") == "clean", "NEXI_CONSOLE_LOG_LEVEL not clean")
 
     if failures:
         print(f"RESULT NEEDS_LIVE_TEST_OR_FIX failures={failures} log={LOG_PATH}")

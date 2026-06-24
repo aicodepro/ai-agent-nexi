@@ -37,15 +37,15 @@ def main() -> int:
         fail(f"missing Mark UI index {index}")
 
     eel_mock = """
-    window.__wakeJarvisCalls = [];
+    window.__wakeNexiCalls = [];
     window.eel = {
       expose: function() {},
       ui_get_env_status: function() { return function(cb) { if (cb) cb({groq:false, gemini:false, openrouter:false}); }; },
       ui_get_runtime_status: function() { return function(cb) { if (cb) cb({wake_enabled:true, active_workflow:false}); }; },
       ui_submit_text: function() { return function(cb) { if (cb) cb({ok:true}); }; },
       ui_submit_file_drop: function() { return function(cb) { if (cb) cb({ok:true, files:[]}); }; },
-      wakeJarvisFromUi: function(source) { window.__wakeJarvisCalls.push(source); return function(cb) { if (cb) cb({ok:true}); }; },
-      toggleJarvisSleepWake: function() { return function(cb) { if (cb) cb({ok:true}); }; }
+      wakeNexiFromUi: function(source) { window.__wakeNexiCalls.push(source); return function(cb) { if (cb) cb({ok:true}); }; },
+      toggleNexiSleepWake: function() { return function(cb) { if (cb) cb({ok:true}); }; }
     };
     """
 
@@ -55,13 +55,13 @@ def main() -> int:
         page = browser.new_page(viewport={"width": 1280, "height": 800})
         page.add_init_script(eel_mock)
         page.goto(index.as_uri(), wait_until="load")
-        state = page.locator("#jarvis-state")
+        state = page.locator("#nexi-state")
         log("[WATCHER] Mark UI loaded")
         expect(state).to_have_text("SLEEP MODE")
         log("PASS runtime watcher initial sleep")
 
         def emit(payload: dict) -> None:
-            page.evaluate("payload => window.updateJarvisState(payload)", payload)
+            page.evaluate("payload => window.updateNexiState(payload)", payload)
 
         flow = [
             {"state": "wake_detected", "source": "hotword", "label": "HOTWORD DETECTED", "message": "HOTWORD DETECTED", "log": "WAKE: Hotword detected", "log_level": "wake"},
@@ -83,10 +83,10 @@ def main() -> int:
         expect(state).to_have_text("SLEEP MODE")
         log("PASS runtime watcher returned sleep")
 
-        before_count = page.locator("#jarvis-log .log-msg", has_text="SYS: Listening...").count()
+        before_count = page.locator("#nexi-log .log-msg", has_text="SYS: Listening...").count()
         emit({"state": "listening", "source": "hotword", "log": "SYS: Listening..."})
         emit({"state": "listening", "source": "hotword", "log": "SYS: Listening..."})
-        after_count = page.locator("#jarvis-log .log-msg", has_text="SYS: Listening...").count()
+        after_count = page.locator("#nexi-log .log-msg", has_text="SYS: Listening...").count()
         if after_count - before_count > 1:
             fail("duplicate listening states")
         log("PASS runtime watcher no duplicate states")
@@ -94,7 +94,7 @@ def main() -> int:
         emit({"state": "sleep", "source": "system", "log": "SYS: Sleep mode"})
         page.keyboard.press("Control+J")
         expect(state).to_have_text("SLEEP MODE")
-        calls = page.evaluate("() => window.__wakeJarvisCalls.slice()")
+        calls = page.evaluate("() => window.__wakeNexiCalls.slice()")
         if "hotkey" in calls:
             fail("Ctrl+J invoked hotkey wake")
         log("PASS runtime watcher no Win+J")

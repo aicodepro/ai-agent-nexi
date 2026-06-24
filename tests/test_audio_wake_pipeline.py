@@ -74,11 +74,11 @@ def _clean_env(monkeypatch):
     monkeypatch.setenv("OPENWAKEWORD_CONSECUTIVE_HITS", "2")
     monkeypatch.setenv("WAKE_COOLDOWN_SECONDS", "2.0")
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "false")
-    monkeypatch.delenv("JARVIS_CLAP_ENABLED", raising=False)
+    monkeypatch.delenv("NEXI_CLAP_ENABLED", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    monkeypatch.setenv("JARVIS_WAKE_SOURCES", "hotword,double_clap,hotkey")
-    monkeypatch.setenv("JARVIS_HOTKEY_WAKE_ENABLED", "false")
-    monkeypatch.setenv("JARVIS_HOTKEY_ENABLED", "false")
+    monkeypatch.setenv("NEXI_WAKE_SOURCES", "hotword,double_clap,hotkey")
+    monkeypatch.setenv("NEXI_HOTKEY_WAKE_ENABLED", "false")
+    monkeypatch.setenv("NEXI_HOTKEY_ENABLED", "false")
     # Reset session manager state between tests.
     from engine.wake_session_manager import WakeSessionManager
     mgr = WakeSessionManager.get_instance()
@@ -207,7 +207,7 @@ def test_cooldown_blocks_repeat_wake():
 
 def test_clap_disabled_by_default(monkeypatch):
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "false")
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "false")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "false")
     # Reload clap_detector to honour env, then build pipeline.
     import importlib
     import engine.clap_detector as cd
@@ -219,8 +219,8 @@ def test_clap_disabled_by_default(monkeypatch):
 def test_double_clap_callback_path(monkeypatch):
     """Two loud claps inside CLAP_MIN_GAP_MS..CLAP_MAX_GAP_MS must wake."""
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "tzur,jarvis")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "true")
+    monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "tzur,nexi")
     import importlib
     import engine.clap_detector as cd
     importlib.reload(cd)
@@ -246,7 +246,7 @@ def test_double_clap_callback_path(monkeypatch):
 
 def test_single_clap_does_not_wake(monkeypatch):
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "true")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "true")
     import importlib
     import engine.clap_detector as cd
     importlib.reload(cd)
@@ -261,8 +261,8 @@ def test_single_clap_does_not_wake(monkeypatch):
 
 def test_double_clap_wakes_once(monkeypatch):
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "tzur,jarvis")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "true")
+    monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "tzur,nexi")
     import importlib
     import engine.clap_detector as cd
     importlib.reload(cd)
@@ -284,7 +284,7 @@ def test_double_clap_wakes_once(monkeypatch):
 
 def test_clap_enabled_in_pipeline_path(monkeypatch):
     monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "true")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "true")
     import importlib
     import engine.clap_detector as cd
     importlib.reload(cd)
@@ -537,12 +537,12 @@ def test_asr_result_posts_transcript_preview():
     q = multiprocessing.Queue()
     pipeline = _fresh_pipeline(
         command_queue=q,
-        asr=lambda a, s: "hello from jarvis",
+        asr=lambda a, s: "hello from nexi",
     )
     pipeline.emit_command(b"\x00\x00" * 1600, source="hotword")
     events = [q.get(timeout=1), q.get(timeout=1), q.get(timeout=1)]
     asr_result = next(event for event in events if event.get("status") == "asr_result")
-    assert asr_result["text"] == "hello from jarvis"
+    assert asr_result["text"] == "hello from nexi"
 
 
 def test_pipeline_never_calls_allCommands_directly_when_queue_present():
@@ -589,7 +589,7 @@ def test_hotword_uses_internal_wake_not_win_j():
         command_queue=q,
         asr=lambda a, s: "hello",
     )
-    with patch("engine.jarvis_wake_controller.wake_jarvis") as mock_wake, \
+    with patch("engine.nexi_wake_controller.wake_nexi") as mock_wake, \
          patch("pyautogui.hotkey") as mock_hotkey:
         pipeline.trigger_wake("hotword")
     mock_wake.assert_called_once_with("hotword")
@@ -603,7 +603,7 @@ def test_clap_uses_internal_wake_not_win_j():
         command_queue=q,
         asr=lambda a, s: "hello",
     )
-    with patch("engine.jarvis_wake_controller.wake_jarvis") as mock_wake, \
+    with patch("engine.nexi_wake_controller.wake_nexi") as mock_wake, \
          patch("pyautogui.hotkey") as mock_hotkey:
         pipeline.trigger_wake("clap")
     mock_wake.assert_called_once_with("double_clap")
@@ -612,7 +612,7 @@ def test_clap_uses_internal_wake_not_win_j():
 
 def test_win_j_pyautogui_not_called_in_internal_mode():
     pipeline = _fresh_pipeline(asr=lambda a, s: "hello")
-    with patch("engine.jarvis_wake_controller.wake_jarvis") as mock_wake, \
+    with patch("engine.nexi_wake_controller.wake_nexi") as mock_wake, \
          patch("pyautogui.hotkey") as mock_hotkey:
         pipeline.trigger_wake("hotkey")
     mock_wake.assert_called_once_with("hotkey")
@@ -638,7 +638,7 @@ def test_successful_wake_with_queue_keeps_session_active_until_bridge_finishes()
     """Regression: on a successful voice command, trigger_wake must NOT finish
     the session itself when an async command queue is present. The bridge owns
     the rest of the lifecycle and resumes detectors only after TTS completes.
-    This prevents the mic re-listening while Jarvis is recognising/thinking/speaking.
+    This prevents the mic re-listening while Nexi is recognising/thinking/speaking.
     """
     import multiprocessing
     from engine.wake_session_manager import get_session_manager
@@ -649,7 +649,7 @@ def test_successful_wake_with_queue_keeps_session_active_until_bridge_finishes()
     # Capture returns valid speech audio; emit_command dispatches to the queue
     # (async) and returns the transcript without speaking inline.
     valid_audio = b"\x01\x01" * 30000  # well above ASR_MIN_AUDIO_MS byte gate
-    with patch("engine.jarvis_wake_controller.wake_jarvis"), \
+    with patch("engine.nexi_wake_controller.wake_nexi"), \
          patch.object(pipeline, "capture_command", return_value=valid_audio), \
          patch.object(pipeline, "emit_command", return_value="what is the time"):
         pipeline._last_capture_stats = {"speech_started": True, "duration_ms": 3000, "speech_ms": 1500}
@@ -668,7 +668,7 @@ def test_no_speech_timeout_finishes_session():
     from engine.wake_session_manager import get_session_manager
 
     pipeline = _fresh_pipeline(asr=lambda a, s: "")
-    with patch("engine.jarvis_wake_controller.wake_jarvis"), \
+    with patch("engine.nexi_wake_controller.wake_nexi"), \
          patch.object(pipeline, "capture_command", return_value=b"\x00\x00" * 10):
         pipeline._last_capture_stats = {"speech_started": False, "duration_ms": 100, "speech_ms": 0}
         result = pipeline.trigger_wake("hotword")

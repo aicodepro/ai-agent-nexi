@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 def test_fullscreen_env_defaults_true(monkeypatch):
-    monkeypatch.delenv("JARVIS_FULLSCREEN", raising=False)
+    monkeypatch.delenv("NEXI_FULLSCREEN", raising=False)
     import engine.ui_loader as ui_loader
     importlib.reload(ui_loader)
     assert ui_loader.should_open_fullscreen() is True
@@ -14,8 +14,8 @@ def test_fullscreen_env_defaults_true(monkeypatch):
 
 
 def test_window_mode_maximized(monkeypatch):
-    monkeypatch.setenv("JARVIS_FULLSCREEN", "false")
-    monkeypatch.setenv("JARVIS_WINDOW_MODE", "maximized")
+    monkeypatch.setenv("NEXI_FULLSCREEN", "false")
+    monkeypatch.setenv("NEXI_WINDOW_MODE", "maximized")
     import engine.ui_loader as ui_loader
     importlib.reload(ui_loader)
     assert ui_loader.get_window_mode() == "maximized"

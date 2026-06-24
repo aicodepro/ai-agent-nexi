@@ -29,9 +29,9 @@ class Clock:
 
 
 def test_double_clap_gap_window(monkeypatch):
-    monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
-    monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "160")
-    monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "950")
+    monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
+    monkeypatch.setenv("NEXI_CLAP_MIN_GAP_MS", "160")
+    monkeypatch.setenv("NEXI_CLAP_MAX_GAP_MS", "950")
     clock = Clock()
     monkeypatch.setattr(time_module, "time", clock)
     from engine.clap_backend_manager import ClapBackendManager

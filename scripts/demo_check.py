@@ -166,7 +166,7 @@ def run_checks(*, strict: bool = False) -> dict:
 
 def print_report(summary: dict) -> None:
     print("=" * 60)
-    print("JARVIS PHASE 4 DEMO CHECK")
+    print("NEXI PHASE 4 DEMO CHECK")
     print("=" * 60)
     for result in summary["results"]:
         status = result["status"]
@@ -182,7 +182,7 @@ def print_report(summary: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Jarvis Phase 4 demo preflight check")
+    parser = argparse.ArgumentParser(description="Nexi Phase 4 demo preflight check")
     parser.add_argument("--strict", action="store_true", help="Treat warnings as blocking failures")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args(argv)

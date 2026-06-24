@@ -21,14 +21,14 @@ def _ui_payloads(mock_update):
 
 def test_asr_started_posts_transcribing_status():
     event = {"type": EVENT_STATUS, "status": "asr_started", "source": "hotword"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     assert _ui_payloads(mock_update)[0]["state"] == "recognising"
 
 
 def test_asr_result_posts_transcript_preview():
     event = {"type": EVENT_STATUS, "status": "asr_result", "source": "clap", "text": "hello"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     payload = _ui_payloads(mock_update)[0]
     assert payload["state"] == "recognising"
@@ -37,7 +37,7 @@ def test_asr_result_posts_transcript_preview():
 
 def test_command_text_sets_thinking_then_dispatches_allCommands():
     event = {"type": EVENT_COMMAND_TEXT, "text": "hello", "source": "hotword"}
-    with patch("eel.updateJarvisState", create=True) as mock_update, \
+    with patch("eel.updateNexiState", create=True) as mock_update, \
          patch("engine.command.allCommands") as mock_all:
         handle_bridge_event(event)
     payloads = _ui_payloads(mock_update)
@@ -47,7 +47,7 @@ def test_command_text_sets_thinking_then_dispatches_allCommands():
 
 def test_command_text_returns_ui_to_idle_after_dispatch():
     event = {"type": EVENT_COMMAND_TEXT, "text": "hello", "source": "clap"}
-    with patch("eel.updateJarvisState", create=True) as mock_update, \
+    with patch("eel.updateNexiState", create=True) as mock_update, \
          patch("engine.command.allCommands"):
         handle_bridge_event(event)
     payloads = _ui_payloads(mock_update)
@@ -64,9 +64,9 @@ def test_core_ui_functions_exist_in_js():
     assert "function ShowHood" in text
 
 
-def test_idle_hint_mentions_hey_jarvis_and_double_clap():
+def test_idle_hint_mentions_hey_nexi_and_double_clap():
     html = (ROOT / "www" / "index.html").read_text(encoding="utf-8")
     js = (ROOT / "www" / "controller.js").read_text(encoding="utf-8")
     combined = f"{html}\n{js}".lower()
-    assert "hey jarvis" in combined
+    assert "hey nexi" in combined
     assert "double clap" in combined

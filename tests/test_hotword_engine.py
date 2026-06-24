@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import time
 import unittest
 from engine.hotword_helper import (
-    is_jarvis_hotword,
+    is_nexi_hotword,
     check_hotword_cooldown,
     reset_hotword_cooldown,
     set_hotword_awake,
@@ -14,55 +14,55 @@ from engine.hotword_helper import (
 )
 
 
-class TestIsJarvisHotword(unittest.TestCase):
+class TestIsNexiHotword(unittest.TestCase):
 
     def test_hotword_rejects_jar(self):
-        self.assertFalse(is_jarvis_hotword("jar"))
+        self.assertFalse(is_nexi_hotword("jar"))
 
     def test_hotword_rejects_jars(self):
-        self.assertFalse(is_jarvis_hotword("jars"))
+        self.assertFalse(is_nexi_hotword("jars"))
 
     def test_hotword_rejects_java(self):
-        self.assertFalse(is_jarvis_hotword("java"))
+        self.assertFalse(is_nexi_hotword("java"))
 
     def test_hotword_rejects_service(self):
-        self.assertFalse(is_jarvis_hotword("service"))
+        self.assertFalse(is_nexi_hotword("service"))
 
     def test_hotword_rejects_harvest(self):
-        self.assertFalse(is_jarvis_hotword("harvest"))
+        self.assertFalse(is_nexi_hotword("harvest"))
 
     def test_hotword_rejects_empty(self):
-        self.assertFalse(is_jarvis_hotword(""))
-        self.assertFalse(is_jarvis_hotword("   "))
+        self.assertFalse(is_nexi_hotword(""))
+        self.assertFalse(is_nexi_hotword("   "))
 
     def test_hotword_rejects_nonsense(self):
-        self.assertFalse(is_jarvis_hotword("asdfgh"))
-        self.assertFalse(is_jarvis_hotword("jarvissss"))
+        self.assertFalse(is_nexi_hotword("asdfgh"))
+        self.assertFalse(is_nexi_hotword("nexisss"))
 
-    def test_hotword_accepts_jarvis(self):
-        self.assertTrue(is_jarvis_hotword("jarvis"))
+    def test_hotword_accepts_nexi(self):
+        self.assertTrue(is_nexi_hotword("nexi"))
 
-    def test_hotword_accepts_hey_jarvis(self):
-        self.assertTrue(is_jarvis_hotword("hey jarvis"))
+    def test_hotword_accepts_hey_nexi(self):
+        self.assertTrue(is_nexi_hotword("hey nexi"))
 
-    def test_hotword_accepts_hey_jarvis_case(self):
-        self.assertTrue(is_jarvis_hotword("Hey Jarvis"))
+    def test_hotword_accepts_hey_nexi_case(self):
+        self.assertTrue(is_nexi_hotword("Hey Nexi"))
 
     def test_hotword_accepts_jervis(self):
-        self.assertTrue(is_jarvis_hotword("jervis"))
+        self.assertTrue(is_nexi_hotword("jervis"))
 
     def test_hotword_accepts_hey_jervis(self):
-        self.assertTrue(is_jarvis_hotword("hey jervis"))
+        self.assertTrue(is_nexi_hotword("hey jervis"))
 
     def test_hotword_accepts_jarves(self):
-        self.assertTrue(is_jarvis_hotword("jarves"))
+        self.assertTrue(is_nexi_hotword("jarves"))
 
     def test_hotword_accepts_hey_jarves(self):
-        self.assertTrue(is_jarvis_hotword("hey jarves"))
+        self.assertTrue(is_nexi_hotword("hey jarves"))
 
     def test_hotword_rejects_jar_in_sentence(self):
-        self.assertFalse(is_jarvis_hotword("open the jar"))
-        self.assertFalse(is_jarvis_hotword("where is the jar"))
+        self.assertFalse(is_nexi_hotword("open the jar"))
+        self.assertFalse(is_nexi_hotword("where is the jar"))
 
 
 class TestHotwordCooldown(unittest.TestCase):
@@ -94,24 +94,24 @@ class TestHotwordAcceptRejectMatrix(unittest.TestCase):
 
     def test_all_accepts(self):
         accepts = [
-            "jarvis", "Jarvis", "JARVIS",
-            "hey jarvis", "hey Jarvis",
+            "nexi", "Nexi", "NEXI",
+            "hey nexi", "hey Nexi",
             "jervis", "Jervis",
             "jarves", "Jarves",
-            "say jarvis", "please jarvis",
+            "say nexi", "please nexi",
         ]
         for text in accepts:
-            self.assertTrue(is_jarvis_hotword(text), f"should accept: {text}")
+            self.assertTrue(is_nexi_hotword(text), f"should accept: {text}")
 
     def test_all_rejects(self):
         rejects = [
             "jar", "jars", "java", "service", "harvest",
-            "", "   ", "jarvissss", "jarv", "jari",
-            "jarvi", "jarvis_extra", "hello world",
+            "", "   ", "nexisss", "jarv", "jari",
+            "jarvi", "nexi_extra", "hello world",
             "open the jar", "where is my jar",
         ]
         for text in rejects:
-            self.assertFalse(is_jarvis_hotword(text), f"should reject: {text}")
+            self.assertFalse(is_nexi_hotword(text), f"should reject: {text}")
 
 
 if __name__ == "__main__":

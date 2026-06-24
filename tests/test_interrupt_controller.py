@@ -18,19 +18,19 @@ def test_interrupt_requested_while_speaking():
 
 def test_hotword_interrupts_tts():
     from engine import interrupt_controller as ic
-    from engine.jarvis_wake_controller import wake_jarvis
+    from engine.nexi_wake_controller import wake_nexi
     ic.set_speaking(True)
     with patch("engine.interrupt_controller.request_interrupt") as mock_interrupt:
-        wake_jarvis("hotword")
+        wake_nexi("hotword")
     mock_interrupt.assert_called_once_with(source="hotword", reason="wake")
     ic.set_speaking(False)
 
 
 def test_sleep_interrupts_tts():
     from engine import interrupt_controller as ic
-    from engine.jarvis_wake_controller import sleep_jarvis
+    from engine.nexi_wake_controller import sleep_nexi
     ic.set_speaking(True)
     with patch("engine.interrupt_controller.request_interrupt") as mock_interrupt:
-        sleep_jarvis("command")
+        sleep_nexi("command")
     mock_interrupt.assert_called_once_with(source="sleep", reason="command")
     ic.set_speaking(False)

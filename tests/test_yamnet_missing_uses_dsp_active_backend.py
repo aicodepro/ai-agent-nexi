@@ -8,20 +8,20 @@ from engine.clap_backend_manager import ClapBackendManager
 
 
 def test_yamnet_not_ready_uses_fallback():
-    os.environ["JARVIS_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
-    os.environ["JARVIS_CLAP_DEBUG"] = "false"
+    os.environ["NEXI_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
+    os.environ["NEXI_CLAP_DEBUG"] = "false"
     manager = ClapBackendManager(cooldown_ms=5000)
     assert manager._primary_name == "yamnet"
     assert manager._primary_ready is False
     assert manager._fallback_name == "dsp_clap"
     assert manager._fallback_ready is True
-    os.environ.pop("JARVIS_CLAP_BACKEND_ORDER", None)
-    os.environ.pop("JARVIS_CLAP_DEBUG", None)
+    os.environ.pop("NEXI_CLAP_BACKEND_ORDER", None)
+    os.environ.pop("NEXI_CLAP_DEBUG", None)
 
 
 def test_yamnet_missing_does_not_crash():
-    os.environ["JARVIS_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
-    os.environ["JARVIS_CLAP_DEBUG"] = "false"
+    os.environ["NEXI_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
+    os.environ["NEXI_CLAP_DEBUG"] = "false"
     try:
         manager = ClapBackendManager(cooldown_ms=5000)
         status = manager.get_status()
@@ -29,18 +29,18 @@ def test_yamnet_missing_does_not_crash():
         assert status["primary"] == "yamnet"
         assert status["primary_ready"] is False
     finally:
-        os.environ.pop("JARVIS_CLAP_BACKEND_ORDER", None)
-        os.environ.pop("JARVIS_CLAP_DEBUG", None)
+        os.environ.pop("NEXI_CLAP_BACKEND_ORDER", None)
+        os.environ.pop("NEXI_CLAP_DEBUG", None)
 
 
 def test_dsp_works_when_primary_yamnet_gone():
-    os.environ["JARVIS_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
-    os.environ["JARVIS_CLAP_DEBUG"] = "false"
+    os.environ["NEXI_CLAP_BACKEND_ORDER"] = "yamnet,dsp_clap"
+    os.environ["NEXI_CLAP_DEBUG"] = "false"
     try:
         manager = ClapBackendManager(cooldown_ms=5000)
         assert manager._fallback_ready is True
         result = manager._try_backend(manager._fallback, "dsp_clap", b"\x00\x01" * 320)
         assert result is not None
     finally:
-        os.environ.pop("JARVIS_CLAP_BACKEND_ORDER", None)
-        os.environ.pop("JARVIS_CLAP_DEBUG", None)
+        os.environ.pop("NEXI_CLAP_BACKEND_ORDER", None)
+        os.environ.pop("NEXI_CLAP_DEBUG", None)

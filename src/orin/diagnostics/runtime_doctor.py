@@ -275,7 +275,7 @@ class RuntimeDoctor:
     def format_diagnosis(cls, result=None):
         if result is None:
             result = cls.diagnose()
-        lines = ["Jarvis Diagnostics Report", "=" * 40]
+        lines = ["Nexi Diagnostics Report", "=" * 40]
         for check in result.get("checks", []):
             status = "OK" if check["ok"] else "ISSUE"
             lines.append(f"  [{status}] {check['name']}")

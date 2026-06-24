@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 @pytest.fixture(autouse=True)
 def _clear_pending_state(monkeypatch):
     for env_key in ["GROQ_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY", "GROQ_INTENT_API_KEY",
-                     "JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS"]:
+                     "NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS"]:
         monkeypatch.delenv(env_key, raising=False)
     from engine.clarification_manager import clear_clarification
     from engine.followup_manager import clear_followup

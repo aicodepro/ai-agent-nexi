@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import unittest
 from unittest.mock import patch, MagicMock
 from engine.hotword_helper import (
-    is_jarvis_hotword,
+    is_nexi_hotword,
     check_hotword_cooldown,
     reset_hotword_cooldown,
     HOTWORD_COOLDOWN_SECONDS,
@@ -33,18 +33,18 @@ class TestVoiceFirstSmoke(unittest.TestCase):
                     allCommands("hello")
                     mock_eel.ShowHood.assert_called_once()
 
-    def test_hotword_jarvis_triggers_wake(self):
-        self.assertTrue(is_jarvis_hotword("jarvis"))
-        self.assertTrue(is_jarvis_hotword("hey jarvis"))
-        self.assertTrue(is_jarvis_hotword("jervis"))
+    def test_hotword_nexi_triggers_wake(self):
+        self.assertTrue(is_nexi_hotword("nexi"))
+        self.assertTrue(is_nexi_hotword("hey nexi"))
+        self.assertTrue(is_nexi_hotword("jervis"))
 
     def test_hotword_jar_does_not_trigger(self):
-        self.assertFalse(is_jarvis_hotword("jar"))
-        self.assertFalse(is_jarvis_hotword("jars"))
+        self.assertFalse(is_nexi_hotword("jar"))
+        self.assertFalse(is_nexi_hotword("jars"))
 
     def test_hotword_no_false_positive_on_jar_repeated(self):
         for _ in range(10):
-            self.assertFalse(is_jarvis_hotword("jar"))
+            self.assertFalse(is_nexi_hotword("jar"))
 
     def test_hotword_cooldown_blocks_repeat_immediately(self):
         reset_hotword_cooldown()

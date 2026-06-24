@@ -10,22 +10,22 @@ def test_hotword_fix():
     # Check key files
     files_to_check = [
         ("engine/audio_wake_pipeline.py", [
-            'HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010)',
+            'HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.010)',
             'OWW_THRESHOLD = _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.35)',
             'OWW_CONSECUTIVE = _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 2)',
-            'HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03)'
+            'HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03)'
         ]),
         ("engine/hotword_engine_manager.py", [
             'self.threshold = float(self.config.get("threshold", _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.35))))',
             'self.consecutive_hits_required = int(self.config.get("consecutive_hits", _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 2))))',
-            'self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010))))',
-            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03))))'
+            'self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.010))))',
+            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03))))'
         ])
     ]
     
     all_pass = True
     for filename, patterns in files_to_check:
-        filepath = f"E:/jarvis-main/{filename}"
+        filepath = f"E:/nexi-main/{filename}"
         if os.path.exists(filepath):
             with open(filepath, 'r') as f:
                 content = f.read()
@@ -44,11 +44,11 @@ def test_hotword_fix():
 ✓ All hotword fixes have been successfully applied!")
         print("
 Summary of changes:")
-        print("1. Increased JARVIS_HOTWORD_MIN_RMS from 0.003 to 0.010")
+        print("1. Increased NEXI_HOTWORD_MIN_RMS from 0.003 to 0.010")
         print("2. Increased OPENWAKEWORD_SCORE_THRESHOLD from 0.25 to 0.35")
         print("3. Increased OPENWAKEWORD_CONSECUTIVE_HITS from 1 to 2")
         print("4. Increased HOTWORD_RISING_EDGE_DELTA from 0.02 to 0.03")
-        print("5. Added JARVIS_HOTWORD_DEBUG=true for troubleshooting")
+        print("5. Added NEXI_HOTWORD_DEBUG=true for troubleshooting")
         return True
     else:
         print("
@@ -57,6 +57,6 @@ Summary of changes:")
 
 if __name__ == "__main__":
     import os
-    os.chdir("E:/jarvis-main")
+    os.chdir("E:/nexi-main")
     success = test_hotword_fix()
     sys.exit(0 if success else 1)

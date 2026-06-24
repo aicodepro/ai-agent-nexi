@@ -209,7 +209,7 @@ class AutonomyLoop:
     def _steps_for_known(self, name, goal):
         mapping = {
             "diagnose_jarvi": [
-                create_step("Run Jarvis diagnostics", "run_diagnostics", "SAFE"),
+                create_step("Run Nexi diagnostics", "run_diagnostics", "SAFE"),
             ],
             "check_project": [
                 create_step("Check project status", "check_project_status", "SAFE"),

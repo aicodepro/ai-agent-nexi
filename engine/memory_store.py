@@ -39,7 +39,7 @@ def _save(data: dict) -> None:
 def _safe_text(text: str) -> str:
     value = (text or "").strip()
     low = value.lower()
-    if any(word in low for word in SECRET_WORDS):
+    if any(re.search(r"\b" + re.escape(word) + r"\b", low) for word in SECRET_WORDS):
         return ""
     return value[:500]
 
@@ -155,6 +155,17 @@ def forget(term: str) -> str:
     try:
         from engine.adaptive_memory import forget as adaptive_forget
         removed += int(adaptive_forget(term).get("removed", 0))
+    except Exception:
+        pass
+    try:
+        from engine.memory.semantic_memory import get_semantic_memory
+        sem_result = get_semantic_memory().forget(term)
+        if isinstance(sem_result, int):
+            removed += sem_result
+        elif isinstance(sem_result, dict):
+            removed += int(sem_result.get("removed", 0))
+        elif sem_result:
+            removed += 1
     except Exception:
         pass
     _save(data)

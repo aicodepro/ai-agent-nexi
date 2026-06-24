@@ -29,7 +29,7 @@ class TestRuntimeDoctor(unittest.TestCase):
     def test_format_diagnosis(self):
         result = RuntimeDoctor.diagnose()
         report = RuntimeDoctor.format_diagnosis(result)
-        self.assertIn("Jarvis Diagnostics", report)
+        self.assertIn("Nexi Diagnostics", report)
 
     def test_check_hotword(self):
         result = RuntimeDoctor.check_hotword()

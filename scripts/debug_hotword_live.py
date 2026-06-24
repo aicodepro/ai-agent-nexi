@@ -3,8 +3,8 @@
 
 Sequence:
 1. Record silence (30 s) — measure false positives
-2. Say "Hey Jarvis" 10 times — measure detection rate
-3. Say "Jarvis" 10 times — measure detection rate
+2. Say "Hey Nexi" 10 times — measure detection rate
+3. Say "Nexi" 10 times — measure detection rate
 
 Saves WAV clips for replay analysis.
 """
@@ -44,21 +44,21 @@ def main():
     parser.add_argument("--silence-duration", type=float, default=30.0, help="Silence recording seconds")
     args = parser.parse_args()
 
-    os.environ.setdefault("JARVIS_HOTWORD_ENABLED", "true")
-    os.environ.setdefault("JARVIS_CLAP_ENABLED", "false")
-    os.environ.setdefault("JARVIS_WAKE_DEBUG", "true")
+    os.environ.setdefault("NEXI_HOTWORD_ENABLED", "true")
+    os.environ.setdefault("NEXI_CLAP_ENABLED", "false")
+    os.environ.setdefault("NEXI_WAKE_DEBUG", "true")
     os.environ.setdefault("OPENWAKEWORD_DEBUG", "true")
     os.environ.setdefault("OPENWAKEWORD_SCORE_THRESHOLD", str(args.threshold))
     os.environ.setdefault("OPENWAKEWORD_CONSECUTIVE_HITS", "1")
-    os.environ.setdefault("JARVIS_HOTWORD_MIN_RMS", "0.003")
-    os.environ.setdefault("JARVIS_HOTWORD_RISING_EDGE_DELTA", "0.02")
-    os.environ.setdefault("JARVIS_HOTWORD_COOLDOWN_MS", "1500")
-    os.environ.setdefault("JARVIS_HOTWORD_PHRASES", "hey jarvis,jarvis")
+    os.environ.setdefault("NEXI_HOTWORD_MIN_RMS", "0.003")
+    os.environ.setdefault("NEXI_HOTWORD_RISING_EDGE_DELTA", "0.02")
+    os.environ.setdefault("NEXI_HOTWORD_COOLDOWN_MS", "1500")
+    os.environ.setdefault("NEXI_HOTWORD_PHRASES", "hey nexi,nexi")
 
     manager = HotwordEngineManager()
-    openwakeword_available = "openwakeword" in [b.strip().lower() for b in (os.getenv("JARVIS_HOTWORD_BACKEND_ORDER", "openwakeword,hotkey").split(","))]
+    openwakeword_available = "openwakeword" in [b.strip().lower() for b in (os.getenv("NEXI_HOTWORD_BACKEND_ORDER", "openwakeword,hotkey").split(","))]
     if not openwakeword_available:
-        print("[HOTWORD] No openwakeword backend configured. Enable openwakeword in JARVIS_HOTWORD_BACKEND_ORDER.")
+        print("[HOTWORD] No openwakeword backend configured. Enable openwakeword in NEXI_HOTWORD_BACKEND_ORDER.")
         sys.exit(1)
 
     print("=" * 60)
@@ -95,11 +95,11 @@ def main():
     print(f"[RESULT] Max false positive score: {max(scores_silence) if scores_silence else 0:.4f}")
     print()
 
-    # --- Phase 2: "Hey Jarvis" x10 ---
-    print("[PHASE 2] Say 'Hey Jarvis' 10 times (one per prompt)")
-    hey_jarvis_scores = []
+    # --- Phase 2: "Hey Nexi" x10 ---
+    print("[PHASE 2] Say 'Hey Nexi' 10 times (one per prompt)")
+    hey_nexi_scores = []
     for i in range(10):
-        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Hey Jarvis'...")
+        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Hey Nexi'...")
         time.sleep(0.5)
         audio = record_audio(2.0, args.device)
         best = 0.0
@@ -111,15 +111,15 @@ def main():
                 best = result.score
             if result.detected:
                 detected = True
-        hey_jarvis_scores.append(best)
+        hey_nexi_scores.append(best)
         print(f"  max score = {best:.4f} {'DETECTED' if detected else ''}")
     print()
 
-    # --- Phase 3: "Jarvis" x10 ---
-    print("[PHASE 3] Say 'Jarvis' 10 times (one per prompt)")
-    jarvis_scores = []
+    # --- Phase 3: "Nexi" x10 ---
+    print("[PHASE 3] Say 'Nexi' 10 times (one per prompt)")
+    nexi_scores = []
     for i in range(10):
-        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Jarvis'...")
+        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Nexi'...")
         time.sleep(0.5)
         audio = record_audio(2.0, args.device)
         best = 0.0
@@ -131,7 +131,7 @@ def main():
                 best = result.score
             if result.detected:
                 detected = True
-        jarvis_scores.append(best)
+        nexi_scores.append(best)
         print(f"  max score = {best:.4f} {'DETECTED' if detected else ''}")
     print()
 
@@ -142,22 +142,22 @@ def main():
     print(f"False positives (silence): {false_positives}")
     print()
 
-    print("Hey Jarvis:")
-    for i, s in enumerate(hey_jarvis_scores):
+    print("Hey Nexi:")
+    for i, s in enumerate(hey_nexi_scores):
         print(f"  [{i+1}] {s:.4f} {'PASS' if s >= args.threshold else 'FAIL'}")
-    hey_detected = sum(1 for s in hey_jarvis_scores if s >= args.threshold)
-    hey_max = max(hey_jarvis_scores) if hey_jarvis_scores else 0.0
+    hey_detected = sum(1 for s in hey_nexi_scores if s >= args.threshold)
+    hey_max = max(hey_nexi_scores) if hey_nexi_scores else 0.0
     print(f"  Detection rate: {hey_detected}/10")
     print(f"  Max score: {hey_max:.4f}")
     print(f"  Max score across all attempts < {args.threshold}"
           if hey_max < args.threshold else "")
 
     print()
-    print("Jarvis:")
-    for i, s in enumerate(jarvis_scores):
+    print("Nexi:")
+    for i, s in enumerate(nexi_scores):
         print(f"  [{i+1}] {s:.4f} {'PASS' if s >= args.threshold else 'FAIL'}")
-    j_detected = sum(1 for s in jarvis_scores if s >= args.threshold)
-    j_max = max(jarvis_scores) if jarvis_scores else 0.0
+    j_detected = sum(1 for s in nexi_scores if s >= args.threshold)
+    j_max = max(nexi_scores) if nexi_scores else 0.0
     print(f"  Detection rate: {j_detected}/10")
     print(f"  Max score: {j_max:.4f}")
 
@@ -165,7 +165,7 @@ def main():
     valid_path = hey_max > 0.60 or j_max > 0.60
     if valid_path:
         print("HOTWORD_PATH_VALID=true")
-    if len(hey_jarvis_scores) >= 5 and hey_max < 0.05 and j_max < 0.05:
+    if len(hey_nexi_scores) >= 5 and hey_max < 0.05 and j_max < 0.05:
         print("CUSTOM_HOTWORD_REQUIRED=true")
     if hey_max < 0.05 and j_max < 0.05:
         print("VERDICT: Current openWakeWord model does not match this voice/phrase/audio path.")
@@ -173,14 +173,14 @@ def main():
         print("Do NOT report PASS.")
         sys.exit(1)
     elif hey_detected >= 8:
-        print("VERDICT: 'Hey Jarvis' PASS (8/10 minimum)")
+        print("VERDICT: 'Hey Nexi' PASS (8/10 minimum)")
     else:
-        print("VERDICT: 'Hey Jarvis' FAIL (below 8/10)")
+        print("VERDICT: 'Hey Nexi' FAIL (below 8/10)")
 
     if j_detected >= 8:
-        print("VERDICT: 'Jarvis' PASS (8/10 minimum)")
+        print("VERDICT: 'Nexi' PASS (8/10 minimum)")
     else:
-        print("VERDICT: 'Jarvis' FAIL (below 8/10)")
+        print("VERDICT: 'Nexi' FAIL (below 8/10)")
 
     print()
     print(f"Recommended threshold: max(0.35, {min(hey_max, j_max) * 0.7:.2f})")

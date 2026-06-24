@@ -5,7 +5,7 @@ _AMBIGUOUS_GOAL_TRIGGERS = {
     "it", "that", "this", "there", "something", "anything",
 }
 _COMPLETE_SHORT_GOALS = {
-    "diagnose jarvi", "diagnose jarvis", "stop everything", "emergency stop",
+    "diagnose jarvi", "diagnose nexi", "stop everything", "emergency stop",
     "freeze everything", "check project", "check status",
     "what do you remember", "show memories", "show preferences",
     "tell me about me", "project status",

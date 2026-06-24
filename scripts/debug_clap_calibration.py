@@ -46,7 +46,7 @@ def _listen_attempt(stream, manager, seconds: float) -> dict:
 
 
 def main() -> int:
-    print("Jarvis double-clap calibration")
+    print("Nexi double-clap calibration")
     print("Local-only: no Groq, Gemini, cloud ASR, or cloud TTS is used for clap detection.")
     try:
         import sounddevice as sd
@@ -92,12 +92,12 @@ def main() -> int:
     if double_gaps:
         print(f"gap_ms_min={min(double_gaps):.0f} gap_ms_avg={statistics.mean(double_gaps):.0f} gap_ms_max={max(double_gaps):.0f}")
     print("Recommended env:")
-    print("JARVIS_CLAP_ENABLED=true")
-    print("JARVIS_CLAP_BACKEND_ORDER=tzur,jarvis")
-    print("JARVIS_CLAP_PATTERN=double")
-    print("JARVIS_CLAP_MIN_GAP_MS=180")
-    print("JARVIS_DOUBLE_CLAP_WINDOW_MS=900")
-    print("JARVIS_CLAP_COOLDOWN_MS=2000")
+    print("NEXI_CLAP_ENABLED=true")
+    print("NEXI_CLAP_BACKEND_ORDER=tzur,nexi")
+    print("NEXI_CLAP_PATTERN=double")
+    print("NEXI_CLAP_MIN_GAP_MS=180")
+    print("NEXI_DOUBLE_CLAP_WINDOW_MS=900")
+    print("NEXI_CLAP_COOLDOWN_MS=2000")
     if single_wakes == 0 and double_wakes >= 8:
         print("PASS")
         return 0

@@ -9,7 +9,7 @@ STOP_SPEAKING_PATTERNS = [
     "chup",
     "chup ho jao",
     "ruk jao",
-    "jarvis stop",
+    "nexi stop",
 ]
 
 EMERGENCY_STOP_PATTERNS = [
@@ -26,7 +26,7 @@ EMERGENCY_STOP_PATTERNS = [
 
 def normalize_stop_text(text):
     t = text.lower().strip()
-    t = t.replace("jarvis ", "").replace(" jarvis", "")
+    t = t.replace("nexi ", "").replace(" nexi", "")
     t = t.replace(".", "").replace(",", "").replace("!", "").replace("?", "")
     return t.strip()
 

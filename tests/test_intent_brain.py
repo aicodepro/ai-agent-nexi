@@ -153,8 +153,8 @@ class TestSpeechRecovery(unittest.TestCase):
         corrected, corrections = SpeechRecovery.recover("open krom")
         self.assertIn("chrome", corrected)
 
-    def test_jarvis_correction(self):
-        corrected, corrections = SpeechRecovery.recover("diagnose jarvis")
+    def test_nexi_correction(self):
+        corrected, corrections = SpeechRecovery.recover("diagnose nexi")
         self.assertIn("jarvi", corrected)
 
     def test_stop_everything_correction(self):

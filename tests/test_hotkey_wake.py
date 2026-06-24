@@ -25,8 +25,8 @@ class FakeKeyboard:
 def test_hotkey_uses_internal_wake(monkeypatch):
     fake = FakeKeyboard()
     calls = []
-    monkeypatch.setenv("JARVIS_HOTKEY_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_HOTKEY", "win+j")
+    monkeypatch.setenv("NEXI_HOTKEY_ENABLED", "true")
+    monkeypatch.setenv("NEXI_HOTKEY", "win+j")
     monkeypatch.setitem(sys.modules, "keyboard", fake)
 
     from engine.hotkey_wake import start_hotkey_listener, stop_hotkey_listener
@@ -41,9 +41,9 @@ def test_hotkey_uses_internal_wake(monkeypatch):
 
 def test_win_j_fallback_registered_when_primary_unavailable(monkeypatch, capsys):
     fake = FakeKeyboard(fail_primary=True)
-    monkeypatch.setenv("JARVIS_HOTKEY_ENABLED", "true")
-    monkeypatch.setenv("JARVIS_HOTKEY", "win+j")
-    monkeypatch.setenv("JARVIS_HOTKEY_FALLBACK", "ctrl+alt+j")
+    monkeypatch.setenv("NEXI_HOTKEY_ENABLED", "true")
+    monkeypatch.setenv("NEXI_HOTKEY", "win+j")
+    monkeypatch.setenv("NEXI_HOTKEY_FALLBACK", "ctrl+alt+j")
     monkeypatch.setitem(sys.modules, "keyboard", fake)
     monkeypatch.setitem(sys.modules, "pynput", SimpleNamespace())
 

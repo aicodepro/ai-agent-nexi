@@ -45,7 +45,7 @@ class ConversationBuffer:
             lines = []
             for turn in self._turns:
                 lines.append(f"User: {turn['user']}")
-                lines.append(f"Jarvis: {turn['assistant']}")
+                lines.append(f"Nexi: {turn['assistant']}")
             return "\n".join(lines)
 
     def clear(self):

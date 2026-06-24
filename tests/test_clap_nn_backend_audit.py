@@ -24,10 +24,10 @@ def test_clap_nn_audit_exists():
 
 
 def test_compatible_sample_rate():
-    """CLAP_NN uses 44.1 kHz; Jarvis pipeline uses 16 kHz."""
+    """CLAP_NN uses 44.1 kHz; Nexi pipeline uses 16 kHz."""
     clap_nn_rate = 44100
-    jarvis_rate = 16000
-    assert clap_nn_rate != jarvis_rate
+    nexi_rate = 16000
+    assert clap_nn_rate != nexi_rate
 
 
 def test_no_trained_model_in_zip():

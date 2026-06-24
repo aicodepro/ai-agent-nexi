@@ -2,8 +2,8 @@ from __future__ import annotations
 
 
 def test_detail_log_contains_frame_debug(monkeypatch, tmp_path):
-    path = tmp_path / "jarvis_interview_debug.log"
-    monkeypatch.setenv("JARVIS_DEBUG_LOG_FILE", str(path))
+    path = tmp_path / "nexi_interview_debug.log"
+    monkeypatch.setenv("NEXI_DEBUG_LOG_FILE", str(path))
 
     from engine.debug_trace import detail
 

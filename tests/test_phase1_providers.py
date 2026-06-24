@@ -26,7 +26,7 @@ def test_brain_config_defaults_to_gemini():
 
 
 def test_brain_config_claude(monkeypatch):
-    monkeypatch.setattr(cfg.jarvis, "jarvis_brain_provider", "claude")
+    monkeypatch.setattr(cfg.nexi, "nexi_brain_provider", "claude")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test123")
     config = _get_brain_config()
     assert "anthropic.com" in config["api_base"]
@@ -35,7 +35,7 @@ def test_brain_config_claude(monkeypatch):
 
 
 def test_brain_config_deepseek(monkeypatch):
-    monkeypatch.setattr(cfg.jarvis, "jarvis_brain_provider", "deepseek")
+    monkeypatch.setattr(cfg.nexi, "nexi_brain_provider", "deepseek")
     config = _get_brain_config()
     assert "deepseek.com" in config["api_base"]
     assert config["model"] == "deepseek-v4-pro"

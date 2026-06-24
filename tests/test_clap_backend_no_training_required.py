@@ -32,8 +32,8 @@ class TestClapBackendNoTrainingRequired:
         assert r.confidence > 0.5
 
     def test_manager_falls_back_to_dsp_when_clap_nn_missing(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
-        monkeypatch.setenv("JARVIS_CLAP_DEBUG", "true")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         assert mgr.primary_name == "dsp_clap"
@@ -42,8 +42,8 @@ class TestClapBackendNoTrainingRequired:
         assert mgr.fallback_ready is False
 
     def test_manager_dsp_detects_single_clap_no_wake(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
-        monkeypatch.setenv("JARVIS_CLAP_DEBUG", "true")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         r = mgr.process_audio_chunk(_make_impulse())
@@ -52,8 +52,8 @@ class TestClapBackendNoTrainingRequired:
         assert r.get("backend") == "dsp_clap"
 
     def test_manager_still_processes_if_clap_nn_model_missing(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
-        monkeypatch.setenv("JARVIS_CLAP_DEBUG", "true")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
+        monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         assert mgr.primary_ready is False
@@ -62,7 +62,7 @@ class TestClapBackendNoTrainingRequired:
         assert r.get("clap") is True or r.get("backend") == "dsp_clap"
 
     def test_manager_status_shows_dsp(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         status = mgr.get_status()

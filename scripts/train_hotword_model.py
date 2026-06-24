@@ -2,7 +2,7 @@
 """Train custom openWakeWord hotword model from user-collected voice samples.
 
 Trains a small DNN classifier on openWakeWord embeddings computed from
-collected positive (Hey Jarvis, Jarvis) and negative (speech, noise,
+collected positive (Hey Nexi, Nexi) and negative (speech, noise,
 similar words, keyboard taps) audio clips.
 
 Output: datasets/hotword/custom_hotword.onnx + metadata
@@ -167,7 +167,7 @@ def main():
     # Build directories to scan
     positive_dirs = args.positive_dirs or [
         os.path.join(BASE_DIR, "positive", d)
-        for d in ["hey_jarvis", "jarvis", "variants"]
+        for d in ["hey_nexi", "nexi", "variants"]
     ]
     negative_dirs = args.negative_dirs or [
         os.path.join(BASE_DIR, "negative", d)

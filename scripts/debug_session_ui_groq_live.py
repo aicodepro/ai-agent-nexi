@@ -10,7 +10,7 @@ Checks (all run locally, no mic/Eel needed):
   3. Hotword Engine Manager respects session lock
   4. Clap Backend Manager respects session lock
   5. AudioWakePipeline process_frame respects session lock
-  6. Auto-followup env var default (JARVIS_AUTO_FOLLOWUP_AFTER_TTS=false)
+  6. Auto-followup env var default (NEXI_AUTO_FOLLOWUP_AFTER_TTS=false)
   7. Groq TTS failure reporting has safe reason string
   8. TTS provider manager fallback logging has error hints
   9. UI State ACK module exists and accepts calls
@@ -132,8 +132,8 @@ r3 = ap.process_frame(b"\x00\x00" * 640)
 check("pipeline works after finish", r3.get("reason") != "session_active")
 
 header("6. Auto-followup env default")
-val = os.getenv("JARVIS_AUTO_FOLLOWUP_AFTER_TTS", "false")
-check("JARVIS_AUTO_FOLLOWUP_AFTER_TTS defaults to false", val == "false")
+val = os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "false")
+check("NEXI_AUTO_FOLLOWUP_AFTER_TTS defaults to false", val == "false")
 
 header("7. Groq TTS failure reporting")
 from engine.groq_tts import GroqTTSResult
@@ -184,9 +184,9 @@ for s, lbl in zip(canonical_order, labels):
     check(f"label for {s} is {lbl}", STATE_LABELS.get(s) == lbl, f"got={STATE_LABELS.get(s)}")
 
 header("12. Clean console — no duplicate post_status")
-# Check that jarvis_wake_controller.wake_jarvis removes duplicate post_status calls
-import engine.jarvis_wake_controller as jwc
-check("wake_jarvis exists", hasattr(jwc, "wake_jarvis") and callable(jwc.wake_jarvis))
+# Check that nexi_wake_controller.wake_nexi removes duplicate post_status calls
+import engine.nexi_wake_controller as jwc
+check("wake_nexi exists", hasattr(jwc, "wake_nexi") and callable(jwc.wake_nexi))
 
 header("13. WakeSessionManager.check_timeout")
 _reset()

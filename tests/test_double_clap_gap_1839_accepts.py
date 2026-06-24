@@ -26,7 +26,7 @@ class FakeDsp:
 
 
 def test_gap_1839_accepts():
-    saved = {k: os.environ.pop(k, None) for k in ["JARVIS_CLAP_MAX_GAP_MS", "CLAP_MAX_GAP_MS", "JARVIS_CLAP_MIN_GAP_MS", "CLAP_MIN_GAP_MS"]}
+    saved = {k: os.environ.pop(k, None) for k in ["NEXI_CLAP_MAX_GAP_MS", "CLAP_MAX_GAP_MS", "NEXI_CLAP_MIN_GAP_MS", "CLAP_MIN_GAP_MS"]}
     try:
         manager = ClapBackendManager(clock=time.time, cooldown_ms=5000)
         manager._max_gap_ms = 2200.0

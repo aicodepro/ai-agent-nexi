@@ -58,7 +58,7 @@ class TestDspClapRejectsLowPeakNoise:
         assert r.is_clap is False
 
     def test_low_peak_noise_not_clap_through_manager(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
 

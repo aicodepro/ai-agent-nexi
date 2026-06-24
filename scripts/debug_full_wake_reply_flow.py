@@ -40,7 +40,7 @@ def _fail(name: str, source: str = "", file_hint: str = ""):
 def test_ui_port_available_or_auto_selected() -> bool:
     try:
         from main import _is_port_available, _find_free_port
-        port = int(os.getenv("JARVIS_UI_PORT", "8000"))
+        port = int(os.getenv("NEXI_UI_PORT", "8000"))
         host = "localhost"
         available = _is_port_available(host, port)
         if available:
@@ -134,7 +134,7 @@ def test_internal_wake_signal() -> bool:
         from engine.internal_wake_signal import InternalWakeSignalBus, WakeSignal
         bus = InternalWakeSignalBus(debug=False)
         signal = WakeSignal(source="hotword", state="wake_detected",
-                            phrase="hey jarvis", confidence=0.8,
+                            phrase="hey nexi", confidence=0.8,
                             timestamp=time.time(), reason="threshold")
         _pass("internal_wake_signal", "signal creation works")
         return True

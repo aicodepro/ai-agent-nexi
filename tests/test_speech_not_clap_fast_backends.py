@@ -53,7 +53,7 @@ class TestSpeechNotClapFastBackends:
         assert "low_rms" in r.reason or "low_peak_ratio" in r.reason
 
     def test_manager_rejects_speech_with_dsp_backend(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         r = mgr.process_audio_chunk(_make_speech_like(1600, 8000))
@@ -61,14 +61,14 @@ class TestSpeechNotClapFastBackends:
         assert r.get("wake") is False
 
     def test_manager_silence_rejected(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         r = mgr.process_audio_chunk(b"\x00\x00" * 1600)
         assert r.get("clap") is False
 
     def test_dsp_hf_threshold_tunable(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.20")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.20")
         from engine.dsp_clap_backend import DspClapBackend
         dsp = DspClapBackend()
         # Speech-like with some HF content at lower threshold might trigger

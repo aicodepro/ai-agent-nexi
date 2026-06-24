@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_ui_button_uses_internal_wake():
     main_js = (ROOT / "www" / "main.js").read_text(encoding="utf-8")
-    assert "toggleJarvisSleepWake" in main_js
-    assert "wakeJarvisFromUi" in main_js
+    assert "toggleNexiSleepWake" in main_js
+    assert "wakeNexiFromUi" in main_js
     assert 'hotkey("win", "j")' not in main_js
 
 

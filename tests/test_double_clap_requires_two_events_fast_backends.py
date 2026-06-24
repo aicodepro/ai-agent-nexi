@@ -30,7 +30,7 @@ def _make_silence():
 
 class TestDoubleClapFastBackends:
     def test_single_clap_no_wake_with_dsp_backend(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         r = mgr.process_audio_chunk(_make_clap_impulse())
@@ -38,8 +38,8 @@ class TestDoubleClapFastBackends:
         assert r.get("wake") is False
 
     def test_two_claps_within_gap_triggers_wake(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
         from engine.clap_backend_manager import ClapBackendManager
 
         clock = [1000.0]
@@ -65,8 +65,8 @@ class TestDoubleClapFastBackends:
         assert r2.get("source") == "double_clap"
 
     def test_two_claps_too_soon_no_wake(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
         from engine.clap_backend_manager import ClapBackendManager
 
         clock = [1000.0]
@@ -89,8 +89,8 @@ class TestDoubleClapFastBackends:
         assert state in ("stage_first_clap", "reset"), f"Unexpected state: {state}"
 
     def test_two_claps_too_late_resets(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "0")
         from engine.clap_backend_manager import ClapBackendManager
 
         clock = [1000.0]
@@ -111,7 +111,7 @@ class TestDoubleClapFastBackends:
         assert mgr._double_clap.get_status()["state"] == "reset"
 
     def test_speech_not_detected_as_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
 
         mgr = ClapBackendManager(cooldown_ms=5000)
@@ -124,7 +124,7 @@ class TestDoubleClapFastBackends:
         assert r.get("clap") is False
 
     def test_silence_not_detected_as_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         r = mgr.process_audio_chunk(_make_silence())

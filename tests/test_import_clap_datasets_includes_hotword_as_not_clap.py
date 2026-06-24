@@ -33,13 +33,13 @@ def _make_minimal_esc50(base: str):
 
 
 def _make_hotword_positive(base: str):
-    for sub in ("hey_jarvis", "jarvis", "variants"):
+    for sub in ("hey_nexi", "nexi", "variants"):
         d = os.path.join(base, "positive", sub)
         _make_wav(os.path.join(d, f"{sub}_001.wav"))
 
 
 def test_hotword_positives_go_to_not_clap():
-    """Hey Jarvis, Jarvis, and variants must land in not_clap dir."""
+    """Hey Nexi, Nexi, and variants must land in not_clap dir."""
     from scripts.import_clap_datasets import main as importer_main
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -78,18 +78,18 @@ def test_hotword_positives_go_to_not_clap():
             clap_dir = os.path.join(out, split, "clap")
             if os.path.isdir(clap_dir):
                 for f in os.listdir(clap_dir):
-                    assert "hey_jarvis" not in f, f"Hey Jarvis found in clap! {f}"
-                    assert "jarvis" not in f, f"Jarvis found in clap! {f}"
+                    assert "hey_nexi" not in f, f"Hey Nexi found in clap! {f}"
+                    assert "nexi" not in f, f"Nexi found in clap! {f}"
 
         # Check: hotword files exist in not_clap
         not_clap_train = os.path.join(out, "train", "not_clap")
         found_hw = False
         if os.path.isdir(not_clap_train):
             for f in os.listdir(not_clap_train):
-                if "hey_jarvis" in f or "jarvis" in f:
+                if "hey_nexi" in f or "nexi" in f:
                     found_hw = True
                     break
-        assert found_hw, "No Hey Jarvis/Jarvis files found in not_clap directory"
+        assert found_hw, "No Hey Nexi/Nexi files found in not_clap directory"
 
 
 def test_hotword_negatives_go_to_not_clap():

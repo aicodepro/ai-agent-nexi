@@ -15,10 +15,10 @@ import pytest
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch):
     """Force a clean known env for every test."""
-    monkeypatch.setenv("JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS", "true")
-    monkeypatch.setenv("JARVIS_BRAIN_PRIMARY", "hugchat")
-    monkeypatch.setenv("JARVIS_BRAIN_FALLBACK", "lightning")
-    monkeypatch.delenv("JARVIS_BRAIN_PROVIDER", raising=False)
+    monkeypatch.setenv("NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS", "true")
+    monkeypatch.setenv("NEXI_BRAIN_PRIMARY", "hugchat")
+    monkeypatch.setenv("NEXI_BRAIN_FALLBACK", "lightning")
+    monkeypatch.delenv("NEXI_BRAIN_PROVIDER", raising=False)
     from engine import features
     features._brain_fail_until = 0.0
     yield
@@ -32,29 +32,29 @@ def _clean_env(monkeypatch):
 def test_default_chain_is_gemini_only(monkeypatch):
     """No env vars set -> Gemini Flash is the only provider chain entry."""
     from engine import features
-    monkeypatch.delenv("JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS", raising=False)
-    monkeypatch.delenv("JARVIS_BRAIN_PRIMARY", raising=False)
-    monkeypatch.delenv("JARVIS_BRAIN_FALLBACK", raising=False)
-    monkeypatch.delenv("JARVIS_BRAIN_PROVIDER", raising=False)
+    monkeypatch.delenv("NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS", raising=False)
+    monkeypatch.delenv("NEXI_BRAIN_PRIMARY", raising=False)
+    monkeypatch.delenv("NEXI_BRAIN_FALLBACK", raising=False)
+    monkeypatch.delenv("NEXI_BRAIN_PROVIDER", raising=False)
     assert features._resolve_provider_chain() == ["gemini"]
 
 
 def test_legacy_brain_provider_ignored_without_legacy_enable(monkeypatch):
     """Stale legacy env must not override Gemini unless legacy is enabled."""
     from engine import features
-    monkeypatch.setenv("JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS", "false")
-    monkeypatch.delenv("JARVIS_BRAIN_PRIMARY", raising=False)
-    monkeypatch.delenv("JARVIS_BRAIN_FALLBACK", raising=False)
-    monkeypatch.setenv("JARVIS_BRAIN_PROVIDER", "lightning")
+    monkeypatch.setenv("NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS", "false")
+    monkeypatch.delenv("NEXI_BRAIN_PRIMARY", raising=False)
+    monkeypatch.delenv("NEXI_BRAIN_FALLBACK", raising=False)
+    monkeypatch.setenv("NEXI_BRAIN_PROVIDER", "lightning")
     chain = features._resolve_provider_chain()
     assert chain == ["gemini"]
 
 
 def test_explicit_primary_lightning_is_honored(monkeypatch):
-    """If a user explicitly sets JARVIS_BRAIN_PRIMARY=lightning, honour it."""
+    """If a user explicitly sets NEXI_BRAIN_PRIMARY=lightning, honour it."""
     from engine import features
-    monkeypatch.setenv("JARVIS_BRAIN_PRIMARY", "lightning")
-    monkeypatch.delenv("JARVIS_BRAIN_FALLBACK", raising=False)
+    monkeypatch.setenv("NEXI_BRAIN_PRIMARY", "lightning")
+    monkeypatch.delenv("NEXI_BRAIN_FALLBACK", raising=False)
     chain = features._resolve_provider_chain()
     assert chain[0] == "lightning"
     assert chain == ["lightning"]

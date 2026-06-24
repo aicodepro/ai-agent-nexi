@@ -4,8 +4,8 @@
 Collects:
   - 100 single claps
   - 100 double claps
-  - 100 "Hey Jarvis" speech samples
-  - 100 "Jarvis" speech samples
+  - 100 "Hey Nexi" speech samples
+  - 100 "Nexi" speech samples
   - 100 random speech/noise samples
   - 60 seconds silence
   - keyboard/mouse/tap sounds (optional)
@@ -82,8 +82,8 @@ def main():
                         help="Output directory (default: scripts/training_data)")
     parser.add_argument("--clap-count", type=int, default=100, help="Number of single claps (default: 100)")
     parser.add_argument("--double-clap-count", type=int, default=100, help="Number of double claps (default: 100)")
-    parser.add_argument("--hey-jarvis-count", type=int, default=100, help="Number of 'Hey Jarvis' samples (default: 100)")
-    parser.add_argument("--jarvis-count", type=int, default=100, help="Number of 'Jarvis' samples (default: 100)")
+    parser.add_argument("--hey-nexi-count", type=int, default=100, help="Number of 'Hey Nexi' samples (default: 100)")
+    parser.add_argument("--nexi-count", type=int, default=100, help="Number of 'Nexi' samples (default: 100)")
     parser.add_argument("--speech-count", type=int, default=100, help="Number of random speech/noise (default: 100)")
     parser.add_argument("--silence-seconds", type=float, default=60.0, help="Silence duration in seconds (default: 60)")
     args = parser.parse_args()
@@ -114,18 +114,18 @@ def main():
     collect_samples("double_clap", args.double_clap_count, clap_dirs, args.device, prompt_double)
     print()
 
-    # 3. "Hey Jarvis"
-    print(f"[3] Collecting {args.hey_jarvis_count} 'Hey Jarvis' samples")
+    # 3. "Hey Nexi"
+    print(f"[3] Collecting {args.hey_nexi_count} 'Hey Nexi' samples")
     def prompt_hey(i, total):
-        input(f"  [{i+1}/{total}] Press Enter, pause 1s, say 'Hey Jarvis'...")
-    collect_samples("hey_jarvis", args.hey_jarvis_count, clap_dirs, args.device, prompt_hey)
+        input(f"  [{i+1}/{total}] Press Enter, pause 1s, say 'Hey Nexi'...")
+    collect_samples("hey_nexi", args.hey_nexi_count, clap_dirs, args.device, prompt_hey)
     print()
 
-    # 4. "Jarvis"
-    print(f"[4] Collecting {args.jarvis_count} 'Jarvis' samples")
-    def prompt_jarvis(i, total):
-        input(f"  [{i+1}/{total}] Press Enter, pause 1s, say 'Jarvis'...")
-    collect_samples("jarvis", args.jarvis_count, clap_dirs, args.device, prompt_jarvis)
+    # 4. "Nexi"
+    print(f"[4] Collecting {args.nexi_count} 'Nexi' samples")
+    def prompt_nexi(i, total):
+        input(f"  [{i+1}/{total}] Press Enter, pause 1s, say 'Nexi'...")
+    collect_samples("nexi", args.nexi_count, clap_dirs, args.device, prompt_nexi)
     print()
 
     # 5. Random speech/noise

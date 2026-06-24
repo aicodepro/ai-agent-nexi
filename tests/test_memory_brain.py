@@ -26,7 +26,7 @@ class TestMemoryPolicy(unittest.TestCase):
         self.assertEqual(decision, "ALLOW")
 
     def test_preferred_repo_allowed(self):
-        decision, reason = classify_memory_text("preferred repo is E:\\jarvis-main")
+        decision, reason = classify_memory_text("preferred repo is E:\\nexi-main")
         self.assertEqual(decision, "ALLOW")
 
     def test_password_rejected(self):
@@ -281,10 +281,10 @@ class TestPreferenceStore(unittest.TestCase):
         self.assertEqual(self.store.count(), 0)
 
     def test_get_preference_works(self):
-        self.store.remember("repo", "E:\\jarvis-main")
+        self.store.remember("repo", "E:\\nexi-main")
         result = self.store.get("repo")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["data"]["item"]["value"], "E:\\jarvis-main")
+        self.assertEqual(result["data"]["item"]["value"], "E:\\nexi-main")
 
     def test_get_nonexistent_returns_error(self):
         result = self.store.get("nonexistent")
@@ -335,7 +335,7 @@ class TestPreferenceStore(unittest.TestCase):
         self.assertFalse(result["ok"])
 
     def test_summary_no_secrets_in_messages(self):
-        self.store.remember("repo", "E:\\jarvis-main")
+        self.store.remember("repo", "E:\\nexi-main")
         result = self.store.summarize()
         result_str = str(result)
         self.assertNotIn("DEEPSEEK_API_KEY", result_str)

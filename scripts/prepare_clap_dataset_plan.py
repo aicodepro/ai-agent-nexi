@@ -76,7 +76,7 @@ def format_markdown(plan: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Print the Jarvis clap dataset research plan without downloading data.")
+    parser = argparse.ArgumentParser(description="Print the Nexi clap dataset research plan without downloading data.")
     parser.add_argument("--format", choices=("json", "markdown"), default="markdown")
     args = parser.parse_args()
     plan = build_plan()

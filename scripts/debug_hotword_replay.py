@@ -2,7 +2,7 @@
 """Replay hotword WAV files for offline benchmark.
 
 Usage:
-    python scripts/debug_hotword_replay.py path/to/hey_jarvis.wav
+    python scripts/debug_hotword_replay.py path/to/hey_nexi.wav
 """
 
 import argparse
@@ -34,7 +34,7 @@ def main():
     args = parser.parse_args()
 
     os.environ.setdefault("OPENWAKEWORD_SCORE_THRESHOLD", str(args.threshold))
-    os.environ.setdefault("JARVIS_WAKE_DEBUG", "true")
+    os.environ.setdefault("NEXI_WAKE_DEBUG", "true")
     os.environ.setdefault("OPENWAKEWORD_DEBUG", "true")
 
     manager = HotwordEngineManager()

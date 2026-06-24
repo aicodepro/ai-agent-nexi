@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthetic full Jarvis wake + UI validation without cloud or microphone."""
+"""Synthetic full Nexi wake + UI validation without cloud or microphone."""
 
 from __future__ import annotations
 
@@ -85,14 +85,14 @@ def assert_true(condition: bool, message: str) -> None:
 
 
 def main() -> int:
-    os.environ.setdefault("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
-    os.environ.setdefault("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-    os.environ.setdefault("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-    os.environ.setdefault("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-    os.environ.setdefault("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-    os.environ.setdefault("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
-    os.environ.setdefault("JARVIS_CLAP_MIN_GAP_MS", "160")
-    os.environ.setdefault("JARVIS_CLAP_MAX_GAP_MS", "950")
+    os.environ.setdefault("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
+    os.environ.setdefault("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+    os.environ.setdefault("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+    os.environ.setdefault("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+    os.environ.setdefault("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+    os.environ.setdefault("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+    os.environ.setdefault("NEXI_CLAP_MIN_GAP_MS", "160")
+    os.environ.setdefault("NEXI_CLAP_MAX_GAP_MS", "950")
 
     before_modules = set(sys.modules)
 

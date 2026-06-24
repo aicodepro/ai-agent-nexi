@@ -7,7 +7,7 @@ negatives, and augmentation.
 Flags:
   --use-esc50-only               Skip all non-ESC-50 datasets instead of failing
   --allow-missing <name>         Don't fail if a specific dataset is missing
-  --include-local-hotword-negatives  Import Hey Jarvis/Jarvis as NOT_CLAP
+  --include-local-hotword-negatives  Import Hey Nexi/Nexi as NOT_CLAP
   --augment                      Enable augmentation
   --no-augment                   Disable augmentation
   --augment-multiplier N         Augmentation copies per sample (default: 3)
@@ -319,10 +319,10 @@ def _import_speech_commands(sc_dir: str, log: list) -> dict[str, int]:
 
 
 def _import_hotword_positives(log: list, augment: bool = False) -> dict[str, int]:
-    """Hotword positives (Hey Jarvis, Jarvis, variants) -> NOT_CLAP negatives."""
+    """Hotword positives (Hey Nexi, Nexi, variants) -> NOT_CLAP negatives."""
     counts = {"not_clap": 0}
     aug_types = ["gain", "noise", "silence_pad"] if augment else []
-    for subdir in ("hey_jarvis", "jarvis", "variants"):
+    for subdir in ("hey_nexi", "nexi", "variants"):
         d = os.path.join(HOTWORD_POS_DIR, subdir)
         if not os.path.isdir(d):
             continue
@@ -468,7 +468,7 @@ def main():
                         help="Dataset names that are allowed to be missing "
                              "(e.g. SpeechCommands FSD50K UrbanSound8K Freesound)")
     parser.add_argument("--include-local-hotword-negatives", action="store_true",
-                        help="Import local hotword negatives (Hey Jarvis/Jarvis) as NOT_CLAP")
+                        help="Import local hotword negatives (Hey Nexi/Nexi) as NOT_CLAP")
     parser.add_argument("--augment", action="store_true", default=None,
                         help="Enable data augmentation")
     parser.add_argument("--no-augment", action="store_true", default=None,
@@ -591,10 +591,10 @@ def main():
         print()
         print("[2] Importing local hotword negatives as NOT_CLAP...")
 
-        print("  [2a] Hotword positives (Hey Jarvis/Jarvis) -> NOT_CLAP...")
+        print("  [2a] Hotword positives (Hey Nexi/Nexi) -> NOT_CLAP...")
         counts = _import_hotword_positives(log, augment=augment)
         total_counts["not_clap"] = total_counts.get("not_clap", 0) + counts.get("not_clap", 0)
-        print(f"    Hey Jarvis / Jarvis / variants: {counts.get('not_clap', 0)} windows")
+        print(f"    Hey Nexi / Nexi / variants: {counts.get('not_clap', 0)} windows")
 
         print("  [2b] Hotword negatives (speech, noise, similar, keyboard) -> NOT_CLAP...")
         counts = _import_hotword_negatives(log)
@@ -657,7 +657,7 @@ def main():
         print("WARNING: No samples were imported. No public datasets found.")
         print("To download ESC-50: https://github.com/karolpiczak/ESC-50")
         print()
-        print("Hotword positives (Hey Jarvis/Jarvis) are still imported as NOT_CLAP negatives")
+        print("Hotword positives (Hey Nexi/Nexi) are still imported as NOT_CLAP negatives")
         print("if --include-local-hotword-negatives is passed and recordings exist.")
         sys.exit(0)
 

@@ -79,7 +79,7 @@ def test_screenshot_default_location(monkeypatch, tmp_path):
     result = handle_local_skill("take screenshot")
     assert result.handled is True
     assert saved
-    assert str(tmp_path / "Pictures" / "Jarvis Screenshots") in saved[0]
+    assert str(tmp_path / "Pictures" / "Nexi Screenshots") in saved[0]
 
 
 def test_create_file_asks_missing_slots():

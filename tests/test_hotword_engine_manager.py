@@ -33,7 +33,7 @@ def test_hotword_manager_detects_threshold_hit():
     result = manager.process_audio_chunk(b"\x00\x00" * 1280, 16000)
     assert result.detected is True
     assert result.engine == "openwakeword"
-    assert result.phrase == "hey jarvis"
+    assert result.phrase == "hey nexi"
 
 
 def test_hotword_manager_respects_cooldown():

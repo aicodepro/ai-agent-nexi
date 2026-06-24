@@ -54,8 +54,8 @@ class TestSpeechInterrupt(unittest.TestCase):
     def test_hindi_ruk_jao_detected(self):
         self.assertTrue(self.is_stop("ruk jao"))
 
-    def test_jarvis_stop_detected(self):
-        self.assertTrue(self.is_stop("jarvis stop"))
+    def test_nexi_stop_detected(self):
+        self.assertTrue(self.is_stop("nexi stop"))
 
     def test_stop_with_punctuation(self):
         self.assertTrue(self.is_stop("stop."))
@@ -114,8 +114,8 @@ class TestSpeechInterrupt(unittest.TestCase):
         self.assertFalse(self.is_emergency(None))
         self.assertIsNone(self.classify(None))
 
-    def test_normalize_removes_jarvis_prefix(self):
-        result = self.normalize("jarvis stop")
+    def test_normalize_removes_nexi_prefix(self):
+        result = self.normalize("nexi stop")
         self.assertEqual(result, "stop")
 
     def test_normalize_removes_punctuation(self):
@@ -270,7 +270,7 @@ class TestClassifySpeechControl(unittest.TestCase):
         self.assertEqual(classify_speech_control("stop speaking"), "speech_stop")
         self.assertEqual(classify_speech_control("bas"), "speech_stop")
         self.assertEqual(classify_speech_control("chup ho jao"), "speech_stop")
-        self.assertEqual(classify_speech_control("jarvis stop"), "speech_stop")
+        self.assertEqual(classify_speech_control("nexi stop"), "speech_stop")
 
     def test_classify_emergency_stop(self):
         from src.orin.voice.speech_interrupt import classify_speech_control
@@ -347,7 +347,7 @@ class TestSecretRedaction(unittest.TestCase):
     def test_normal_text_preserved(self, mock_pyttsx3):
         from src.orin.voice.speech_controller import speak, stop_speaking, get_state
         stop_speaking()
-        speak("Hello, I am Jarvis")
+        speak("Hello, I am Nexi")
         import time
         time.sleep(0.1)
         stop_speaking()

@@ -25,7 +25,7 @@ def test_port_conflict_does_not_crash():
 
 def test_port_conflict_no_socket_error():
     env_backup = os.environ.copy()
-    os.environ["JARVIS_UI_AUTO_PORT"] = "false"
+    os.environ["NEXI_UI_AUTO_PORT"] = "false"
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("localhost", 8011))

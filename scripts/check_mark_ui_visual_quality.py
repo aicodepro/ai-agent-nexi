@@ -71,13 +71,13 @@ def main():
             issues.append(f"FATAL: {js_file} missing")
 
     # Check logo
-    logo = WWW_MARK / "assets" / "jarvis-logo.svg"
+    logo = WWW_MARK / "assets" / "nexi-logo.svg"
     if not logo.exists():
-        issues.append("MISSING: jarvis-logo.svg")
+        issues.append("MISSING: nexi-logo.svg")
     else:
         size = logo.stat().st_size
         if size < 100:
-            issues.append(f"SUSPECT: jarvis-logo.svg too small ({size} bytes)")
+            issues.append(f"SUSPECT: nexi-logo.svg too small ({size} bytes)")
 
     # Check screenshots
     for s in EXPECTED_SCREENSHOTS:

@@ -1,4 +1,4 @@
-"""Validate Jarvis wake + clap detection without microphone hardware.
+"""Validate Nexi wake + clap detection without microphone hardware.
 
 Checks:
   - ClapStateMachine state transitions are correct

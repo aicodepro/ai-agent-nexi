@@ -10,8 +10,8 @@ from engine.hotword_engine_manager import HotwordEngineManager, _env_int
 def _saved_env():
     """Return saved env vars for later restore."""
     keys = ["OPENWAKEWORD_CONSECUTIVE_HITS", "OPENWAKEWORD_SCORE_THRESHOLD",
-            "JARVIS_HOTWORD_COOLDOWN_MS", "JARVIS_HOTWORD_MIN_RMS",
-            "JARVIS_HOTWORD_RISING_EDGE_DELTA"]
+            "NEXI_HOTWORD_COOLDOWN_MS", "NEXI_HOTWORD_MIN_RMS",
+            "NEXI_HOTWORD_RISING_EDGE_DELTA"]
     return {k: os.environ.pop(k, None) for k in keys}
 
 

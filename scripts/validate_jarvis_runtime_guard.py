@@ -21,9 +21,9 @@ def _ok(label: str, condition: bool, detail: str = "") -> bool:
 
 def main() -> int:
     checks: list[bool] = []
-    plugin_dir = ROOT / ".opencode" / "plugins" / "jarvis-runtime-guard"
-    skill_file = ROOT / ".opencode" / "skills" / "jarvis-voice-bridge-runtime" / "SKILL.md"
-    mcp_design = ROOT / "OPENCODE_JARVIS_RUNTIME_MCP_DESIGN.md"
+    plugin_dir = ROOT / ".opencode" / "plugins" / "nexi-runtime-guard"
+    skill_file = ROOT / ".opencode" / "skills" / "nexi-voice-bridge-runtime" / "SKILL.md"
+    mcp_design = ROOT / "OPENCODE_NEXI_RUNTIME_MCP_DESIGN.md"
     opencode_config = _read(ROOT / ".opencode" / "opencode.json")
 
     checks.append(_ok("runtime guard plugin folder exists", plugin_dir.is_dir()))
@@ -31,12 +31,12 @@ def main() -> int:
     checks.append(_ok("plugin design exists", (plugin_dir / "plugin-design.md").is_file()))
     checks.append(_ok("voice bridge skill exists", skill_file.is_file()))
     checks.append(_ok("MCP design exists", mcp_design.is_file()))
-    checks.append(_ok("plugin is not auto-loaded", "jarvis-runtime-guard" not in opencode_config))
+    checks.append(_ok("plugin is not auto-loaded", "nexi-runtime-guard" not in opencode_config))
 
     wake_files = [
         ROOT / "engine" / "audio_wake_pipeline.py",
         ROOT / "engine" / "hotword_engine_manager.py",
-        ROOT / "engine" / "jarvis_wake_controller.py",
+        ROOT / "engine" / "nexi_wake_controller.py",
     ]
     cloud_before_wake = False
     for path in wake_files:
@@ -55,7 +55,7 @@ def main() -> int:
     checks.append(_ok("Mark UI does not call eel.allCommands directly", "eel.allCommands" not in mark_main))
 
     controller = _read(ROOT / "www_mark" / "controller.js")
-    for fn in ["updateJarvisState", "senderText", "receiverText", "appendLog", "DisplayMessage", "ShowHood"]:
+    for fn in ["updateNexiState", "senderText", "receiverText", "appendLog", "DisplayMessage", "ShowHood"]:
         checks.append(_ok(f"eel.expose present for {fn}", f"'{fn}'" in controller or f'"{fn}"' in controller))
 
     forbidden_secret_patterns = ["sk-", "GROQ_API_KEY=", "GEMINI_API_KEY="]

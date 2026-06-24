@@ -9,11 +9,11 @@ def test_requested_skill_files_exist_and_are_compact():
     root = Path(__file__).resolve().parents[1]
     names = [
         "karpathy-debugging",
-        "jarvis-architecture",
-        "jarvis-model-router",
-        "jarvis-safety-gate",
-        "jarvis-workflow-dialogue",
-        "jarvis-ui-debug",
+        "nexi-architecture",
+        "nexi-model-router",
+        "nexi-safety-gate",
+        "nexi-workflow-dialogue",
+        "nexi-ui-debug",
     ]
     for name in names:
         path = root / ".opencode" / "skills" / name / "SKILL.md"

@@ -34,5 +34,5 @@ def test_hotword_manager_uses_int16_pcm_bytes():
 def test_openwakeword_name_normalisation_prefers_spaces():
     from engine.hotword_engine_manager import _normalise_oww_name
 
-    assert _normalise_oww_name("hey_jarvis") == "hey jarvis"
-    assert _normalise_oww_name("Hey Jarvis") == "hey jarvis"
+    assert _normalise_oww_name("hey_nexi") == "hey nexi"
+    assert _normalise_oww_name("Hey Nexi") == "hey nexi"

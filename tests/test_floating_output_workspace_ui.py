@@ -7,8 +7,8 @@ def test_ui_has_draggable_workspace():
     index = (ROOT / "www" / "index.html").read_text(encoding="utf-8")
     css = (ROOT / "www" / "style.css").read_text(encoding="utf-8")
     js = (ROOT / "www" / "controller.js").read_text(encoding="utf-8")
-    assert "JarvisOutputWorkspace" in index
-    assert "jarvis-output-workspace" in css
+    assert "NexiOutputWorkspace" in index
+    assert "nexi-output-workspace" in css
     assert "makeWorkspaceDraggable" in js
 
 

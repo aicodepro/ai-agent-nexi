@@ -21,10 +21,10 @@ class TestConversationBufferStore(unittest.TestCase):
 
     def test_command_response_stored_as_one_turn(self):
         buf = get_conversation_buffer()
-        buf.append_turn("diagnose Jarvis", "Jarvis diagnostics complete.")
+        buf.append_turn("diagnose Nexi", "Nexi diagnostics complete.")
         self.assertEqual(buf.count(), 1)
         turn = buf.get_turns()[0]
-        self.assertEqual(turn["user"], "diagnose Jarvis")
+        self.assertEqual(turn["user"], "diagnose Nexi")
         self.assertIn("diagnostics", turn["assistant"])
         self.assertIn("timestamp", turn)
 
@@ -53,11 +53,11 @@ class TestConversationRecallCommands(unittest.TestCase):
 
     def test_what_did_i_just_ask_returns_previous(self):
         buf = get_conversation_buffer()
-        buf.append_turn("diagnose Jarvis", "All systems OK.")
+        buf.append_turn("diagnose Nexi", "All systems OK.")
         result = Phase3CommandBridge.try_handle("what did I just ask")
         self.assertTrue(result["handled"])
         msg = result["result"]["message"]
-        self.assertIn("diagnose Jarvis", msg)
+        self.assertIn("diagnose Nexi", msg)
         self.assertNotIn("what did I just ask", msg)
 
     def test_repeat_my_last_question_returns_previous(self):
@@ -83,7 +83,7 @@ class TestConversationRecallCommands(unittest.TestCase):
         msg = result["result"]["message"]
         self.assertIn("q1", msg)
         self.assertIn("q2", msg)
-        self.assertIn("Jarvis:", msg)
+        self.assertIn("Nexi:", msg)
 
     def test_show_last_5_chats_empty(self):
         result = Phase3CommandBridge.try_handle("show last 5 chats")

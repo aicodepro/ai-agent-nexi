@@ -39,7 +39,7 @@ def _run_phase(stream, pipeline, phase: str, duration_seconds: float, expected_s
 
 
 def main() -> int:
-    print("Jarvis combined hotword + double clap wake runtime debug")
+    print("Nexi combined hotword + double clap wake runtime debug")
     print("Local-only wake detection. This script does not call ASR, TTS, Groq, Gemini, or command_bus.")
     try:
         import sounddevice as sd
@@ -59,7 +59,7 @@ def main() -> int:
     phases = []
     try:
         with sd.RawInputStream(samplerate=SAMPLE_RATE, channels=1, blocksize=FRAME_SAMPLES, dtype="int16") as stream:
-            input("Press Enter, then say Hey Jarvis 5 times over the next 25 seconds...")
+            input("Press Enter, then say Hey Nexi 5 times over the next 25 seconds...")
             phases.append(("hotword", _run_phase(stream, pipeline, "hotword", 25.0, "hotword", 5)))
             input("Press Enter, then double clap 5 times over the next 25 seconds...")
             phases.append(("double_clap", _run_phase(stream, pipeline, "double_clap", 25.0, "double_clap", 5)))

@@ -33,13 +33,13 @@ def main():
     parser.add_argument("--window-ms", type=int, default=900, help="Max gap ms")
     args = parser.parse_args()
 
-    os.environ.setdefault("JARVIS_CLAP_ENABLED", "true")
-    os.environ.setdefault("JARVIS_HOTWORD_ENABLED", "false")
-    os.environ.setdefault("JARVIS_WAKE_DEBUG", "true")
-    os.environ.setdefault("JARVIS_CLAP_DEBUG", "true")
-    os.environ.setdefault("JARVIS_CLAP_MIN_GAP_MS", str(args.gap_ms))
-    os.environ.setdefault("JARVIS_CLAP_MAX_GAP_MS", str(args.window_ms))
-    os.environ.setdefault("JARVIS_CLAP_COOLDOWN_MS", "1800")
+    os.environ.setdefault("NEXI_CLAP_ENABLED", "true")
+    os.environ.setdefault("NEXI_HOTWORD_ENABLED", "false")
+    os.environ.setdefault("NEXI_WAKE_DEBUG", "true")
+    os.environ.setdefault("NEXI_CLAP_DEBUG", "true")
+    os.environ.setdefault("NEXI_CLAP_MIN_GAP_MS", str(args.gap_ms))
+    os.environ.setdefault("NEXI_CLAP_MAX_GAP_MS", str(args.window_ms))
+    os.environ.setdefault("NEXI_CLAP_COOLDOWN_MS", "1800")
 
     manager = ClapBackendManager()
     import sounddevice as sd
@@ -131,11 +131,11 @@ def main():
     if verdict == "FAIL":
         print("Tuning suggestions:")
         if double_wakes < 8:
-            print("  - Increase JARVIS_CLAP_MAX_GAP_MS (try 1000, 1100)")
-            print("  - Decrease JARVIS_CLAP_MIN_GAP_MS (try 150, 120)")
+            print("  - Increase NEXI_CLAP_MAX_GAP_MS (try 1000, 1100)")
+            print("  - Decrease NEXI_CLAP_MIN_GAP_MS (try 150, 120)")
             print("  - Check CLAP_MIN_RMS / CLAP_PEAK_THRESHOLD")
         if single_wakes > 0:
-            print("  - Increase JARVIS_CLAP_MIN_GAP_MS (try 250, 300)")
+            print("  - Increase NEXI_CLAP_MIN_GAP_MS (try 250, 300)")
             print("  - Check CLAP_MIN_RMS / CLAP_PEAK_THRESHOLD")
 
 

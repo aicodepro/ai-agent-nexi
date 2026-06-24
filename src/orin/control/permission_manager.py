@@ -5,7 +5,7 @@ from src.orin.control.safety import EmergencyStop, SandboxPolicy, AuditLog
 
 
 _KNOWN_ACTIONS = {
-    "run_diagnostics": {"risk_level": "SAFE", "description": "Run Jarvis diagnostics"},
+    "run_diagnostics": {"risk_level": "SAFE", "description": "Run Nexi diagnostics"},
     "check_project_status": {"risk_level": "SAFE", "description": "Check project status"},
     "retrieve_preferences": {"risk_level": "SAFE", "description": "Retrieve stored preferences"},
     "remember_preference": {"risk_level": "MEDIUM", "description": "Remember a preference"},
@@ -25,15 +25,15 @@ _KNOWN_ACTIONS = {
 }
 
 _HIGH_CONFIRMATION_PROMPTS = {
-    "screen_capture": "Jarvis wants to capture your screen. Allow?",
-    "draft_email": "Jarvis wants to draft an email. Allow?",
-    "draft_whatsapp": "Jarvis wants to draft a WhatsApp message. Allow?",
-    "send_message": "Jarvis wants to send a message. Allow?",
+    "screen_capture": "Nexi wants to capture your screen. Allow?",
+    "draft_email": "Nexi wants to draft an email. Allow?",
+    "draft_whatsapp": "Nexi wants to draft a WhatsApp message. Allow?",
+    "send_message": "Nexi wants to send a message. Allow?",
 }
 
 _CRITICAL_CONFIRMATION_PROMPTS = {
-    "delete_files": "Jarvis wants to delete files. Type CONFIRM to allow (not recommended).",
-    "send_message_auto": "Jarvis wants to send a message automatically. Type CONFIRM to allow.",
+    "delete_files": "Nexi wants to delete files. Type CONFIRM to allow (not recommended).",
+    "send_message_auto": "Nexi wants to send a message automatically. Type CONFIRM to allow.",
 }
 
 

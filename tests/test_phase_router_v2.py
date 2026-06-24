@@ -17,7 +17,7 @@ def test_v2_disabled_short_circuits(monkeypatch):
 def test_deterministic_path_unaffected():
     # The LLM hardening must not change the fast deterministic routing.
     assert route_intent("open chrome")["route"] == "local_action"
-    assert route_intent("agent status")["route"] == "jarvis"
+    assert route_intent("agent status")["route"] == "nexi"
     assert route_intent("what time is it")["intent"] == "get_time"
 
 

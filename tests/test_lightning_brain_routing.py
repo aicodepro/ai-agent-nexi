@@ -19,10 +19,10 @@ class TestBrainRouting(unittest.TestCase):
 
     def setUp(self):
         self.env_patcher = patch.dict(os.environ, {
-            "JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
-            "JARVIS_BRAIN_PRIMARY": "lightning",
-            "JARVIS_BRAIN_FALLBACK": "hugchat",
-            "JARVIS_BRAIN_PROVIDER": "",
+            "NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
+            "NEXI_BRAIN_PRIMARY": "lightning",
+            "NEXI_BRAIN_FALLBACK": "hugchat",
+            "NEXI_BRAIN_PROVIDER": "",
             "LIGHTNING_API_BASE": "https://lightning.ai/v1",
             "LIGHTNING_AUTH_BASE64": "dGVzdDp0ZXN0",
             "LIGHTNING_AGENT_ID": "agent_123",
@@ -112,10 +112,10 @@ class TestOpenChromeDoesNotRouteToLightning(TestBrainRouting):
 class TestFallbackWhenLightningMissing(unittest.TestCase):
     # Legacy opt-in chain: HugChat primary -> Lightning fallback -> safe error.
     @patch.dict(os.environ, {
-        "JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
-        "JARVIS_BRAIN_PRIMARY": "hugchat",
-        "JARVIS_BRAIN_FALLBACK": "lightning",
-        "JARVIS_BRAIN_PROVIDER": "",
+        "NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
+        "NEXI_BRAIN_PRIMARY": "hugchat",
+        "NEXI_BRAIN_FALLBACK": "lightning",
+        "NEXI_BRAIN_PROVIDER": "",
         "LIGHTNING_API_BASE": "",
     }, clear=False)
     def test_all_providers_unavailable_returns_safe_message(self):
@@ -129,10 +129,10 @@ class TestFallbackWhenLightningMissing(unittest.TestCase):
             mock_speak.assert_called_once_with(result)
 
     @patch.dict(os.environ, {
-        "JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
-        "JARVIS_BRAIN_PRIMARY": "hugchat",
-        "JARVIS_BRAIN_FALLBACK": "lightning",
-        "JARVIS_BRAIN_PROVIDER": "",
+        "NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
+        "NEXI_BRAIN_PRIMARY": "hugchat",
+        "NEXI_BRAIN_FALLBACK": "lightning",
+        "NEXI_BRAIN_PROVIDER": "",
         "LIGHTNING_API_BASE": "",
     }, clear=False)
     def test_lightning_unconfigured_after_hugchat_fail_returns_safe(self):
@@ -147,8 +147,8 @@ class TestFallbackWhenLightningMissing(unittest.TestCase):
 
 class TestNoSecretsInRouting(unittest.TestCase):
     @patch.dict(os.environ, {
-        "JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
-        "JARVIS_BRAIN_PROVIDER": "lightning",
+        "NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS": "true",
+        "NEXI_BRAIN_PROVIDER": "lightning",
         "LIGHTNING_API_BASE": "https://lightning.ai/v1",
         "LIGHTNING_AUTH_BASE64": "dGVzdDp0ZXN0",
         "LIGHTNING_AGENT_ID": "agent_123",

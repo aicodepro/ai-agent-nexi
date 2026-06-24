@@ -34,8 +34,8 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 DEFAULT_MODEL = os.path.join(MODELS_DIR, "custom_hotword.onnx")
 
 POSITIVE_DIRS = [
-    os.path.join(BASE_DIR, "positive", "hey_jarvis"),
-    os.path.join(BASE_DIR, "positive", "jarvis"),
+    os.path.join(BASE_DIR, "positive", "hey_nexi"),
+    os.path.join(BASE_DIR, "positive", "nexi"),
     os.path.join(BASE_DIR, "positive", "variants"),
 ]
 NEGATIVE_DIRS = [

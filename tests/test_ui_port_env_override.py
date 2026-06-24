@@ -15,19 +15,19 @@ def test_env_override_port():
         s.bind(("localhost", custom_port))
         busy_port = s.getsockname()[1]
         s.listen(1)
-        os.environ["JARVIS_UI_PORT"] = str(busy_port)
-        os.environ["JARVIS_UI_AUTO_PORT"] = "false"
+        os.environ["NEXI_UI_PORT"] = str(busy_port)
+        os.environ["NEXI_UI_AUTO_PORT"] = "false"
         try:
             from main import _find_free_port
             result, reason = _find_free_port("localhost", busy_port, max_port=8020)
             assert result == busy_port
         finally:
-            os.environ.pop("JARVIS_UI_PORT", None)
-            os.environ.pop("JARVIS_UI_AUTO_PORT", None)
+            os.environ.pop("NEXI_UI_PORT", None)
+            os.environ.pop("NEXI_UI_AUTO_PORT", None)
 
 
 def test_env_auto_port_disabled_does_not_fallback():
-    os.environ["JARVIS_UI_AUTO_PORT"] = "false"
+    os.environ["NEXI_UI_AUTO_PORT"] = "false"
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("localhost", 0))
@@ -36,9 +36,9 @@ def test_env_auto_port_disabled_does_not_fallback():
             result, reason = _find_free_port("localhost", busy_port)
             assert result == busy_port
     finally:
-        os.environ.pop("JARVIS_UI_AUTO_PORT", None)
+        os.environ.pop("NEXI_UI_AUTO_PORT", None)
 
 
 def test_env_auto_port_default_is_true():
     from main import _env_bool
-    assert _env_bool("JARVIS_UI_AUTO_PORT", True) is True
+    assert _env_bool("NEXI_UI_AUTO_PORT", True) is True

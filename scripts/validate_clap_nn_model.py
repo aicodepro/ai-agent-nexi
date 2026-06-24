@@ -4,8 +4,8 @@
 Required PASS thresholds:
   clap recall >= 90%
   not_clap precision >= 95%
-  Hey Jarvis false clap = 0/20
-  Jarvis false clap = 0/20
+  Hey Nexi false clap = 0/20
+  Nexi false clap = 0/20
   random speech false clap <= 1/50
   silence false clap = 0
   keyboard/table tap false clap <= 1/30
@@ -142,7 +142,7 @@ def main():
     parser.add_argument("--target-size", type=int, default=256)
     parser.add_argument("--sample-rate", type=int, default=44100)
     parser.add_argument("--hotword-clap-false", action="store_true",
-                        help="Check Hey Jarvis/Jarvis false clap rate")
+                        help="Check Hey Nexi/Nexi false clap rate")
     parser.add_argument("--fast", action="store_true",
                         help="Fast mode thresholds (85% recall, 92% precision)")
     args = parser.parse_args()
@@ -178,16 +178,16 @@ def main():
 
     # Collect special negative groups
     hw_base = os.path.join(base, "datasets", "hotword")
-    hey_jarvis_files = get_wav_files(os.path.join(hw_base, "positive", "hey_jarvis"))
-    jarvis_files = get_wav_files(os.path.join(hw_base, "positive", "jarvis"))
+    hey_nexi_files = get_wav_files(os.path.join(hw_base, "positive", "hey_nexi"))
+    nexi_files = get_wav_files(os.path.join(hw_base, "positive", "nexi"))
     speech_files = get_wav_files(os.path.join(hw_base, "negative", "speech"))
     silence_files = get_wav_files(os.path.join(hw_base, "negative", "noise"))
     keyboard_files = get_wav_files(os.path.join(hw_base, "negative", "keyboard_taps"))
 
     print(f"Test clap files:      {len(clap_test_files)}")
     print(f"Test not_clap files:   {len(not_clap_test_files)}")
-    print(f"Hey Jarvis files:     {len(hey_jarvis_files)}")
-    print(f"Jarvis files:         {len(jarvis_files)}")
+    print(f"Hey Nexi files:     {len(hey_nexi_files)}")
+    print(f"Nexi files:         {len(nexi_files)}")
     print(f"Random speech files:  {len(speech_files)}")
     print(f"Silence/noise files:  {len(silence_files)}")
     print(f"Keyboard/tap files:   {len(keyboard_files)}")
@@ -203,8 +203,8 @@ def main():
     test_groups = [
         ("clap", clap_test_files, 1, "clap"),
         ("not_clap", not_clap_test_files, 0, "not_clap"),
-        ("hey_jarvis", hey_jarvis_files, 0, "hey_jarvis"),
-        ("jarvis", jarvis_files, 0, "jarvis"),
+        ("hey_nexi", hey_nexi_files, 0, "hey_nexi"),
+        ("nexi", nexi_files, 0, "nexi"),
         ("speech", speech_files, 0, "speech"),
         ("silence", silence_files, 0, "silence"),
         ("keyboard", keyboard_files, 0, "keyboard"),
@@ -288,7 +288,7 @@ def main():
     print(f"  Threshold:              {args.threshold}")
     print()
     print("-- Per-Category False Clap Rate --")
-    for cat_name in ["clap", "not_clap", "hey_jarvis", "jarvis", "speech", "silence", "keyboard"]:
+    for cat_name in ["clap", "not_clap", "hey_nexi", "nexi", "speech", "silence", "keyboard"]:
         if cat_name not in per_category or per_category[cat_name]["count"] == 0:
             continue
         c = per_category[cat_name]
@@ -306,8 +306,8 @@ def main():
     print()
 
     # PASS/FAIL evaluation
-    hey_fp = per_category.get("hey_jarvis", {}).get("fp", 0)
-    jarvis_fp = per_category.get("jarvis", {}).get("fp", 0)
+    hey_fp = per_category.get("hey_nexi", {}).get("fp", 0)
+    nexi_fp = per_category.get("nexi", {}).get("fp", 0)
     speech_fp = per_category.get("speech", {}).get("fp", 0)
     speech_count = per_category.get("speech", {}).get("count", 0)
     silence_fp = per_category.get("silence", {}).get("fp", 0)
@@ -328,9 +328,9 @@ def main():
         if precision_not < 0.95:
             failures.append(f"Not-clap precision {precision_not:.3f} < 0.95")
     if hey_fp > 0:
-        failures.append(f"Hey Jarvis false clap = {hey_fp} (requires 0)")
-    if jarvis_fp > 0:
-        failures.append(f"Jarvis false clap = {jarvis_fp} (requires 0)")
+        failures.append(f"Hey Nexi false clap = {hey_fp} (requires 0)")
+    if nexi_fp > 0:
+        failures.append(f"Nexi false clap = {nexi_fp} (requires 0)")
     if is_fast:
         if speech_fp > 0:
             failures.append(f"Random speech false clap = {speech_fp}/{speech_count} (requires 0 for fast)")

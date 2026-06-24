@@ -29,8 +29,8 @@ class Clock:
 
 
 def test_double_clap_not_blocked_by_dsp_cooldown(monkeypatch):
-    monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
-    monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+    monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
+    monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
     clock = Clock()
     monkeypatch.setattr(time_module, "time", clock)
     from engine.clap_backend_manager import ClapBackendManager

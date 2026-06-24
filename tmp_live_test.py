@@ -1,6 +1,6 @@
 import sys, time
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-sys.path.insert(0, r'E:\jarvis-main')
+sys.path.insert(0, r'E:\nexi-main')
 from src.orin.control import execute_control_action, EmergencyStop
 
 print('=== 1. ACTIVE WINDOW ===')
@@ -31,7 +31,7 @@ print(r.message)
 
 print()
 print('=== 6. CREATE FOLDER ON DESKTOP ===')
-r = execute_control_action('create_folder', {'folder_name': 'jarvis_test_folder', 'location': 'desktop'})
+r = execute_control_action('create_folder', {'folder_name': 'nexi_test_folder', 'location': 'desktop'})
 print(r.message)
 
 print()

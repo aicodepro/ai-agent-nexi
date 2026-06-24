@@ -7,8 +7,8 @@ Exits with clear FAIL if model file is missing.
 Test sequence:
 1. Check model exists (FAIL fast if missing)
 2. Silence 10 s — measure false wake
-3. "Hey Jarvis" x10 — must NOT trigger clap
-4. "Jarvis" x10 — must NOT trigger clap
+3. "Hey Nexi" x10 — must NOT trigger clap
+4. "Nexi" x10 — must NOT trigger clap
 5. Single clap x10 — must NOT wake
 6. Double clap x10 — must wake >= 8/10
 7. Random speech 30 s — measure false wake
@@ -31,7 +31,7 @@ FRAME_SAMPLES = int(SAMPLE_RATE * FRAME_MS / 1000)
 
 
 def resolve_model_path() -> str:
-    path = os.getenv("JARVIS_CLAP_NN_MODEL_PATH", "")
+    path = os.getenv("NEXI_CLAP_NN_MODEL_PATH", "")
     if not path:
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(base, "external", "CLAP_NN_INSPECT", "CLAP_NN",
@@ -95,8 +95,8 @@ def main():
 
     results = {
         "silence_false_wakes": 0,
-        "hey_jarvis_false_clap": 0,
-        "jarvis_false_clap": 0,
+        "hey_nexi_false_clap": 0,
+        "nexi_false_clap": 0,
         "single_clap_false_wake": 0,
         "double_clap_detected": 0,
     }
@@ -110,29 +110,29 @@ def main():
     print(f"  silence false wake = {results['silence_false_wakes']}")
     print()
 
-    # --- Phase 2: "Hey Jarvis" x10 ---
-    print("[2] Say 'Hey Jarvis' 10 times (must NOT trigger clap)")
+    # --- Phase 2: "Hey Nexi" x10 ---
+    print("[2] Say 'Hey Nexi' 10 times (must NOT trigger clap)")
     for i in range(10):
-        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Hey Jarvis'...")
+        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Hey Nexi'...")
         time.sleep(0.5)
         audio = record_stream(2.0, args.device)
         clap_results = process_clap_frames(audio, backend)
         any_clap = any(r.is_clap for r in clap_results)
         if any_clap:
-            results["hey_jarvis_false_clap"] += 1
+            results["hey_nexi_false_clap"] += 1
         print(f"  {'FALSE CLAP (bad)' if any_clap else 'no clap (good)'}")
     print()
 
-    # --- Phase 3: "Jarvis" x10 ---
-    print("[3] Say 'Jarvis' 10 times (must NOT trigger clap)")
+    # --- Phase 3: "Nexi" x10 ---
+    print("[3] Say 'Nexi' 10 times (must NOT trigger clap)")
     for i in range(10):
-        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Jarvis'...")
+        input(f"  [{i+1}/10] Press Enter, pause 1s, say 'Nexi'...")
         time.sleep(0.5)
         audio = record_stream(2.0, args.device)
         clap_results = process_clap_frames(audio, backend)
         any_clap = any(r.is_clap for r in clap_results)
         if any_clap:
-            results["jarvis_false_clap"] += 1
+            results["nexi_false_clap"] += 1
         print(f"  {'FALSE CLAP (bad)' if any_clap else 'no clap (good)'}")
     print()
 
@@ -176,8 +176,8 @@ def main():
     print("RESULTS")
     print("=" * 60)
     print(f"  silence false wake:      {results['silence_false_wakes']}   (target: 0)")
-    print(f"  'Hey Jarvis' false clap: {results['hey_jarvis_false_clap']}/10   (target: 0/10)")
-    print(f"  'Jarvis' false clap:     {results['jarvis_false_clap']}/10   (target: 0/10)")
+    print(f"  'Hey Nexi' false clap: {results['hey_nexi_false_clap']}/10   (target: 0/10)")
+    print(f"  'Nexi' false clap:     {results['nexi_false_clap']}/10   (target: 0/10)")
     print(f"  single clap false wake:  {results['single_clap_false_wake']}/10   (target: 0/10)")
     print(f"  double clap detected:    {results['double_clap_detected']}/10   (target: >=8/10)")
     print(f"  speech false clap:       {speech_false}   (target: 0)")
@@ -186,9 +186,9 @@ def main():
     passes = 0
     if results["silence_false_wakes"] == 0:
         passes += 1
-    if results["hey_jarvis_false_clap"] == 0:
+    if results["hey_nexi_false_clap"] == 0:
         passes += 1
-    if results["jarvis_false_clap"] == 0:
+    if results["nexi_false_clap"] == 0:
         passes += 1
     if results["single_clap_false_wake"] == 0:
         passes += 1
@@ -204,10 +204,10 @@ def main():
         print(f"VERDICT: PARTIAL ({passes}/6 criteria met)")
         if results["double_clap_detected"] < 8:
             print("  Blocker: double clap detection rate < 8/10")
-        if results["hey_jarvis_false_clap"] > 0:
-            print("  Blocker: 'Hey Jarvis' triggers false clap")
-        if results["jarvis_false_clap"] > 0:
-            print("  Blocker: 'Jarvis' triggers false clap")
+        if results["hey_nexi_false_clap"] > 0:
+            print("  Blocker: 'Hey Nexi' triggers false clap")
+        if results["nexi_false_clap"] > 0:
+            print("  Blocker: 'Nexi' triggers false clap")
         if results["silence_false_wakes"] > 0:
             print("  Blocker: silence triggers false wake")
         if results["single_clap_false_wake"] > 0:

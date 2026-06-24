@@ -33,7 +33,7 @@
   // Load logo
   var logo = new Image();
   logo.onload = function () { logoImg = logo; };
-  logo.src = 'assets/jarvis-logo.svg';
+  logo.src = 'assets/nexi-logo.svg';
 
   function resize() {
     var rect = canvas.parentElement.getBoundingClientRect();
@@ -235,7 +235,7 @@
     ctx.fillText(sym + txt, cx, sy);
 
     // Update DOM state badge
-    var badge = document.getElementById('jarvis-status-badge');
+    var badge = document.getElementById('nexi-status-badge');
     if (badge) { badge.textContent = sym + txt; badge.style.color = col; }
 
     // Waveform in center-stage
@@ -257,10 +257,10 @@
     }
 
     // Wake hint
-    var hint = document.getElementById('jarvis-source');
+    var hint = document.getElementById('nexi-source');
     if (hint) {
-      if (state === 'sleeping') hint.textContent = 'Say Hey Jarvis or double clap to wake';
-      else if (state === 'idle') hint.textContent = 'Say Hey Jarvis or double clap';
+      if (state === 'sleeping') hint.textContent = 'Say Hey Nexi or double clap to wake';
+      else if (state === 'idle') hint.textContent = 'Say Hey Nexi or double clap';
       else hint.textContent = '';
     }
   }

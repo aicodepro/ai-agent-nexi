@@ -12,7 +12,7 @@ def _payloads(mock_update):
 def test_hotword_status_maps_to_online():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update:
+    with patch("eel.updateNexiState", create=True) as update:
         handle_bridge_event({"type": "status", "status": "wake_detected", "source": "hotword"})
     assert _payloads(update)[0]["state"] == "online"
     assert _payloads(update)[0]["label"] == "ONLINE"
@@ -21,7 +21,7 @@ def test_hotword_status_maps_to_online():
 def test_clap_status_maps_to_online():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update:
+    with patch("eel.updateNexiState", create=True) as update:
         handle_bridge_event({"type": "status", "status": "wake_detected", "source": "clap"})
     assert _payloads(update)[0]["state"] == "online"
     assert _payloads(update)[0]["label"] == "ONLINE"
@@ -30,7 +30,7 @@ def test_clap_status_maps_to_online():
 def test_asr_result_posts_transcript_and_thinking():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update, patch("eel.senderText", create=True) as sender:
+    with patch("eel.updateNexiState", create=True) as update, patch("eel.senderText", create=True) as sender:
         handle_bridge_event({"type": "status", "status": "asr_result", "source": "hotword", "text": "what is AI"})
     states = [payload["state"] for payload in _payloads(update)]
     assert states == ["recognising", "thinking"]
@@ -40,7 +40,7 @@ def test_asr_result_posts_transcript_and_thinking():
 def test_empty_asr_result_logs_warning_and_sleep():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update, patch("eel.appendLog", create=True) as log:
+    with patch("eel.updateNexiState", create=True) as update, patch("eel.appendLog", create=True) as log:
         handle_bridge_event({"type": "status", "status": "asr_result", "source": "hotword", "text": ""})
     assert _payloads(update)[-1]["state"] == "sleep"
     assert log.called

@@ -133,7 +133,7 @@ def _speak_streamelements(text, voice="Aditi"):
 def _speak_impl(text):
     if _STOP_EVENT.is_set():
         return
-    online_tts = os.getenv("JARVIS_ONLINE_TTS") == "1"
+    online_tts = os.getenv("NEXI_ONLINE_TTS") == "1"
     if online_tts:
         ok = _speak_streamelements(text)
         if ok:

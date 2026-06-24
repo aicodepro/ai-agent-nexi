@@ -42,11 +42,11 @@ class FakeClock:
 
 class TestDoubleClapNotBlockedByEventCooldown:
     def test_cooldown_allows_fast_second_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
         from engine.dsp_clap_backend import DspClapBackend
         clk = FakeClock()
         dsp = DspClapBackend(clock=clk)
@@ -57,14 +57,14 @@ class TestDoubleClapNotBlockedByEventCooldown:
         assert r2.is_clap is True, f"second: {r2.reason}"
 
     def test_dsp_cooldown_does_not_block_manager(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
-        monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "160")
-        monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "950")
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+        monkeypatch.setenv("NEXI_CLAP_MIN_GAP_MS", "160")
+        monkeypatch.setenv("NEXI_CLAP_MAX_GAP_MS", "950")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
         clk = FakeClock()
         monkeypatch.setattr(time_module, "time", clk)
         from engine.clap_backend_manager import ClapBackendManager
@@ -77,13 +77,13 @@ class TestDoubleClapNotBlockedByEventCooldown:
         assert r2.get("wake") is True, f"second: {r2}"
 
     def test_wide_gap_allows_double_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "160")
-        monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "950")
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_CLAP_MIN_GAP_MS", "160")
+        monkeypatch.setenv("NEXI_CLAP_MAX_GAP_MS", "950")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
         clk = FakeClock()
         monkeypatch.setattr(time_module, "time", clk)
         from engine.clap_backend_manager import ClapBackendManager
@@ -96,13 +96,13 @@ class TestDoubleClapNotBlockedByEventCooldown:
         assert r2.get("wake") is True
 
     def test_varying_gap_allows_double_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "160")
-        monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "950")
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_CLAP_MIN_GAP_MS", "160")
+        monkeypatch.setenv("NEXI_CLAP_MAX_GAP_MS", "950")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
         clk = FakeClock()
         monkeypatch.setattr(time_module, "time", clk)
         from engine.clap_backend_manager import ClapBackendManager
@@ -118,13 +118,13 @@ class TestDoubleClapNotBlockedByEventCooldown:
             assert r2.get("wake") is True, f"gap={gap_sec}"
 
     def test_single_clap_rejected_by_manager(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "160")
-        monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "950")
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_CLAP_MIN_GAP_MS", "160")
+        monkeypatch.setenv("NEXI_CLAP_MAX_GAP_MS", "950")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap")
         clk = FakeClock()
         monkeypatch.setattr(time_module, "time", clk)
         from engine.clap_backend_manager import ClapBackendManager

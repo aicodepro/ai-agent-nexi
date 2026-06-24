@@ -35,8 +35,8 @@ class TestHotwordNotBlockedByClapTraining:
         assert r.phrase != ""
 
     def test_audio_wake_pipeline_does_not_crash_on_missing_model(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
-        monkeypatch.setenv("JARVIS_CLAP_DEBUG", "true")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
+        monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.audio_wake_pipeline import AudioWakePipeline
         from engine.wake_orchestrator import WakeOrchestrator
         pipeline = AudioWakePipeline(enable_clap=True)

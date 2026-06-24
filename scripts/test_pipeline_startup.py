@@ -16,7 +16,7 @@ print("=== Pipeline startup test ===")
 # 1. Scorer
 from engine.audio_wake_pipeline import OpenWakeWordScorer, build_vad, AudioWakePipeline
 try:
-    scorer = OpenWakeWordScorer(pretrained="hey_jarvis")
+    scorer = OpenWakeWordScorer(pretrained="hey_nexi")
     print(f"[SCORER] loaded=yes model={scorer.model_name}")
 except Exception as e:
     print(f"[SCORER] FAIL: {type(e).__name__}: {e}")

@@ -14,10 +14,10 @@ def main():
     env_path = Path(".env.example")
     if env_path.exists():
         env_content = env_path.read_text()
-        if "JARVIS_HOTWORD_MIN_RMS=0.010" in env_content:
-            print("✓ .env.example has JARVIS_HOTWORD_MIN_RMS=0.010")
+        if "NEXI_HOTWORD_MIN_RMS=0.010" in env_content:
+            print("✓ .env.example has NEXI_HOTWORD_MIN_RMS=0.010")
         else:
-            print("✗ .env.example missing JARVIS_HOTWORD_MIN_RMS=0.010")
+            print("✗ .env.example missing NEXI_HOTWORD_MIN_RMS=0.010")
             all_good = False
     else:
         print("✗ .env.example not found")
@@ -27,7 +27,7 @@ def main():
     pipeline_path = Path("engine/audio_wake_pipeline.py")
     if pipeline_path.exists():
         pipeline_content = pipeline_path.read_text()
-        if 'HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010)' in pipeline_content:
+        if 'HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.010)' in pipeline_content:
             print("✓ audio_wake_pipeline.py has correct HOTWORD_MIN_RMS")
         else:
             print("✗ audio_wake_pipeline.py missing correct HOTWORD_MIN_RMS")
@@ -45,7 +45,7 @@ def main():
             print("✗ audio_wake_pipeline.py missing correct OWW_CONSECUTIVE")
             all_good = False
             
-        if 'HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03)' in pipeline_content:
+        if 'HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03)' in pipeline_content:
             print("✓ audio_wake_pipeline.py has correct HOTWORD_RISING_EDGE_DELTA")
         else:
             print("✗ audio_wake_pipeline.py missing correct HOTWORD_RISING_EDGE_DELTA")
@@ -59,13 +59,13 @@ def main():
     if manager_path.exists():
         manager_content = manager_path.read_text()
         # Look for the specific lines in __init__ method
-        if 'self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010))))' in manager_content:
+        if 'self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.010))))' in manager_content:
             print("✓ hotword_engine_manager.py has correct min_rms default")
         else:
             print("✗ hotword_engine_manager.py missing correct min_rms default")
             all_good = False
             
-        if 'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03))))' in manager_content:
+        if 'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03))))' in manager_content:
             print("✓ hotword_engine_manager.py has correct rising_edge_delta default")
         else:
             print("✗ hotword_engine_manager.py missing correct rising_edge_delta default")
@@ -103,11 +103,11 @@ def main():
     if all_good:
         print("SUCCESS: All hotword fixes have been applied correctly!")
         print("\nKey improvements:")
-        print("- Increased JARVIS_HOTWORD_MIN_RMS from 0.003 to 0.010 (better noise rejection)")
+        print("- Increased NEXI_HOTWORD_MIN_RMS from 0.003 to 0.010 (better noise rejection)")
         print("- Increased OPENWAKEWORD_SCORE_THRESHOLD from 0.25 to 0.35 (better accuracy)")
         print("- Increased OPENWAKEWORD_CONSECUTIVE_HITS from 1 to 2 (more reliable detection)")
         print("- Increased HOTWORD_RISING_EDGE_DELTA from 0.02 to 0.03 (better signal discrimination)")
-        print("- Added JARVIS_HOTWORD_DEBUG=true for troubleshooting")
+        print("- Added NEXI_HOTWORD_DEBUG=true for troubleshooting")
         return True
     else:
         print("FAILURE: Some hotword fixes were not applied correctly.")

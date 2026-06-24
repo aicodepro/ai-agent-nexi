@@ -3,8 +3,8 @@
 
 Test sequence:
 1. silence 30 seconds
-2. say "Hey Jarvis" 5 times
-3. say "Jarvis" 5 times
+2. say "Hey Nexi" 5 times
+3. say "Nexi" 5 times
 4. single clap 5 times
 5. double clap 5 times
 6. random speech without wake word 30 seconds
@@ -70,10 +70,10 @@ def main():
     parser.add_argument("--device", type=int, default=None)
     args = parser.parse_args()
 
-    os.environ.setdefault("JARVIS_HOTWORD_ENABLED", "true")
-    os.environ.setdefault("JARVIS_CLAP_ENABLED", "true")
-    os.environ.setdefault("JARVIS_WAKE_DEBUG", "true")
-    os.environ.setdefault("JARVIS_CLAP_DEBUG", "true")
+    os.environ.setdefault("NEXI_HOTWORD_ENABLED", "true")
+    os.environ.setdefault("NEXI_CLAP_ENABLED", "true")
+    os.environ.setdefault("NEXI_WAKE_DEBUG", "true")
+    os.environ.setdefault("NEXI_CLAP_DEBUG", "true")
     os.environ.setdefault("OPENWAKEWORD_DEBUG", "true")
 
     hotword = HotwordEngineManager()
@@ -89,8 +89,8 @@ def main():
 
     results = {
         "silence_false_wakes": 0,
-        "hey_jarvis_detected": 0,
-        "jarvis_detected": 0,
+        "hey_nexi_detected": 0,
+        "nexi_detected": 0,
         "single_clap_false_wakes": 0,
         "double_clap_detected": 0,
         "duplicate_wakes": 0,
@@ -113,10 +113,10 @@ def main():
     print(f"  silence_false_wakes={results['silence_false_wakes']}")
     print()
 
-    # 2. "Hey Jarvis" x5
-    print("[2] Say 'Hey Jarvis' 5 times (press Enter between each)")
+    # 2. "Hey Nexi" x5
+    print("[2] Say 'Hey Nexi' 5 times (press Enter between each)")
     for i in range(5):
-        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Hey Jarvis'...")
+        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Hey Nexi'...")
         time.sleep(0.5)
         audio = record_stream(2.5, args.device)
         woke = False
@@ -129,14 +129,14 @@ def main():
                 woke = True
                 orch.mark_listening_finished()
         if woke:
-            results["hey_jarvis_detected"] += 1
+            results["hey_nexi_detected"] += 1
         print(f"  {'DETECTED' if woke else 'missed'}")
     print()
 
-    # 3. "Jarvis" x5
-    print("[3] Say 'Jarvis' 5 times (press Enter between each)")
+    # 3. "Nexi" x5
+    print("[3] Say 'Nexi' 5 times (press Enter between each)")
     for i in range(5):
-        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Jarvis'...")
+        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Nexi'...")
         time.sleep(0.5)
         audio = record_stream(2.5, args.device)
         woke = False
@@ -149,7 +149,7 @@ def main():
                 woke = True
                 orch.mark_listening_finished()
         if woke:
-            results["jarvis_detected"] += 1
+            results["nexi_detected"] += 1
         print(f"  {'DETECTED' if woke else 'missed'}")
     print()
 
@@ -211,17 +211,17 @@ def main():
 
     print()
     print("PASS targets:")
-    print("  Hey Jarvis:      4/5 minimum")
-    print("  Jarvis:          4/5 minimum")
+    print("  Hey Nexi:      4/5 minimum")
+    print("  Nexi:          4/5 minimum")
     print("  double clap:     4/5 minimum")
     print("  single clap:     0/5")
     print("  silence:         0")
     print("  duplicate wake:  0")
 
     passes = 0
-    if results["hey_jarvis_detected"] >= 4:
+    if results["hey_nexi_detected"] >= 4:
         passes += 1
-    if results["jarvis_detected"] >= 4:
+    if results["nexi_detected"] >= 4:
         passes += 1
     if results["double_clap_detected"] >= 4:
         passes += 1
@@ -236,10 +236,10 @@ def main():
         print("VERDICT: ALL PASS")
     elif passes >= 3:
         print(f"VERDICT: PARTIAL ({passes}/6 criteria met)")
-        if results["hey_jarvis_detected"] < 4:
-            print("  Blocker: hotword detection failed for 'Hey Jarvis'")
-        if results["jarvis_detected"] < 4:
-            print("  Blocker: hotword detection failed for 'Jarvis'")
+        if results["hey_nexi_detected"] < 4:
+            print("  Blocker: hotword detection failed for 'Hey Nexi'")
+        if results["nexi_detected"] < 4:
+            print("  Blocker: hotword detection failed for 'Nexi'")
         if results["double_clap_detected"] < 4:
             print("  Blocker: double clap detection failed")
     else:

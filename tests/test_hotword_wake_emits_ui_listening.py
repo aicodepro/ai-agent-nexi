@@ -12,7 +12,7 @@ def test_hotword_result_structure():
     result = HotwordResult(
         detected=True,
         engine="openwakeword",
-        phrase="hey jarvis",
+        phrase="hey nexi",
         score=0.8,
         threshold=0.25,
         latency_ms=50.0,
@@ -20,7 +20,7 @@ def test_hotword_result_structure():
     )
     assert result.detected is True
     assert result.engine == "openwakeword"
-    assert result.phrase == "hey jarvis"
+    assert result.phrase == "hey nexi"
 
 
 def test_hotword_below_threshold_no_detect():

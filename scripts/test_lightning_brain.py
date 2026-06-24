@@ -8,8 +8,8 @@ load_dotenv()
 
 
 def main():
-    provider = os.getenv("JARVIS_BRAIN_PROVIDER", "hugchat")
-    print(f"[TEST] JARVIS_BRAIN_PROVIDER={provider}")
+    provider = os.getenv("NEXI_BRAIN_PROVIDER", "hugchat")
+    print(f"[TEST] NEXI_BRAIN_PROVIDER={provider}")
     print(f"[TEST] LIGHTNING_API_BASE={os.getenv('LIGHTNING_API_BASE', '(not set)')}")
     print(f"[TEST] LIGHTNING_AUTH_SET={bool(os.getenv('LIGHTNING_AUTH_BASE64'))}")
     print(f"[TEST] LIGHTNING_AGENT_SET={bool(os.getenv('LIGHTNING_AGENT_ID'))}")

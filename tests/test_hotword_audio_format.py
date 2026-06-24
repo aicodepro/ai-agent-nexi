@@ -27,13 +27,13 @@ def test_bytes_length_for_openwakeword():
     assert len(raw) == FRAME_SAMPLES * 2  # 16-bit = 2 bytes per sample
 
 
-def test_normalization_hey_jarvis():
-    name = "hey_jarvis"
+def test_normalization_hey_nexi():
+    name = "hey_nexi"
     normalized = name.replace("_", " ")
-    assert normalized == "hey jarvis"
+    assert normalized == "hey nexi"
 
 
 def test_normalization_preserves_spaces():
-    name = "hey jarvis"
+    name = "hey nexi"
     normalized = name.replace("_", " ")
-    assert normalized == "hey jarvis"
+    assert normalized == "hey nexi"

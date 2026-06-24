@@ -15,10 +15,10 @@ def speech_like_frame(total=1280):
 
 
 def test_tuned_dsp_rejects_speech_like_audio(monkeypatch):
-    monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-    monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-    monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-    monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
+    monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+    monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
     from engine.dsp_clap_backend import DspClapBackend
     dsp = DspClapBackend()
     result = dsp.process_pcm16(speech_like_frame())

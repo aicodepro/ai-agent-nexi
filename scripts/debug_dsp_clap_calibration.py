@@ -222,48 +222,48 @@ def main():
     clap_min_hf = min(f['hf_ratio'] for f in single_clap_features + double_clap_features) if (single_clap_features + double_clap_features) else 0.3
 
     recommended = {
-        "JARVIS_DSP_CLAP_RMS_THRESHOLD": max(silence_max_rms * 2.5, 0.03),
-        "JARVIS_DSP_CLAP_PEAK_THRESHOLD": max(silence_max_peak * 2.0, clap_min_peak * 0.6),
-        "JARVIS_DSP_CLAP_PEAK_RATIO": max(silence_max_pr * 1.5, clap_min_pr * 0.7),
-        "JARVIS_DSP_CLAP_HF_RATIO": max(silence_max_hf * 1.5, clap_min_hf * 0.7),
-        "JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS": 80,
-        "JARVIS_DSP_CLAP_SPEECH_REJECT_MS": 250,
-        "JARVIS_CLAP_MIN_GAP_MS": 100,
-        "JARVIS_CLAP_MAX_GAP_MS": 3500,
+        "NEXI_DSP_CLAP_RMS_THRESHOLD": max(silence_max_rms * 2.5, 0.03),
+        "NEXI_DSP_CLAP_PEAK_THRESHOLD": max(silence_max_peak * 2.0, clap_min_peak * 0.6),
+        "NEXI_DSP_CLAP_PEAK_RATIO": max(silence_max_pr * 1.5, clap_min_pr * 0.7),
+        "NEXI_DSP_CLAP_HF_RATIO": max(silence_max_hf * 1.5, clap_min_hf * 0.7),
+        "NEXI_DSP_CLAP_EVENT_COOLDOWN_MS": 80,
+        "NEXI_DSP_CLAP_SPEECH_REJECT_MS": 250,
+        "NEXI_CLAP_MIN_GAP_MS": 100,
+        "NEXI_CLAP_MAX_GAP_MS": 3500,
     }
 
     # Validate recommended thresholds
     n_silence_claps = test_thresholds(
         silence_features,
-        recommended["JARVIS_DSP_CLAP_RMS_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_RATIO"],
-        recommended["JARVIS_DSP_CLAP_HF_RATIO"],
-        recommended["JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS"],
+        recommended["NEXI_DSP_CLAP_RMS_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_RATIO"],
+        recommended["NEXI_DSP_CLAP_HF_RATIO"],
+        recommended["NEXI_DSP_CLAP_EVENT_COOLDOWN_MS"],
     )
     n_speech_claps = test_thresholds(
         speech_features,
-        recommended["JARVIS_DSP_CLAP_RMS_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_RATIO"],
-        recommended["JARVIS_DSP_CLAP_HF_RATIO"],
-        recommended["JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS"],
+        recommended["NEXI_DSP_CLAP_RMS_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_RATIO"],
+        recommended["NEXI_DSP_CLAP_HF_RATIO"],
+        recommended["NEXI_DSP_CLAP_EVENT_COOLDOWN_MS"],
     )
     n_single_detected = test_thresholds(
         single_clap_features,
-        recommended["JARVIS_DSP_CLAP_RMS_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_RATIO"],
-        recommended["JARVIS_DSP_CLAP_HF_RATIO"],
-        recommended["JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS"],
+        recommended["NEXI_DSP_CLAP_RMS_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_RATIO"],
+        recommended["NEXI_DSP_CLAP_HF_RATIO"],
+        recommended["NEXI_DSP_CLAP_EVENT_COOLDOWN_MS"],
     )
     n_double_detected = test_thresholds(
         double_clap_features,
-        recommended["JARVIS_DSP_CLAP_RMS_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_THRESHOLD"],
-        recommended["JARVIS_DSP_CLAP_PEAK_RATIO"],
-        recommended["JARVIS_DSP_CLAP_HF_RATIO"],
-        recommended["JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS"],
+        recommended["NEXI_DSP_CLAP_RMS_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_THRESHOLD"],
+        recommended["NEXI_DSP_CLAP_PEAK_RATIO"],
+        recommended["NEXI_DSP_CLAP_HF_RATIO"],
+        recommended["NEXI_DSP_CLAP_EVENT_COOLDOWN_MS"],
     )
 
     print("=" * 60)

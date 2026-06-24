@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>J.A.R.V.I.S</title>
-  <link rel="shortcut icon" href="assets/jarvis-logo.svg" type="image/svg+xml">
+  <link rel="shortcut icon" href="assets/nexi-logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -53,7 +53,7 @@
 
       <div class="info-block state-info-block">
         <div class="info-row">STATE</div>
-        <div id="jarvis-status-badge" class="info-row jarvis-state-sleep">SLEEPING</div>
+        <div id="nexi-status-badge" class="info-row nexi-state-sleep">SLEEPING</div>
       </div>
 
       <div class="info-block">
@@ -72,21 +72,21 @@
     <!-- ===== CENTER: HUD Stage ===== -->
     <main id="center-stage" class="center-stage">
       <canvas id="hud-canvas"></canvas>
-      <div id="jarvis-center-state" class="state-badge jarvis-state-sleep">SLEEPING</div>
-      <div id="jarvis-state" class="state-shadow jarvis-state-sleep">SLEEPING</div>
-      <div id="jarvis-mode" class="state-shadow jarvis-state-sleep">SLEEPING</div>
-      <div id="jarvis-orb-state" class="state-shadow jarvis-state-sleep">SLEEPING</div>
-      <div id="jarvis-source" class="wake-hint">Say Hey Jarvis or double clap to wake</div>
-      <div id="jarvis-transcript" class="bridge-line"></div>
-      <div id="jarvis-response" class="bridge-line bridge-response"></div>
+      <div id="nexi-center-state" class="state-badge nexi-state-sleep">SLEEPING</div>
+      <div id="nexi-state" class="state-shadow nexi-state-sleep">SLEEPING</div>
+      <div id="nexi-mode" class="state-shadow nexi-state-sleep">SLEEPING</div>
+      <div id="nexi-orb-state" class="state-shadow nexi-state-sleep">SLEEPING</div>
+      <div id="nexi-source" class="wake-hint">Say Hey Nexi or double clap to wake</div>
+      <div id="nexi-transcript" class="bridge-line"></div>
+      <div id="nexi-response" class="bridge-line bridge-response"></div>
       <div id="TranscriptCard" class="transcript-card" aria-live="polite">
         <div class="transcript-entry user-entry">
           <span class="entry-label">YOU</span>
           <span id="UserText" class="entry-text"></span>
         </div>
-        <div class="transcript-entry jarvis-entry">
-          <span class="entry-label">JARVIS</span>
-          <span id="JarvisText" class="entry-text"></span>
+        <div class="transcript-entry nexi-entry">
+          <span class="entry-label">NEXI</span>
+          <span id="NexiText" class="entry-text"></span>
           <div id="ResponseMeta" class="entry-meta"></div>
         </div>
       </div>
@@ -101,7 +101,7 @@
     <!-- ===== RIGHT PANEL: Activity + Chat + File Drop ===== -->
     <aside id="right-panel" class="right-panel">
       <div class="panel-label">ACTIVITY LOG</div>
-      <div id="jarvis-log" class="activity-log">
+      <div id="nexi-log" class="activity-log">
         <div class="log-msg sys">SYS: Sleep mode</div>
       </div>
 
@@ -134,7 +134,7 @@
     <!-- ===== BOTTOM COMMAND BAR ===== -->
     <footer id="command-bar" class="command-bar">
       <div class="command-group">
-        <input type="text" id="command-input" class="command-input" placeholder="Ask Jarvis or type a command..." autofocus>
+        <input type="text" id="command-input" class="command-input" placeholder="Ask Nexi or type a command..." autofocus>
         <button id="mic-button" class="cmd-btn" title="Voice">&#127908;</button>
         <button id="send-button" class="cmd-btn glow" title="Send">&#9654;</button>
         <button id="power-button" class="cmd-btn" title="Sleep / Wake">&#9210;</button>
@@ -143,7 +143,7 @@
         <button id="log-toggle-btn" class="cmd-btn" title="Debug Log">&#9776;</button>
       </div>
       <div class="command-shortcuts">
-        <span id="jarvis-bottom-state" class="bottom-state jarvis-state-sleep">SLEEPING</span>
+        <span id="nexi-bottom-state" class="bottom-state nexi-state-sleep">SLEEPING</span>
         <span>[Alt+M] Mute &middot; [F11] Fullscreen</span>
         <span>STARK INDUSTRIES &middot; MARK XXXIX &middot; CLASSIFIED</span>
         <span id="provider-status-short"></span>

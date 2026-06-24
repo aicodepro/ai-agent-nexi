@@ -11,7 +11,7 @@
     micBtn = $('mic-button');
 
     // ONLINE is applied only by backend wake events; startup remains SLEEPING.
-    if (window.jarvisApplyState) window.jarvisApplyState({ state: 'sleep', source: 'system', message: 'SLEEPING' });
+    if (window.nexiApplyState) window.nexiApplyState({ state: 'sleep', source: 'system', message: 'SLEEPING' });
 
     startClock();
     loadProviders();
@@ -96,7 +96,7 @@
       sendBtn.classList.add('hidden');
       micBtn.classList.remove('hidden');
       if (window.addLogEntry) window.addLogEntry('voice', 'SYS: Mic button wake requested.');
-      eel.wakeJarvisFromUi('mic_button')();
+      eel.wakeNexiFromUi('mic_button')();
     });
   }
 
@@ -121,7 +121,7 @@
 
   // === BUTTONS ===
   function wireButtons() {
-    $('power-button').addEventListener('click', function () { eel.toggleJarvisSleepWake()(); });
+    $('power-button').addEventListener('click', function () { eel.toggleNexiSleepWake()(); });
     $('chat-button').addEventListener('click', function () {
       var body = $('activity-log');
       if (body) { body.scrollTop = body.scrollHeight; body.focus(); }

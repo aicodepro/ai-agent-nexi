@@ -12,14 +12,14 @@ def verify_hotword_fix():
     
     # 1. Check .env.example
     print("1. Checking .env.example...")
-    env_path = Path("E:\\jarvis-main\\.env.example")
+    env_path = Path("E:\\nexi-main\\.env.example")
     if env_path.exists():
         env_content = env_path.read_text()
         
-        if "JARVIS_HOTWORD_MIN_RMS=0.010" in env_content:
-            print("   ✓ JARVIS_HOTWORD_MIN_RMS=0.010 is present")
+        if "NEXI_HOTWORD_MIN_RMS=0.010" in env_content:
+            print("   ✓ NEXI_HOTWORD_MIN_RMS=0.010 is present")
         else:
-            print("   ✗ JARVIS_HOTWORD_MIN_RMS=0.010 is missing")
+            print("   ✗ NEXI_HOTWORD_MIN_RMS=0.010 is missing")
             all_good = False
             
         if "OPENWAKEWORD_SCORE_THRESHOLD=0.35" in env_content:
@@ -34,10 +34,10 @@ def verify_hotword_fix():
             print("   ✗ OPENWAKEWORD_CONSECUTIVE_HITS=2 is missing")
             all_good = False
             
-        if "JARVIS_HOTWORD_DEBUG=true" in env_content:
-            print("   ✓ JARVIS_HOTWORD_DEBUG=true is present")
+        if "NEXI_HOTWORD_DEBUG=true" in env_content:
+            print("   ✓ NEXI_HOTWORD_DEBUG=true is present")
         else:
-            print("   ✗ JARVIS_HOTWORD_DEBUG=true is missing")
+            print("   ✗ NEXI_HOTWORD_DEBUG=true is missing")
             all_good = False
     else:
         print("   ✗ .env.example not found")
@@ -49,7 +49,7 @@ def verify_hotword_fix():
     if pipeline_path.exists():
         pipeline_content = pipeline_path.read_text()
         
-        if 'HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010)' in pipeline_content:
+        if 'HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.010)' in pipeline_content:
             print("   ✓ audio_wake_pipeline.py: HOTWORD_MIN_RMS=0.010")
         else:
             print("   ✗ audio_wake_pipeline.py: HOTWORD_MIN_RMS missing")
@@ -67,7 +67,7 @@ def verify_hotword_fix():
             print("   ✗ audio_wake_pipeline.py: OWW_CONSECUTIVE missing")
             all_good = False
             
-        if 'HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03)' in pipeline_content:
+        if 'HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03)' in pipeline_content:
             print("   ✓ audio_wake_pipeline.py: HOTWORD_RISING_EDGE_DELTA=0.03")
         else:
             print("   ✗ audio_wake_pipeline.py: HOTWORD_RISING_EDGE_DELTA missing")
@@ -83,7 +83,7 @@ def verify_hotword_fix():
         with open(manager_path, 'r') as f:
             content = f.read()
         
-        if 'self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010)))' in content:
+        if 'self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.010)))' in content:
             print("   ✓ hotword_engine_manager.py: min_rms=0.010")
         else:
             print("   ✗ hotword_engine_manager.py: min_rms missing")
@@ -101,7 +101,7 @@ def verify_hotword_fix():
             print("   ✗ hotword_engine_manager.py: consecutive_hits_required missing")
             all_good = False
             
-        if 'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03)))' in content:
+        if 'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03)))' in content:
             print("   ✓ hotword_engine_manager.py: rising_edge_delta=0.03")
         else:
             print("   ✗ hotword_engine_manager.py: rising_edge_delta missing")
@@ -132,10 +132,10 @@ def verify_hotword_fix():
         print("✅ SUCCESS: All hotword configuration fixes have been applied correctly!")
         print("\nThe following changes have been successfully implemented:")
         print("1. .env.example updated with:")
-        print("   - JARVIS_HOTWORD_MIN_RMS=0.010 (increased from 0.003)")
+        print("   - NEXI_HOTWORD_MIN_RMS=0.010 (increased from 0.003)")
         print("   - OPENWAKEWORD_SCORE_THRESHOLD=0.35 (increased from 0.25)")
         print("   - OPENWAKEWORD_CONSECUTIVE_HITS=2 (increased from 1)")
-        print("   - JARVIS_HOTWORD_DEBUG=true (added for troubleshooting)")
+        print("   - NEXI_HOTWORD_DEBUG=true (added for troubleshooting)")
         print("\n2. audio_wake_pipeline.py updated with:")
         print("   - HOTWORD_MIN_RMS=0.010")
         print("   - HOTWORD_RISING_EDGE_DELTA=0.03")

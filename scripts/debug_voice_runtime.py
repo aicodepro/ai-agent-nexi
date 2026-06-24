@@ -1,4 +1,4 @@
-"""Validate the Jarvis voice runtime without microphone hardware.
+"""Validate the Nexi voice runtime without microphone hardware.
 
 Checks:
   - All core voice modules import without error
@@ -153,9 +153,9 @@ check("pyttsx3 engine", _test_pyttsx3_init)
 
 
 def _test_ui_mode_isolation():
-    ui_mode = os.getenv("JARVIS_UI_MODE", "legacy")
+    ui_mode = os.getenv("NEXI_UI_MODE", "legacy")
     assert ui_mode in ("legacy", "mark"), f"unexpected mode: {ui_mode}"
-    print(f"    JARVIS_UI_MODE={ui_mode}")
+    print(f"    NEXI_UI_MODE={ui_mode}")
 
     from engine.ui_loader import get_ui_mode
     mode = get_ui_mode()
@@ -224,7 +224,7 @@ check("dependencies", _test_dependencies)
 
 
 if __name__ == "__main__":
-    print("=== Jarvis Voice Runtime Debug ===")
+    print("=== Nexi Voice Runtime Debug ===")
     print(f"pid={os.getpid()} cwd={os.getcwd()}")
     print()
     run_all()

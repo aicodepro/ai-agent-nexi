@@ -9,7 +9,7 @@ import tempfile
 import numpy as np
 
 # Add engine to path
-sys.path.insert(0, 'E:\\jarvis-main\\engine')
+sys.path.insert(0, 'E:\\nexi-main\\engine')
 
 from audio_wake_pipeline import AudioWakePipeline, build_vad
 from hotword_engine_manager import HotwordEngineManager
@@ -22,13 +22,13 @@ def test_hotword_config():
     
     # 1. Check environment variables
     print("\n1. Environment Variables:")
-    print(f"   JARVIS_HOTWORD_ENABLED: {os.getenv('JARVIS_HOTWORD_ENABLED', 'NOT_SET')}")
-    print(f"   JARVIS_HOTWORD_PHRASES: {os.getenv('JARVIS_HOTWORD_PHRASES', 'NOT_SET')}")
-    print(f"   JARVIS_HOTWORD_BACKEND_ORDER: {os.getenv('JARVIS_HOTWORD_BACKEND_ORDER', 'NOT_SET')}")
+    print(f"   NEXI_HOTWORD_ENABLED: {os.getenv('NEXI_HOTWORD_ENABLED', 'NOT_SET')}")
+    print(f"   NEXI_HOTWORD_PHRASES: {os.getenv('NEXI_HOTWORD_PHRASES', 'NOT_SET')}")
+    print(f"   NEXI_HOTWORD_BACKEND_ORDER: {os.getenv('NEXI_HOTWORD_BACKEND_ORDER', 'NOT_SET')}")
     print(f"   VOICE_WAKE_BACKEND: {os.getenv('VOICE_WAKE_BACKEND', 'NOT_SET')}")
     print(f"   OPENWAKEWORD_ENABLED: {os.getenv('OPENWAKEWORD_ENABLED', 'NOT_SET')}")
-    print(f"   JARVIS_HOTWORD_MIN_RMS: {os.getenv('JARVIS_HOTWORD_MIN_RMS', 'NOT_SET')}")
-    print(f"   JARVIS_HOTWORD_RISING_EDGE_DELTA: {os.getenv('JARVIS_HOTWORD_RISING_EDGE_DELTA', 'NOT_SET')}")
+    print(f"   NEXI_HOTWORD_MIN_RMS: {os.getenv('NEXI_HOTWORD_MIN_RMS', 'NOT_SET')}")
+    print(f"   NEXI_HOTWORD_RISING_EDGE_DELTA: {os.getenv('NEXI_HOTWORD_RISING_EDGE_DELTA', 'NOT_SET')}")
     
     # 2. Test HotwordEngineManager directly
     print("\n2. Testing HotwordEngineManager:")
@@ -60,7 +60,7 @@ def test_hotword_config():
         clap_frame = np.random.randint(-32768, 32767, size=clap_samples, dtype=np.int16)
         clap_bytes = clap_frame.tobytes()
         
-        # Generate "hey jarvis" audio sample (simulated)
+        # Generate "hey nexi" audio sample (simulated)
         # We'll just use a high amplitude noise for testing
         voice_samples = int(sample_rate * 200 / 1000)  # 200ms voice sample
         voice_frame = np.random.randint(-8000, 8000, size=voice_samples, dtype=np.int16)
@@ -148,7 +148,7 @@ def test_openwakeword_directly():
         download_models()
         
         # Create model
-        models = ["hey jarvis"]
+        models = ["hey nexi"]
         print(f"   Creating model with phrases: {models}")
         model = OwwModel(wakeword_models=models, inference_framework="onnx")
         

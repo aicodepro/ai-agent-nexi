@@ -14,7 +14,7 @@ def _init_safe_folders():
         os.path.expanduser("~\\Desktop"),
         os.path.expanduser("~\\Documents"),
         os.path.expanduser("~\\Downloads"),
-        os.path.abspath("E:\\jarvis-main"),
+        os.path.abspath("E:\\nexi-main"),
     ]
     SAFE_FOLDERS = [f for f in folders if os.path.exists(f) or os.path.isdir(os.path.dirname(f))]
 

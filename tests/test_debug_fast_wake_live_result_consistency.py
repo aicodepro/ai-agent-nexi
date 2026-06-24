@@ -25,10 +25,10 @@ class TestDebugFastWakeLiveResultConsistency:
         t = WakeTracker()
         t.add_event("silence", "hotword", "openwakeword", 0.65, 0.65, "wake_detected")
         t.reset_attempt()
-        t.add_event("hey_jarvis", "hotword", "openwakeword", 0.88, 0.88, "wake_detected")
+        t.add_event("hey_nexi", "hotword", "openwakeword", 0.88, 0.88, "wake_detected")
         assert len(t.all_events) == 2
         assert t.all_events[0].phase == "silence"
-        assert t.all_events[1].phase == "hey_jarvis"
+        assert t.all_events[1].phase == "hey_nexi"
 
     def test_wake_tracker_no_duplicate_wake_scores(self):
         from scripts.debug_fast_wake_live import WakeTracker
@@ -84,8 +84,8 @@ class TestDebugFastWakeLiveResultConsistency:
             "silence_false_wake_backend": "",
             "silence_false_wake_confidence": 0.0,
             "silence_false_wake_score": 0.0,
-            "hey_jarvis_detected": 0,
-            "jarvis_detected": 0,
+            "hey_nexi_detected": 0,
+            "nexi_detected": 0,
             "single_clap_wakes": 0,
             "double_clap_detected": 0,
             "speech_false_clap_wakes": 0,

@@ -44,8 +44,8 @@ def main():
                 ui_get_tool_categories: () => Promise.resolve({}),
                 ui_get_suggestions: () => Promise.resolve([]),
                 allCommands: () => Promise.resolve(),
-                toggleJarvisSleepWake: () => Promise.resolve(),
-                wakeJarvisFromUi: () => Promise.resolve(),
+                toggleNexiSleepWake: () => Promise.resolve(),
+                wakeNexiFromUi: () => Promise.resolve(),
             };
         """)
 

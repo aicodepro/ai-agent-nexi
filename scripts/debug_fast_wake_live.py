@@ -4,8 +4,8 @@
 Test sequence:
 1. silence 20 sec (expect 0 false wakes)
 2. random speech without wake word 20 sec (expect 0 false clap wakes)
-3. say "Hey Jarvis" normally 5 times (expect >= 4 wakes via hotword)
-4. say "Jarvis" normally 5 times (expect >= 4 wakes via hotword)
+3. say "Hey Nexi" normally 5 times (expect >= 4 wakes via hotword)
+4. say "Nexi" normally 5 times (expect >= 4 wakes via hotword)
 5. single clap 5 times (expect 0 wakes)
 6. double clap 5 times (expect >= 4 wakes)
 
@@ -145,29 +145,29 @@ def main():
                         help="Run non-interactive passive false-wake check for N minutes")
     args = parser.parse_args()
 
-    os.environ["JARVIS_HOTWORD_ENABLED"] = "true"
-    os.environ["JARVIS_CLAP_ENABLED"] = "true"
-    os.environ["JARVIS_CLAP_BACKEND_ORDER"] = "dsp_clap" if args.passive_timeout_minutes > 0 else "dsp_clap,clap_nn"
-    os.environ["JARVIS_CLAP_PRIMARY"] = "dsp_clap"
-    os.environ["JARVIS_HOTKEY_WAKE_ENABLED"] = "false"
+    os.environ["NEXI_HOTWORD_ENABLED"] = "true"
+    os.environ["NEXI_CLAP_ENABLED"] = "true"
+    os.environ["NEXI_CLAP_BACKEND_ORDER"] = "dsp_clap" if args.passive_timeout_minutes > 0 else "dsp_clap,clap_nn"
+    os.environ["NEXI_CLAP_PRIMARY"] = "dsp_clap"
+    os.environ["NEXI_HOTKEY_WAKE_ENABLED"] = "false"
     debug_value = "false" if args.passive_timeout_minutes > 0 else "true"
-    os.environ["JARVIS_WAKE_DEBUG"] = debug_value
-    os.environ["JARVIS_CLAP_DEBUG"] = debug_value
+    os.environ["NEXI_WAKE_DEBUG"] = debug_value
+    os.environ["NEXI_CLAP_DEBUG"] = debug_value
     os.environ["OPENWAKEWORD_DEBUG"] = debug_value
     os.environ["OPENWAKEWORD_SCORE_THRESHOLD"] = str(args.hotword_threshold)
     os.environ.setdefault("OPENWAKEWORD_CONSECUTIVE_HITS", "1")
-    os.environ.setdefault("JARVIS_HOTWORD_MIN_RMS", "0.003")
-    os.environ.setdefault("JARVIS_HOTWORD_RISING_EDGE_DELTA", "0.02")
-    os.environ.setdefault("JARVIS_HOTWORD_COOLDOWN_MS", "1500")
-    os.environ.setdefault("JARVIS_HOTWORD_PHRASES", "hey jarvis,jarvis")
-    os.environ["JARVIS_DSP_CLAP_RMS_THRESHOLD"] = str(args.clap_rms)
-    os.environ["JARVIS_DSP_CLAP_PEAK_THRESHOLD"] = str(args.clap_peak)
-    os.environ["JARVIS_DSP_CLAP_PEAK_RATIO"] = str(args.clap_peak_ratio)
-    os.environ["JARVIS_DSP_CLAP_HF_RATIO"] = str(args.clap_hf_ratio)
-    os.environ.setdefault("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "80")
-    os.environ.setdefault("JARVIS_DSP_CLAP_SPEECH_REJECT_MS", "250")
-    os.environ.setdefault("JARVIS_CLAP_MIN_GAP_MS", "100")
-    os.environ.setdefault("JARVIS_CLAP_MAX_GAP_MS", "3500")
+    os.environ.setdefault("NEXI_HOTWORD_MIN_RMS", "0.003")
+    os.environ.setdefault("NEXI_HOTWORD_RISING_EDGE_DELTA", "0.02")
+    os.environ.setdefault("NEXI_HOTWORD_COOLDOWN_MS", "1500")
+    os.environ.setdefault("NEXI_HOTWORD_PHRASES", "hey nexi,nexi")
+    os.environ["NEXI_DSP_CLAP_RMS_THRESHOLD"] = str(args.clap_rms)
+    os.environ["NEXI_DSP_CLAP_PEAK_THRESHOLD"] = str(args.clap_peak)
+    os.environ["NEXI_DSP_CLAP_PEAK_RATIO"] = str(args.clap_peak_ratio)
+    os.environ["NEXI_DSP_CLAP_HF_RATIO"] = str(args.clap_hf_ratio)
+    os.environ.setdefault("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "80")
+    os.environ.setdefault("NEXI_DSP_CLAP_SPEECH_REJECT_MS", "250")
+    os.environ.setdefault("NEXI_CLAP_MIN_GAP_MS", "100")
+    os.environ.setdefault("NEXI_CLAP_MAX_GAP_MS", "3500")
 
     from engine.hotword_engine_manager import HotwordEngineManager
     from engine.clap_backend_manager import ClapBackendManager
@@ -197,8 +197,8 @@ def main():
         "silence_false_wake_backend": "",
         "silence_false_wake_confidence": 0.0,
         "silence_false_wake_score": 0.0,
-        "hey_jarvis_detected": 0,
-        "jarvis_detected": 0,
+        "hey_nexi_detected": 0,
+        "nexi_detected": 0,
         "single_clap_wakes": 0,
         "double_clap_detected": 0,
         "speech_false_clap_wakes": 0,
@@ -296,10 +296,10 @@ def main():
         print(f"  - unknown_wakes={results['silence_false_unknown_wakes']}")
     print()
 
-    # Phase 2: "Hey Jarvis" x5
-    print("[2] Say 'Hey Jarvis' 5 times (press Enter between each)")
+    # Phase 2: "Hey Nexi" x5
+    print("[2] Say 'Hey Nexi' 5 times (press Enter between each)")
     for i in range(5):
-        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Hey Jarvis'...")
+        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Hey Nexi'...")
         time.sleep(0.5)
         audio = record_stream(3.0, args.device)
         tracker.reset_attempt()
@@ -314,14 +314,14 @@ def main():
                     tracker.record_wake("hotword", "openwakeword", hw_r.score, hw_r.score)
                     orch.mark_listening_finished()
         if tracker.woke:
-            results["hey_jarvis_detected"] += 1
-        tracker.print_hotword_summary("Hey Jarvis")
+            results["hey_nexi_detected"] += 1
+        tracker.print_hotword_summary("Hey Nexi")
     print()
 
-    # Phase 3: "Jarvis" x5
-    print("[3] Say 'Jarvis' 5 times (press Enter between each)")
+    # Phase 3: "Nexi" x5
+    print("[3] Say 'Nexi' 5 times (press Enter between each)")
     for i in range(5):
-        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Jarvis'...")
+        input(f"  [{i+1}/5] Press Enter, pause 1s, say 'Nexi'...")
         time.sleep(0.5)
         audio = record_stream(3.0, args.device)
         tracker.reset_attempt()
@@ -336,8 +336,8 @@ def main():
                     tracker.record_wake("hotword", "openwakeword", hw_r.score, hw_r.score)
                     orch.mark_listening_finished()
         if tracker.woke:
-            results["jarvis_detected"] += 1
-        tracker.print_hotword_summary("Jarvis")
+            results["nexi_detected"] += 1
+        tracker.print_hotword_summary("Nexi")
     print()
 
     # Phase 4: Single clap x5
@@ -437,8 +437,8 @@ def main():
     print()
 
     targets = {
-        "Hey Jarvis >= 4/5": results["hey_jarvis_detected"] >= 4,
-        "Jarvis >= 4/5": results["jarvis_detected"] >= 4,
+        "Hey Nexi >= 4/5": results["hey_nexi_detected"] >= 4,
+        "Nexi >= 4/5": results["nexi_detected"] >= 4,
         "Double clap >= 4/5": results["double_clap_detected"] >= 4,
         "Single clap == 0": results["single_clap_wakes"] == 0,
         "Silence == 0": results["silence_false_wakes"] == 0,

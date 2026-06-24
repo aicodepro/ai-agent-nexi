@@ -20,7 +20,7 @@ def test_forbidden_tools_blocked():
 def test_memory_summary_tool_is_read_only(tmp_path, monkeypatch):
     from engine import memory_store
     from engine.mcp_tool_bridge import execute_mcp_tool
-    monkeypatch.setattr(memory_store, "MEMORY_PATH", tmp_path / "jarvis_memory.json")
+    monkeypatch.setattr(memory_store, "MEMORY_PATH", tmp_path / "nexi_memory.json")
     monkeypatch.setattr("engine.memory_store.remember", lambda *a, **kw: {})
     monkeypatch.setattr("engine.memory_store._grouped_memory_summary", lambda q="": "")
     memory_store.remember_fact("demo is tomorrow")

@@ -50,18 +50,18 @@ def main() -> int:
     parser.add_argument("--duration", type=float, default=6.0)
     args = parser.parse_args()
 
-    os.environ.setdefault("JARVIS_CLAP_ENABLED", "true")
-    os.environ["JARVIS_CLAP_PRIMARY"] = "dsp_clap"
-    os.environ["JARVIS_CLAP_BACKEND_ORDER"] = "dsp_clap,clap_nn"
-    os.environ.setdefault("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.030")
-    os.environ.setdefault("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.10")
-    os.environ.setdefault("JARVIS_DSP_CLAP_PEAK_RATIO", "4.0")
-    os.environ.setdefault("JARVIS_DSP_CLAP_HF_RATIO", "0.30")
-    os.environ.setdefault("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "80")
-    os.environ.setdefault("JARVIS_DSP_CLAP_SPEECH_REJECT_MS", "250")
-    os.environ.setdefault("JARVIS_CLAP_MIN_GAP_MS", "100")
-    os.environ.setdefault("JARVIS_CLAP_MAX_GAP_MS", "3500")
-    os.environ.setdefault("JARVIS_CLAP_COOLDOWN_MS", "1500")
+    os.environ.setdefault("NEXI_CLAP_ENABLED", "true")
+    os.environ["NEXI_CLAP_PRIMARY"] = "dsp_clap"
+    os.environ["NEXI_CLAP_BACKEND_ORDER"] = "dsp_clap,clap_nn"
+    os.environ.setdefault("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.030")
+    os.environ.setdefault("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.10")
+    os.environ.setdefault("NEXI_DSP_CLAP_PEAK_RATIO", "4.0")
+    os.environ.setdefault("NEXI_DSP_CLAP_HF_RATIO", "0.30")
+    os.environ.setdefault("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "80")
+    os.environ.setdefault("NEXI_DSP_CLAP_SPEECH_REJECT_MS", "250")
+    os.environ.setdefault("NEXI_CLAP_MIN_GAP_MS", "100")
+    os.environ.setdefault("NEXI_CLAP_MAX_GAP_MS", "3500")
+    os.environ.setdefault("NEXI_CLAP_COOLDOWN_MS", "1500")
 
     from engine.clap_backend_manager import ClapBackendManager
 

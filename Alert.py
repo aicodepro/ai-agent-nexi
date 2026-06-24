@@ -3,7 +3,7 @@ from winotify import Notification, audio
 from os import getcwd
 
 def Alert(Text):
-    icon_path = r"C:\Users\marke\Documents\jarvis-main\file (3).png"
+    icon_path = r"C:\Users\marke\Documents\nexi-main\file (3).png"
 
     toast = Notification(
         app_id="J.A.R.V.I.S.",

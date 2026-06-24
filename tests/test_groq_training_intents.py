@@ -8,7 +8,7 @@ def test_groq_intent_detects_need_training(monkeypatch):
     from engine.groq_intent_planner import classify_intent
 
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    result = classify_intent("train Jarvis for SEO", source="typed")
+    result = classify_intent("train Nexi for SEO", source="typed")
     assert result["route"] == "training"
     assert result["intent"] == "train_need_profile"
 

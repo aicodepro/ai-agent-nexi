@@ -17,7 +17,7 @@ class FakeClock:
 
 
 class ScriptedScorer:
-    model_name = "hey jarvis"
+    model_name = "hey nexi"
 
     def __init__(self, scores):
         self.scores = list(scores)
@@ -30,7 +30,7 @@ class ScriptedScorer:
 
 
 def test_hotword_and_double_clap_candidates_share_arbitration(monkeypatch):
-    monkeypatch.setenv("JARVIS_CLAP_ENABLED", "true")
+    monkeypatch.setenv("NEXI_CLAP_ENABLED", "true")
     monkeypatch.setenv("OPENWAKEWORD_SCORE_THRESHOLD", "0.5")
     monkeypatch.setenv("OPENWAKEWORD_CONSECUTIVE_HITS", "1")
     import engine.audio_wake_pipeline as awp

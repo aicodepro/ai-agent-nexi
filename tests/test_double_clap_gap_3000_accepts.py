@@ -18,7 +18,7 @@ def _clap_event() -> dict:
 
 
 def test_double_clap_accepts_3000ms_gap_by_default(monkeypatch):
-    monkeypatch.delenv("JARVIS_CLAP_MAX_GAP_MS", raising=False)
+    monkeypatch.delenv("NEXI_CLAP_MAX_GAP_MS", raising=False)
     monkeypatch.delenv("CLAP_MAX_GAP_MS", raising=False)
 
     from engine.clap_backend_manager import ClapBackendManager

@@ -80,7 +80,7 @@ def test_trigger_wake_posts_wake_and_listening_with_session_id(monkeypatch):
     try:
         with patch.object(pipeline, "capture_command", side_effect=fake_capture), \
              patch.object(pipeline, "emit_command", return_value="hello"), \
-             patch("engine.jarvis_wake_controller.wake_jarvis", return_value=True):
+             patch("engine.nexi_wake_controller.wake_nexi", return_value=True):
             assert pipeline.trigger_wake("hotword", already_arbitrated=True, confidence=0.87, reason="threshold") is True
 
         events = [q.get_nowait(), q.get_nowait()]
@@ -161,7 +161,7 @@ def _clap_event() -> dict:
 
 
 def test_double_clap_accepts_2238ms_gap_by_default(monkeypatch):
-    monkeypatch.delenv("JARVIS_CLAP_MAX_GAP_MS", raising=False)
+    monkeypatch.delenv("NEXI_CLAP_MAX_GAP_MS", raising=False)
     monkeypatch.delenv("CLAP_MAX_GAP_MS", raising=False)
 
     from engine.clap_backend_manager import ClapBackendManager
@@ -177,7 +177,7 @@ def test_double_clap_accepts_2238ms_gap_by_default(monkeypatch):
 
 
 def test_late_double_clap_keeps_current_clap_as_new_first(monkeypatch):
-    monkeypatch.delenv("JARVIS_CLAP_MAX_GAP_MS", raising=False)
+    monkeypatch.delenv("NEXI_CLAP_MAX_GAP_MS", raising=False)
     monkeypatch.delenv("CLAP_MAX_GAP_MS", raising=False)
 
     from engine.clap_backend_manager import ClapBackendManager

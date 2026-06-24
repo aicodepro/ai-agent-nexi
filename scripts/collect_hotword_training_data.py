@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Collect custom hotword training data from user's microphone.
 
-Collects positives (Hey Jarvis, Jarvis) and negatives (speech, noise,
+Collects positives (Hey Nexi, Nexi) and negatives (speech, noise,
 similar words, keyboard taps) for openWakeWord custom model training.
 
 Output: 16 kHz mono WAV files under datasets/hotword/
@@ -24,8 +24,8 @@ DTYPE = np.int16
 BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "datasets", "hotword")
 
 POSITIVE_DIRS = {
-    "hey_jarvis": os.path.join(BASE_DIR, "positive", "hey_jarvis"),
-    "jarvis": os.path.join(BASE_DIR, "positive", "jarvis"),
+    "hey_nexi": os.path.join(BASE_DIR, "positive", "hey_nexi"),
+    "nexi": os.path.join(BASE_DIR, "positive", "nexi"),
     "variants": os.path.join(BASE_DIR, "positive", "variants"),
 }
 
@@ -123,7 +123,7 @@ def main():
 
     if args.quick:
         n_hey = 3
-        n_jarvis = 3
+        n_nexi = 3
         n_variants = 2
         n_speech = 3
         n_noise = 3
@@ -131,7 +131,7 @@ def main():
         n_taps = 3
     else:
         n_hey = 30
-        n_jarvis = 30
+        n_nexi = 30
         n_variants = 10
         n_speech = 30
         n_noise = 30
@@ -142,45 +142,45 @@ def main():
     total_quiet = 0
     total_samples = 0
 
-    # --- Positive: "Hey Jarvis" ---
-    print("[POSITIVE] 'Hey Jarvis' samples")
-    print(f"  Collecting {n_hey} samples. Say 'Hey Jarvis' in your normal voice.")
+    # --- Positive: "Hey Nexi" ---
+    print("[POSITIVE] 'Hey Nexi' samples")
+    print(f"  Collecting {n_hey} samples. Say 'Hey Nexi' in your normal voice.")
     print("  Vary distance: near, normal, slightly far.")
-    rms = collect_samples("hey_jarvis", POSITIVE_DIRS["hey_jarvis"],
-                          n_hey, 2.0, "Press Enter, pause 1s, say 'Hey Jarvis'...",
-                          args.device, existing["hey_jarvis"])
-    all_rms["hey_jarvis"] = rms
-    q, t = summarize_rms(rms, "hey_jarvis")
+    rms = collect_samples("hey_nexi", POSITIVE_DIRS["hey_nexi"],
+                          n_hey, 2.0, "Press Enter, pause 1s, say 'Hey Nexi'...",
+                          args.device, existing["hey_nexi"])
+    all_rms["hey_nexi"] = rms
+    q, t = summarize_rms(rms, "hey_nexi")
     total_quiet += q
     total_samples += t
     print()
 
-    # --- Positive: "Jarvis" ---
-    print("[POSITIVE] 'Jarvis' samples")
-    print(f"  Collecting {n_jarvis} samples. Say just 'Jarvis'.")
-    rms = collect_samples("jarvis", POSITIVE_DIRS["jarvis"],
-                          n_jarvis, 2.0, "Press Enter, pause 1s, say 'Jarvis'...",
-                          args.device, existing["jarvis"])
-    all_rms["jarvis"] = rms
-    q, t = summarize_rms(rms, "jarvis")
+    # --- Positive: "Nexi" ---
+    print("[POSITIVE] 'Nexi' samples")
+    print(f"  Collecting {n_nexi} samples. Say just 'Nexi'.")
+    rms = collect_samples("nexi", POSITIVE_DIRS["nexi"],
+                          n_nexi, 2.0, "Press Enter, pause 1s, say 'Nexi'...",
+                          args.device, existing["nexi"])
+    all_rms["nexi"] = rms
+    q, t = summarize_rms(rms, "nexi")
     total_quiet += q
     total_samples += t
     print()
 
     # --- Positive: Variants ---
     print("[POSITIVE] Variant phrases")
-    print("  Say full commands like 'Hey Jarvis, what is AI' or 'Jarvis, open YouTube'")
+    print("  Say full commands like 'Hey Nexi, what is AI' or 'Nexi, open YouTube'")
     phrases = [
-        "Hey Jarvis, what is AI",
-        "Jarvis, open YouTube",
-        "Hey Jarvis, play music",
-        "Jarvis, what time is it",
-        "Hey Jarvis, tell me a joke",
-        "Jarvis, search the web",
-        "Hey Jarvis, set a timer",
-        "Jarvis, good morning",
-        "Hey Jarvis, how are you",
-        "Jarvis, thank you",
+        "Hey Nexi, what is AI",
+        "Nexi, open YouTube",
+        "Hey Nexi, play music",
+        "Nexi, what time is it",
+        "Hey Nexi, tell me a joke",
+        "Nexi, search the web",
+        "Hey Nexi, set a timer",
+        "Nexi, good morning",
+        "Hey Nexi, how are you",
+        "Nexi, thank you",
     ]
     for i in range(min(n_variants, len(phrases))):
         p = phrases[i]
@@ -200,7 +200,7 @@ def main():
 
     # --- Negative: Random speech ---
     print("[NEGATIVE] Random speech (non-wake)")
-    print("  Speak random sentences without saying 'Hey Jarvis' or 'Jarvis'.")
+    print("  Speak random sentences without saying 'Hey Nexi' or 'Nexi'.")
     rms = collect_samples("speech", NEGATIVE_DIRS["speech"],
                           n_speech, 2.0, "Press Enter, speak random words...",
                           args.device, existing["speech"])
@@ -227,7 +227,7 @@ def main():
     similar_phrases = [
         "hey service", "hey jobs", "hey justice", "hey jar",
         "jar", "java", "journey", "hey journey",
-        "hello jarvis", "hey guardian", "hey garden", "hey jasmine",
+        "hello nexi", "hey guardian", "hey garden", "hey jasmine",
         "hey jolly", "hey jupiter", "hey junction", "hey jersey",
         "hey jigsaw", "hey jargon", "hey genius", "hey janitor",
         "hey joker", "hey garage", "hey harmony", "hey harvest",
@@ -284,10 +284,10 @@ def main():
 
     # Quality check
     issues = []
-    if final_counts.get("hey_jarvis", 0) < 25:
-        issues.append(f"Only {final_counts.get('hey_jarvis', 0)}/30+ 'Hey Jarvis' samples")
-    if final_counts.get("jarvis", 0) < 25:
-        issues.append(f"Only {final_counts.get('jarvis', 0)}/30+ 'Jarvis' samples")
+    if final_counts.get("hey_nexi", 0) < 25:
+        issues.append(f"Only {final_counts.get('hey_nexi', 0)}/30+ 'Hey Nexi' samples")
+    if final_counts.get("nexi", 0) < 25:
+        issues.append(f"Only {final_counts.get('nexi', 0)}/30+ 'Nexi' samples")
     if final_counts.get("speech", 0) < 20:
         issues.append(f"Only {final_counts.get('speech', 0)}/30 random speech samples")
     if final_counts.get("similar_words", 0) < 20:

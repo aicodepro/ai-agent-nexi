@@ -34,7 +34,7 @@ def test_runpy_passes_queue_to_ui_process(monkeypatch):
     calls = []
     monkeypatch.setattr(main, "main", lambda **kwargs: calls.append(kwargs))
 
-    run.startJarvis(command_queue=q, stop_event=stop)
+    run.startNexi(command_queue=q, stop_event=stop)
 
     assert calls == [{"command_queue": q, "stop_event": stop}]
 

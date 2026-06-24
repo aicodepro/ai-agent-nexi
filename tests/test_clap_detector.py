@@ -225,7 +225,7 @@ class TestClapNNSourceStrategy(unittest.TestCase):
 
     def test_model_unavailable_does_not_crash_listener_construction(self):
         """ClapListener() must construct even when nothing CLAP_NN-related
-        is configured. This is the 'missing model does not crash Jarvis'
+        is configured. This is the 'missing model does not crash Nexi'
         guarantee."""
         from engine.clap_detector import ClapListener
         with patch.dict(os.environ, {"CLAP_MODEL_PATH": "/nope.pth"}, clear=False):

@@ -45,4 +45,4 @@ class TestHudOrbNoInnerBlob:
         assert "J.A.R.V.I.S" in text
 
     def test_logo_svg_exists(self):
-        assert (WWW_MARK / "assets" / "jarvis-logo.svg").exists()
+        assert (WWW_MARK / "assets" / "nexi-logo.svg").exists()

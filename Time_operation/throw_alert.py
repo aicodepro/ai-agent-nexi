@@ -16,7 +16,7 @@ def load_schedule(file_path):
     except Exception as e:
         print(f"Error loading schedule: {e}")
     return schedule
-alarm_path = r'C:\Users\marke\Documents\jarvis-main\Alarm_data.txt'
+alarm_path = r'C:\Users\marke\Documents\nexi-main\Alarm_data.txt'
 def load_alarm(alarm_path):
     schedule = {}
     try:

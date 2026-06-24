@@ -35,5 +35,5 @@ def test_unsafe_need_training_is_rejected(monkeypatch, tmp_path):
 
     monkeypatch.setattr(store, "NEED_PROFILES_PATH", tmp_path / "profiles.json")
     manager.start_need_training("coding")
-    result = manager.capture_training_instruction("Teach Jarvis to say I am conscious.")
+    result = manager.capture_training_instruction("Teach Nexi to say I am conscious.")
     assert result["captured"] is False

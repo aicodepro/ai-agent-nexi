@@ -21,7 +21,7 @@ if _root not in sys.path:
 from dotenv import load_dotenv
 load_dotenv()
 
-print("=== JARVIS Full Runtime Startup Trace ===")
+print("=== NEXI Full Runtime Startup Trace ===")
 print(f"cwd={os.getcwd()}")
 print(f"pid={os.getpid()}")
 print()
@@ -32,11 +32,11 @@ relevant = [
     "VOICE_WAKE_BACKEND", "OPENWAKEWORD_ENABLED", "OPENWAKEWORD_PRETRAINED_MODELS",
     "OPENWAKEWORD_SCORE_THRESHOLD", "OPENWAKEWORD_CONSECUTIVE_HITS",
     "DISABLE_LEGACY_HOTWORD_FALLBACK", "WAKE_DEBUG",
-    "CLAP_DETECTION_ENABLED", "JARVIS_CLAP_PRIMARY", "JARVIS_CLAP_FALLBACK",
-    "JARVIS_CLAP_DEBUG", "JARVIS_CLAP_COOLDOWN_MS",
+    "CLAP_DETECTION_ENABLED", "NEXI_CLAP_PRIMARY", "NEXI_CLAP_FALLBACK",
+    "NEXI_CLAP_DEBUG", "NEXI_CLAP_COOLDOWN_MS",
     "GROQ_API_KEY", "GEMINI_API_KEY",
     "AUDIO_INPUT_DEVICE", "AUDIO_SAMPLE_RATE", "AUDIO_CHANNELS",
-    "VAD_BACKEND", "JARVIS_UI_MODE",
+    "VAD_BACKEND", "NEXI_UI_MODE",
 ]
 for k in relevant:
     v = os.getenv(k, "")
@@ -71,7 +71,7 @@ if backend == "openwakeword":
 
         # Build scorer
         print("  Building OpenWakeWordScorer...")
-        scorer = OpenWakeWordScorer(pretrained=os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_jarvis"))
+        scorer = OpenWakeWordScorer(pretrained=os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_nexi"))
         print(f"  Scorer: model={scorer.model_name}")
 
         # Build VAD
@@ -102,7 +102,7 @@ if backend == "openwakeword":
         import openwakeword
         oww_dir = os.path.dirname(openwakeword.__file__)
         models_dir = os.path.join(oww_dir, "resources", "models")
-        pretrained_name = os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_jarvis")
+        pretrained_name = os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", "hey_nexi")
         model_file = f"{pretrained_name}_v0.1.onnx"
         model_path = os.path.join(models_dir, model_file)
         if os.path.exists(model_path):
@@ -208,7 +208,7 @@ print()
 # ---- Summary ----
 print("=== DIAGNOSIS COMPLETE ===")
 print()
-print("If 'Hey Jarvis' does not respond:")
+print("If 'Hey Nexi' does not respond:")
 print("  1. Verify mic is not muted in Windows settings")
 print("  2. Verify default input device is Microphone Array")
 print("  3. Try lowering threshold: OPENWAKEWORD_SCORE_THRESHOLD=0.3")
@@ -218,7 +218,7 @@ print()
 print("If double clap does not respond:")
 print("  1. Verify CLAP_DETECTION_ENABLED=true in .env")
 print("  2. Run: python scripts/debug_clap_calibration.py")
-print("  3. Try: JARVIS_CLAP_DEBUG=true")
+print("  3. Try: NEXI_CLAP_DEBUG=true")
 print()
 print("If audio process does not start at all:")
 print("  1. Verify running python run.py, NOT python main.py")

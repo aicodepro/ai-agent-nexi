@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 LOCAL_ONLY_NOTICE = "Local-only wake calibration: no Groq, Gemini, cloud ASR, or cloud TTS is used."
-PHRASE_ATTEMPTS = {"hey jarvis": 10, "jarvis": 10}
+PHRASE_ATTEMPTS = {"hey nexi": 10, "nexi": 10}
 SILENCE_SECONDS = 60
 ATTEMPT_SECONDS = 2.2
 OUTPUT_DIR = ROOT / "data" / "wake_calibration" / time.strftime("%Y%m%d-%H%M%S")
@@ -84,7 +84,7 @@ def recommend_threshold(scores: list[float]) -> dict:
 
 
 def main() -> int:
-    print("Jarvis hotword calibration")
+    print("Nexi hotword calibration")
     print(LOCAL_ONLY_NOTICE)
     try:
         from engine.hotword_engine_manager import HotwordEngineManager

@@ -10,7 +10,7 @@ def _states(update):
 def test_tts_saying_then_sleeping():
     from engine.runtime_bridge import handle_bridge_event
 
-    with patch("eel.updateJarvisState", create=True) as update:
+    with patch("eel.updateNexiState", create=True) as update:
         handle_bridge_event({"type": "status", "status": "speaking_started", "source": "tts"})
         handle_bridge_event({"type": "status", "status": "sleeping", "source": "ready"})
 

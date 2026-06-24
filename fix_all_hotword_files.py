@@ -10,18 +10,18 @@ def fix_all_files():
     
     # 1. Fix .env.example
     print("1. Fixing .env.example...")
-    env_path = Path("E:\\jarvis-main\\.env.example")
+    env_path = Path("E:\\nexi-main\\.env.example")
     if env_path.exists():
         env_content = env_path.read_text()
         
         # Make sure all required lines are present
-        if "JARVIS_HOTWORD_MIN_RMS=0.010" not in env_content:
+        if "NEXI_HOTWORD_MIN_RMS=0.010" not in env_content:
             # Replace the line
             env_content = env_content.replace(
-                "JARVIS_HOTWORD_MIN_RMS=",
-                "JARVIS_HOTWORD_MIN_RMS=0.010"
+                "NEXI_HOTWORD_MIN_RMS=",
+                "NEXI_HOTWORD_MIN_RMS=0.010"
             )
-            print("   ✓ Fixed JARVIS_HOTWORD_MIN_RMS")
+            print("   ✓ Fixed NEXI_HOTWORD_MIN_RMS")
         
         if "OPENWAKEWORD_SCORE_THRESHOLD=0.35" not in env_content:
             env_content = env_content.replace(
@@ -37,13 +37,13 @@ def fix_all_files():
             )
             print("   ✓ Fixed OPENWAKEWORD_CONSECUTIVE_HITS")
         
-        if "JARVIS_HOTWORD_DEBUG=true" not in env_content:
+        if "NEXI_HOTWORD_DEBUG=true" not in env_content:
             # Find the line and add after it
             lines = env_content.split('\n')
             for i, line in enumerate(lines):
-                if line.strip() == "JARVIS_HOTWORD_ENABLED=true":
-                    lines.insert(i + 1, "JARVIS_HOTWORD_DEBUG=true")
-                    print("   ✓ Added JARVIS_HOTWORD_DEBUG=true")
+                if line.strip() == "NEXI_HOTWORD_ENABLED=true":
+                    lines.insert(i + 1, "NEXI_HOTWORD_DEBUG=true")
+                    print("   ✓ Added NEXI_HOTWORD_DEBUG=true")
                     break
             env_content = '\n'.join(lines)
         
@@ -52,19 +52,19 @@ def fix_all_files():
     
     # 2. Fix audio_wake_pipeline.py
     print("\n2. Fixing audio_wake_pipeline.py...")
-    pipeline_path = Path("E:\\jarvis-main\\engine\\audio_wake_pipeline.py")
+    pipeline_path = Path("E:\\nexi-main\\engine\\audio_wake_pipeline.py")
     if pipeline_path.exists():
         pipeline_content = pipeline_path.read_text()
         
         # Update all constants
         pipeline_content = pipeline_content.replace(
-            'HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.003)',
-            'HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010)'
+            'HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.003)',
+            'HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.010)'
         )
         
         pipeline_content = pipeline_content.replace(
-            'HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.02)',
-            'HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03)'
+            'HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02)',
+            'HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03)'
         )
         
         pipeline_content = pipeline_content.replace(
@@ -82,19 +82,19 @@ def fix_all_files():
     
     # 3. Fix hotword_engine_manager.py
     print("\n3. Fixing hotword_engine_manager.py...")
-    manager_path = Path("E:\\jarvis-main\\engine\\hotword_engine_manager.py")
+    manager_path = Path("E:\\nexi-main\\engine\\hotword_engine_manager.py")
     if manager_path.exists():
         manager_content = manager_path.read_text()
         
         # Update the __init__ method defaults
         manager_content = manager_content.replace(
-            'self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.003))))',
-            'self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.010))))'
+            'self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.003))))',
+            'self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.010))))'
         )
         
         manager_content = manager_content.replace(
-            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.02))))',
-            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.03))))'
+            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02))))',
+            'self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.03))))'
         )
         
         manager_content = manager_content.replace(
@@ -112,7 +112,7 @@ def fix_all_files():
     
     # 4. Fix diagnostics.py
     print("\n4. Fixing diagnostics.py...")
-    diagnostics_path = Path("E:\\jarvis-main\\engine\\diagnostics.py")
+    diagnostics_path = Path("E:\\nexi-main\\engine\\diagnostics.py")
     if diagnostics_path.exists():
         diagnostics_content = diagnostics_path.read_text()
         

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 
 def test_clean_console_prints_major_only(monkeypatch, tmp_path, capsys):
-    monkeypatch.setenv("JARVIS_CONSOLE_LOG_LEVEL", "clean")
-    monkeypatch.setenv("JARVIS_DEBUG_LOG_FILE", str(tmp_path / "debug.log"))
+    monkeypatch.setenv("NEXI_CONSOLE_LOG_LEVEL", "clean")
+    monkeypatch.setenv("NEXI_DEBUG_LOG_FILE", str(tmp_path / "debug.log"))
 
     from engine import debug_trace
 

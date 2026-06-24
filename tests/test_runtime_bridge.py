@@ -127,7 +127,7 @@ def test_status_event_does_not_call_allCommands():
 
 def test_sleeping_status_updates_ui_state():
     event = {"type": EVENT_STATUS, "status": EVENT_SLEEPING, "source": "system"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     payload = mock_update.call_args[0][0]
     assert payload.get("state") == "sleep"

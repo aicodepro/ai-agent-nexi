@@ -53,50 +53,50 @@ class TickClock:
 
 class TestDspDoubleClapBalancedThresholds:
     def test_detects_clap(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
         from engine.dsp_clap_backend import DspClapBackend
         dsp = DspClapBackend(clock=TickClock())
         r = dsp.process_pcm16(make_clap_signal())
         assert r.is_clap is True, f"reason={r.reason} rms={r.rms:.4f} pr={r.peak_ratio:.2f} hf={r.hf_ratio:.2f}"
 
     def test_detects_clap_lower_amplitude(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
         from engine.dsp_clap_backend import DspClapBackend
         dsp = DspClapBackend(clock=TickClock())
         r = dsp.process_pcm16(make_clap_signal(peak_val=0.42, n_impulse=200))
         assert r.is_clap is True, f"reason={r.reason} rms={r.rms:.4f} pr={r.peak_ratio:.2f} hf={r.hf_ratio:.2f}"
 
     def test_rejects_silence(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
         from engine.dsp_clap_backend import DspClapBackend
         dsp = DspClapBackend(clock=TickClock())
         assert dsp.process_pcm16(SILENCE_80).is_clap is False
 
     def test_rejects_continuous_noise(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
         from engine.dsp_clap_backend import DspClapBackend
         dsp = DspClapBackend(clock=TickClock())
         r = dsp.process_pcm16(make_continuous_noise(amp=0.03))
         assert r.is_clap is False
 
     def test_cooldown_allows_sequential(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
         from engine.dsp_clap_backend import DspClapBackend
         clk = TickClock(step=0.08)
         dsp = DspClapBackend(clock=clk)
@@ -107,11 +107,11 @@ class TestDspDoubleClapBalancedThresholds:
         assert r2.is_clap is True, f"second: {r2.reason}"
 
     def test_cooldown_blocks_immediate_second(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_DSP_CLAP_RMS_THRESHOLD", "0.045")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_THRESHOLD", "0.14")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_PEAK_RATIO", "5.2")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_HF_RATIO", "0.43")
-        monkeypatch.setenv("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
+        monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.045")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.14")
+        monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "5.2")
+        monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.43")
+        monkeypatch.setenv("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "120")
         from engine.dsp_clap_backend import DspClapBackend
         clk = TickClock(step=0.08)
         dsp = DspClapBackend(clock=clk)

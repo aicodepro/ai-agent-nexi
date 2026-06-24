@@ -1,4 +1,4 @@
-# Jarvis core runtime
+# Nexi core runtime
 eel
 pyttsx3
 python-dotenv

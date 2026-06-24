@@ -70,14 +70,14 @@ class TestDspClapCalibrationRecommendsEnv:
 
     def test_default_env_format(self):
         env = {
-            "JARVIS_DSP_CLAP_RMS_THRESHOLD": 0.0454,
-            "JARVIS_DSP_CLAP_PEAK_THRESHOLD": 0.1432,
-            "JARVIS_DSP_CLAP_PEAK_RATIO": 5.2345,
-            "JARVIS_DSP_CLAP_HF_RATIO": 0.4312,
-            "JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS": 120,
-            "JARVIS_DSP_CLAP_SPEECH_REJECT_MS": 280,
-            "JARVIS_CLAP_MIN_GAP_MS": 160,
-            "JARVIS_CLAP_MAX_GAP_MS": 950,
+            "NEXI_DSP_CLAP_RMS_THRESHOLD": 0.0454,
+            "NEXI_DSP_CLAP_PEAK_THRESHOLD": 0.1432,
+            "NEXI_DSP_CLAP_PEAK_RATIO": 5.2345,
+            "NEXI_DSP_CLAP_HF_RATIO": 0.4312,
+            "NEXI_DSP_CLAP_EVENT_COOLDOWN_MS": 120,
+            "NEXI_DSP_CLAP_SPEECH_REJECT_MS": 280,
+            "NEXI_CLAP_MIN_GAP_MS": 160,
+            "NEXI_CLAP_MAX_GAP_MS": 950,
         }
         for key, val in env.items():
             if isinstance(val, float):

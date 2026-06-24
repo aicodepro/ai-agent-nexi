@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTROLLER_JS = ROOT / "www_mark" / "controller.js"
 
 REQUIRED_EXPOSES = [
-    "updateJarvisState",
+    "updateNexiState",
     "updateState",
     "senderText",
     "receiverText",
@@ -30,7 +30,7 @@ REQUIRED_EXPOSES = [
 
 REQUIRED_HANDLERS = [
     # State handling
-    "updateJarvisState",
+    "updateNexiState",
     "senderText",
     "receiverText",
     # Compat wrappers

@@ -35,7 +35,7 @@ PHONETIC_CORRECTIONS = {
     "diagnos": "diagnose",
     "diagnoz": "diagnose",
     "jervis": "jarvi",
-    "jarvis": "jarvi",
+    "nexi": "jarvi",
     "ervis": "jarvi",
     "stop everthing": "stop everything",
     "stop every thing": "stop everything",

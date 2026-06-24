@@ -17,7 +17,7 @@ def _ui_payloads(mock_update):
 
 def test_waiting_for_speech_shows_listening():
     event = {"type": EVENT_STATUS, "status": "waiting_for_speech", "source": "hotword"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     payloads = _ui_payloads(mock_update)
     assert payloads[0]["state"] == "waiting_for_speech"
@@ -26,7 +26,7 @@ def test_waiting_for_speech_shows_listening():
 
 def test_speech_started_shows_recognising():
     event = {"type": EVENT_STATUS, "status": "speech_started", "source": "hotword"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     payloads = _ui_payloads(mock_update)
     assert payloads[0]["state"] == "recognising"
@@ -35,7 +35,7 @@ def test_speech_started_shows_recognising():
 
 def test_speech_started_not_listening():
     event = {"type": EVENT_STATUS, "status": "speech_started", "source": "hotword"}
-    with patch("eel.updateJarvisState", create=True) as mock_update:
+    with patch("eel.updateNexiState", create=True) as mock_update:
         handle_bridge_event(event)
     payloads = _ui_payloads(mock_update)
     assert all(p["state"] != "listening" for p in payloads)

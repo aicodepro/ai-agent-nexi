@@ -42,12 +42,12 @@ class TestPhase3BridgeIntegration(unittest.TestCase):
         self.assertTrue(result["handled"])
         self.assertFalse(result["result"]["ok"])
 
-    def test_diagnose_jarvis_is_handled(self):
-        result = Phase3CommandBridge.try_handle("diagnose Jarvis")
+    def test_diagnose_nexi_is_handled(self):
+        result = Phase3CommandBridge.try_handle("diagnose Nexi")
         self.assertTrue(result["handled"])
 
     def test_diagnosis_contains_status_and_checks(self):
-        result = Phase3CommandBridge.try_handle("diagnose Jarvis")
+        result = Phase3CommandBridge.try_handle("diagnose Nexi")
         self.assertTrue(result["handled"])
         data = result["result"]["data"]
         self.assertIn("diagnosis", data)
@@ -160,7 +160,7 @@ class TestPhase3BridgeIntegration(unittest.TestCase):
         self.assertFalse(result["result"]["ok"])
 
     def test_diagnose_returns_summary(self):
-        result = Phase3CommandBridge.try_handle("diagnose Jarvis")
+        result = Phase3CommandBridge.try_handle("diagnose Nexi")
         msg = result["result"]["message"]
         self.assertIsInstance(msg, str)
         self.assertGreater(len(msg), 5)
@@ -216,7 +216,7 @@ class TestPhase3BridgeSafety(unittest.TestCase):
         result = Phase3CommandBridge.try_handle("hello")
         self.assertIn("handled", result)
         self.assertIn("result", result)
-        result2 = Phase3CommandBridge.try_handle("diagnose Jarvis")
+        result2 = Phase3CommandBridge.try_handle("diagnose Nexi")
         self.assertIn("handled", result2)
         self.assertIn("result", result2)
         r = result2["result"]
@@ -304,8 +304,8 @@ class TestPhase3ScreenVisionApproval(unittest.TestCase):
         self.assertEqual(mock_result["method"], "mock")
         self.assertEqual(mock_result["format"], "mock")
 
-    def test_diagnose_jarvis_alias_works(self):
-        result = Phase3CommandBridge.try_handle("diagnose Jarvis")
+    def test_diagnose_nexi_alias_works(self):
+        result = Phase3CommandBridge.try_handle("diagnose Nexi")
         self.assertTrue(result["handled"])
 
     def test_diagnose_jarvi_alias_works(self):

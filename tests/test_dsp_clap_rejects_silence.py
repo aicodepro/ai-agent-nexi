@@ -45,7 +45,7 @@ class TestDspClapRejectsSilence:
             assert r.reason != "cooldown"
 
     def test_silence_no_false_wake_through_manager(self, monkeypatch):
-        monkeypatch.setenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+        monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
         mgr = ClapBackendManager(cooldown_ms=5000)
         for _ in range(20):

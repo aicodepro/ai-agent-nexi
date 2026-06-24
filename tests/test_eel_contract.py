@@ -81,8 +81,8 @@ def test_python_js_called_functions_defined_or_guarded():
 
 
 def test_wake_button_function_exists():
-    assert "toggleJarvisSleepWake" in _python_exposes()
-    assert "wakeJarvisFromUi" in _python_exposes()
+    assert "toggleNexiSleepWake" in _python_exposes()
+    assert "wakeNexiFromUi" in _python_exposes()
 
 
 def test_ui_has_sleeping_and_listening_states():
