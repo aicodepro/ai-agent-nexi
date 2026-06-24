@@ -92,6 +92,10 @@ _TOOLS: dict[str, ToolSpec] = {
     "tell_joke": _spec("tell_joke", "Tell a joke", aliases=("tell a joke", "make me laugh", "crack a joke"), examples=["tell me a joke", "make me laugh"], category="conversation"),
     "weather_lookup": _spec("weather_lookup", "Look up the weather", optional=["location"], aliases=("weather", "whats the weather", "weather today", "temperature"), examples=["what's the weather", "weather in london"], category="web"),
     "internet_speed_test": _spec("internet_speed_test", "Run an internet speed test", aliases=("internet speed", "speed test", "check internet speed", "network speed"), examples=["check my internet speed", "run a speed test"], category="system"),
+    "get_active_window": _spec("get_active_window", "Report the currently active app and window", handler="engine.os_awareness.get_active_window", aliases=("which app is active", "what app is active", "active window", "what app am i using", "current app", "what app is open"), examples=["which app is active", "what app is open"], category="system"),
+    "what_am_i_working_on": _spec("what_am_i_working_on", "Describe what the user is currently working on", handler="engine.os_awareness.what_am_i_working_on", aliases=("what am i working on", "what am i doing", "what am i up to"), examples=["what am i working on", "what am i doing"], category="system"),
+    "get_system_state": _spec("get_system_state", "Report CPU, memory, battery and uptime", handler="engine.os_awareness.get_system_state", aliases=("system status", "pc status", "system state", "how is my pc", "computer status", "resource usage", "how is my computer"), examples=["what's my system status", "how is my pc doing"], category="system"),
+    "why_is_pc_slow": _spec("why_is_pc_slow", "Explain what is using the most CPU and memory", handler="engine.os_awareness.why_is_pc_slow", aliases=("why is my pc slow", "why is my computer slow", "what is slowing my pc", "whats using my cpu", "what is using memory", "why is it lagging", "why is my pc lagging"), examples=["why is my pc slow", "what's slowing my computer"], category="system"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
     "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
     "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
@@ -499,6 +503,9 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         import datetime
         now = datetime.datetime.now().strftime("%I:%M %p")
         return {"success": True, "message": f"The time is {now}.", "tool": name, "verified": True}
+    if name in {"get_active_window", "what_am_i_working_on", "get_system_state", "why_is_pc_slow"}:
+        from engine import os_awareness
+        return getattr(os_awareness, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":
