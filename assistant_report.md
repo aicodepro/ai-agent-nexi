@@ -20,7 +20,7 @@ Status legend: **DONE** = implemented, voice-reachable, and test-covered · **PA
 | 6 | One-Utterance Voice Capture | One command per wake | VAD endpointing + single-utterance capture in `audio_wake_pipeline` | PARTIAL | Works in the live pipeline; not exposed as a standalone tool (needs live mic — unsafe to unit-test). |
 | 7 | Nexi Diagnostics Commands | Debug by voice | **`show_diagnostics`** → `voice_diagnostics` (state, last transition, tts, listening flags) | PARTIAL→**DONE** | Logic existed; this session made it voice-reachable + tested. |
 | 8 | Computer-Use Harness | Operate PC visually | `react_planner` (generic multi-step planner only) | **DEFERRED** | No vision/screenshot/action-executor. Needs vision-model API + human review; high risk. |
-| 9 | Browser Intelligence Layer | Deep browser control | keyboard-shortcut browser tools; Playwright MCP available | PARTIAL / **DEFERRED (write-path)** | Read-only page/console reading not built; form-fill/click deferred (state+timing risk). |
+| 9 | Browser Intelligence Layer | Deep browser control | **`read_current_page`/`list_browser_tabs`/`read_browser_console`** via CDP (`/json/list` + optional Playwright) | PARTIAL→**DONE (read-only)** | Read-only built; works against a browser started with `--remote-debugging-port=9222` (text/console need Playwright installed), graceful otherwise. Form-fill/click write-path still deferred. |
 | 10 | Human Approval Queue v2 | Gate risky actions | `safety_gate` exists but main path bypasses it for HIGH/CRITICAL | **DEFERRED** | Needs invasive core-path refactor + full approval test harness. |
 | 11 | Tool Verifier Layer | No fake success | `tool_result_verifier.verify_tool_result` (trusts `verified=True`, path-exists for file tools) | **DONE** (enhancement deferred) | Underpins every new tool. Process-existence upgrade deferred (would break a locked test / flaky). |
 | 12 | Reflection Memory | Learn from outcomes | `reflection_engine` + `reflection_memory` (stores live) + **`what_did_you_learn`** query tool | PARTIAL→**DONE (read)** | Lessons now voice-queryable ("what did you learn?", "show your lessons"); storage already worked. |
@@ -109,7 +109,7 @@ pre-existing baseline. The set-diff of failing tests vs the pre-session baseline
 |---|---|---|
 | #8 Computer-Use Harness | Real screen control needs vision model + screenshot analysis + action executor/verifier; high risk | Vision API keys, sandbox, human-review gate (#10) |
 | #10 Human Approval Queue v2 | Requires invasive refactor of `execute_tool`/`react_planner`/`command.py` to route HIGH/CRITICAL through a gate | Approval test harness + risk policy wiring |
-| #9 Browser write-path | Form-fill/click add state+timing risk | Build read-only `page_reader`/`console_reader` first (Playwright MCP) |
+| #9 Browser write-path (form-fill/click) | Adds state+timing risk; read-only surface now DONE | Approval gate (#10) before any write-action |
 | #13 Skill replay | Persistent record/replay breaks on tool-signature drift | Verifier-gated replay + JSON skill schema |
 | #6 One-utterance tool, #12 reflection query | Need live mic / are read-mostly | Safe headless test strategy |
 
