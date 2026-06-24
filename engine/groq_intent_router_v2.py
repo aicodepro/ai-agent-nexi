@@ -93,6 +93,7 @@ _SIMPLE_ALIAS_TOOLS = {
     "get_monitor_state": ("system", ("monitor state", "monitor status", "what are you monitoring", "show monitor", "world monitor", "dashboard state", "whats on the monitor")),
     "echo_guard_status": ("system", ("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status", "echo guard")),
     "get_hud_state": ("system", ("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status", "whats your current state")),
+    "what_did_you_learn": ("system", ("what did you learn", "what did you learn from that", "show your lessons", "what lessons do you have", "reflection memory", "what mistakes have you learned from", "what have you learned from your mistakes")),
     "media_pause": ("desktop", ("pause the video", "pause video", "pause music", "pause media", "stop playing")),
     "media_resume": ("desktop", ("resume the video", "resume video", "play again", "resume media", "continue playing")),
     "media_mute": ("desktop", ("mute the video", "mute sound", "mute media")),

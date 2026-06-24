@@ -8,7 +8,7 @@ from engine.groq_intent_router_v2 import _deterministic_router
 from engine import intent_taxonomy as tax
 
 
-RUNTIME_TOOLS = ["show_diagnostics", "get_monitor_state", "echo_guard_status", "get_hud_state"]
+RUNTIME_TOOLS = ["show_diagnostics", "get_monitor_state", "echo_guard_status", "get_hud_state", "what_did_you_learn"]
 
 
 def _route(phrase):
@@ -74,3 +74,14 @@ def test_routing_echo_guard():
 def test_routing_hud_state():
     for phrase in ("show hud", "hud state", "command center"):
         assert _route(phrase) == "get_hud_state", f"{phrase!r} mis-routed"
+
+
+def test_what_did_you_learn_payload():
+    r = execute_tool("what_did_you_learn", {})
+    assert isinstance(r.get("count"), int)
+    assert isinstance(r.get("lessons"), list)
+
+
+def test_routing_what_did_you_learn():
+    for phrase in ("what did you learn", "show your lessons", "reflection memory"):
+        assert _route(phrase) == "what_did_you_learn", f"{phrase!r} mis-routed"

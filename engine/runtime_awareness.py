@@ -89,3 +89,21 @@ def get_hud_state(slots: dict | None = None) -> dict[str, Any]:
     msg = "HUD — " + ", ".join(parts) + "."
     return _ok(msg, tool="get_hud_state", mode=mode, attention=str(presence.get("attention", "")),
                goal=goal, active_app=app, presence=presence)
+
+
+def what_did_you_learn(slots: dict | None = None) -> dict[str, Any]:
+    """Feature #12 — read-only query of Reflexion-style lessons (already redacted at store time)."""
+    try:
+        from engine.reflection_memory import recall_similar, ReflectionMemory
+        lessons = recall_similar("", top_k=5) or []
+        total = int(ReflectionMemory.count())
+    except Exception:
+        lessons, total = [], 0
+    if not lessons:
+        return _ok("I haven't recorded any lessons yet.", tool="what_did_you_learn",
+                   count=total, lessons=[])
+    top = lessons[0]
+    action = top.get("next_action") or top.get("lesson") or "avoid repeating it"
+    msg = (f"I've recorded {total} lesson{'s' if total != 1 else ''}. "
+           f"Most recent: when {top.get('failure')}, {action}.")
+    return _ok(msg, tool="what_did_you_learn", count=total, lessons=lessons)
