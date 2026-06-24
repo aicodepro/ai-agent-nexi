@@ -1,179 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>N.E.X.I</title>
-  <link rel="shortcut icon" href="assets/nexi-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexi</title>
+
+    <link rel="shortcut icon" href="assets/img/logo.ico" type="image/x-icon">
+
+    <!-- Bootsrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Bootsrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Particle js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"
+        type="text/javascript"></script>
+
+    <!-- Texllate  -->
+    <link rel="stylesheet" href="assets/vendore/texllate/animate.css">
+
+    <link rel="stylesheet" href="style.css">
+
 </head>
+
 <body>
 
-  <div id="app" class="app-shell">
+    <div class="container">
 
-    <!-- ===== HEADER ===== -->
-    <header id="top-header" class="top-header">
-      <span class="header-left">NEXI v1.0</span>
-      <div class="header-center">
-        <span class="header-title">N.E.X.I</span>
-        <span class="header-subtitle">Neural Executive Intelligence</span>
-      </div>
-      <span id="header-clock" class="header-clock">00:00:00</span>
-    </header>
 
-    <!-- ===== LEFT PANEL: System Monitor ===== -->
-    <aside id="left-panel" class="left-panel">
-      <div class="panel-label">SYSTEM MONITOR</div>
 
-      <div class="metric-block">
-        <div class="metric-label">CPU</div>
-        <div class="metric-bar-bg"><div id="metric-cpu" class="metric-bar cpu" style="width:0%"></div></div>
-        <div id="metric-cpu-val" class="metric-val">--</div>
-      </div>
-      <div class="metric-block">
-        <div class="metric-label">MEM</div>
-        <div class="metric-bar-bg"><div id="metric-mem" class="metric-bar mem" style="width:0%"></div></div>
-        <div id="metric-mem-val" class="metric-val">--</div>
-      </div>
-      <div class="metric-block">
-        <div class="metric-label">NET</div>
-        <div class="metric-bar-bg"><div id="metric-net" class="metric-bar net" style="width:0%"></div></div>
-        <div id="metric-net-val" class="metric-val">--</div>
-      </div>
+        <section id="Oval" class="mb-4">
 
-      <div class="info-block">
-        <div id="uptime-val" class="info-row">UP --:--</div>
-        <div id="proc-val" class="info-row">PROC --</div>
-        <div id="os-val" class="info-row">OS WIN</div>
-      </div>
+            <div class="row">
+                <div class="col-md-1"></div>
+                <div class="col-md-10">
+                    <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
 
-      <div class="status-badges">
-        <div class="status-badge ai-core">AI CORE<br>ACTIVE</div>
-        <div class="status-badge sec">SEC<br>CLEARED</div>
-      </div>
-    </aside>
+                        <canvas id="canvasOne" width="700" height="420" style="position: absolute;"></canvas>
 
-    <!-- ===== CENTER: HUD Stage ===== -->
-    <main id="center-stage" class="center-stage">
-      <canvas id="hud-canvas"></canvas>
-      <div id="nexi-state" class="state-badge nexi-state-sleep">SLEEP MODE</div>
-      <div id="nexi-source" class="wake-hint">Say Hey Nexi or double clap to wake</div>
-      <div id="nexi-transcript" class="bridge-line"></div>
-      <div id="nexi-response" class="bridge-line bridge-response"></div>
-      <div id="waveform" class="waveform-strip"></div>
-    </main>
+                        <div id="NexiHood" class="nexi-state-idle">
 
-    <!-- ===== RIGHT PANEL ===== -->
-    <aside id="right-panel" class="right-panel">
-      <div class="panel-label">ACTIVITY LOG</div>
-      <div id="nexi-log" class="activity-log">
-        <div class="log-msg sys">SYS: Sleep mode</div>
-      </div>
+                            <div class="square">
+                                <span class="circle"></span>
+                                <span class="circle"></span>
+                                <span class="circle"></span>
+                                <div id="NexiOrbCore" class="nexi-orb-core"></div>
+                            </div>
 
-      <div class="panel-label">FILE UPLOAD</div>
-      <div id="file-drop-zone" class="file-drop-zone">
-        <div id="file-drop-hint" class="file-drop-hint">
-          <span class="file-drop-icon">&#8682;</span>
-          <span>Drop file here</span>
-        </div>
-      </div>
-      <div id="file-status" class="file-status">No file loaded</div>
+                        </div>
 
-      <div class="panel-label">TOOLS</div>
-      <div id="tool-categories" class="tool-categories"></div>
-      <div id="suggestion-list" class="suggestion-list"></div>
-    </aside>
+                    </div>
+                    <div id="StatusLabel" class="text-light text-center status-label">Say Hey Nexi or double clap</div>
+                    <div id="SourceBadge" class="source-badge">Idle</div>
+                    <div id="ContextIndicator" class="context-indicator hidden"><span></span>Context Active</div>
+                    <div id="TranscriptPreview" class="transcript-preview">Waiting for wake word...</div>
+                    <div id="TranscriptCard" class="transcript-card" aria-live="polite">
+                        <div><span class="entry-label">YOU</span> <span id="UserText"></span></div>
+                        <div><span class="entry-label">NEXI</span> <span id="NexiText"></span></div>
+                        <div id="ResponseMeta" class="entry-meta"></div>
+                    </div>
+                    <div id="presence-panel" class="presence-panel" aria-live="polite">
+                        <span id="PresenceAttention">NONE</span>
+                        <span id="PresenceGoal">WAITING FOR WAKE WORD</span>
+                        <span id="PresenceConfidence">0%</span>
+                    </div>
+                    <div id="diagnostics-dashboard" class="diagnostics-dashboard hidden">
+                        <div id="dashboard-summary">Dashboard unavailable</div>
+                        <div id="dashboard-panels"></div>
+                    </div>
+                    <div id="WaveformBars" class="waveform-bars" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
 
-    <!-- ===== BOTTOM COMMAND BAR ===== -->
-    <footer id="command-bar" class="command-bar">
-      <div class="command-group">
-        <input type="text" id="command-input" class="command-input" placeholder="Ask Nexi or type a command..." autofocus>
-        <button id="mic-button" class="cmd-btn" title="Voice">&#127908;</button>
-        <button id="send-button" class="cmd-btn glow" title="Send">&#9654;</button>
-        <button id="power-button" class="cmd-btn" title="Sleep / Wake">&#9210;</button>
-        <button id="estop-button" class="cmd-btn" title="Emergency Stop">&#9632;</button>
-        <button id="workspace-button" class="cmd-btn" title="Output Workspace">&#128196;</button>
-        <button id="settings-button" class="cmd-btn" title="Settings">&#9881;</button>
-        <button id="log-toggle-btn" class="cmd-btn" title="Debug Log">&#9776;</button>
-      </div>
-      <div class="command-shortcuts">
-        <span>[F11] Fullscreen</span>
-        <span>NEXI v1.0</span>
-        <span id="provider-status-short"></span>
-      </div>
-    </footer>
+                    <div class="col-md-12 mt-4 pt-4">
+                        <div class="text-center">
+                            <div id="TextInput" class="d-flex">
 
-    <!-- ===== SETTINGS OVERLAY ===== -->
-    <div id="settings-overlay" class="overlay hidden">
-      <div class="overlay-backdrop"></div>
-      <div class="overlay-panel">
-        <div class="overlay-header">
-          <span>SETTINGS</span>
-          <button id="settings-close" class="close-btn">&times;</button>
-        </div>
-        <div class="overlay-body">
-          <div class="setting-section">
-            <div class="section-title">PROVIDERS</div>
-            <div id="provider-list" class="provider-list"></div>
-          </div>
-          <div class="setting-section">
-            <div class="section-title">RUNTIME</div>
-            <div id="runtime-list" class="runtime-list"></div>
-          </div>
-          <div class="setting-section">
-            <div class="section-title">MEMORY</div>
-            <div id="memory-list" class="memory-list">No memory yet.</div>
-          </div>
-          <div class="setting-section">
-            <div class="section-title">SETUP</div>
-            <p>Copy <code>.env.example</code> to <code>.env</code> and add your API keys.</p>
-          </div>
-        </div>
-      </div>
+                                <input type="text" class="input-field" name="chatbox" id="chatbox"
+                                    placeholder="type here ... ">
+                                <button id="SendBtn" class="glow-on-hover" hidden><i class="bi bi-send"></i></button>
+                                <button id="MicBtn" class="glow-on-hover"><i class="bi bi-mic"></i></button>
+                                <button id="SleepWakeBtn" class="glow-on-hover" title="Sleep or wake Nexi"><i class="bi bi-power"></i></button>
+                                <button id="ChatBtn" class="glow-on-hover" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling"><i class="bi bi-chat-dots"></i></button>
+                                <button id="SettingsBtn" class="glow-on-hover"><i class="bi bi-gear"></i></button>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="SpeechCapsule" class="speech-capsule hidden" aria-live="polite"></div>
+
+                </div>
+                <div class="col-md-1"></div>
+            </div>
+
+        </section>
+
+        <section id="SiriWave" class="mb-4" hidden>
+
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                            <div class="">
+                                <p class="text-start text-light mb-4 siri-message" style="font-size: 28px;">Hello, I am N.E.X.I</p>
+                                <div id="siri-container"></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
     </div>
 
-    <!-- ===== OUTPUT WORKSPACE OVERLAY ===== -->
-    <div id="workspace-overlay" class="overlay hidden">
-      <div class="overlay-backdrop"></div>
-      <div class="overlay-panel workspace-panel">
-        <div class="overlay-header">
-          <span>OUTPUT WORKSPACE</span>
-          <button id="workspace-close" class="close-btn">&times;</button>
+    <div class="offcanvas offcanvas-start chat-canvas" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title text-white" id="offcanvasScrollingLabel">Chats</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-        <div class="overlay-body">
-          <div id="workspace-content" class="workspace-content"></div>
-          <div class="workspace-actions">
-            <button class="ws-btn" data-action="copy">Copy</button>
-            <button class="ws-btn" data-action="save_md">Save .md</button>
-            <button class="ws-btn" data-action="save_txt">Save .txt</button>
-            <button class="ws-btn" data-action="shorten">Shorten</button>
-            <button class="ws-btn" data-action="regenerate">Regenerate</button>
-            <button class="ws-btn" data-action="read">Read aloud</button>
-          </div>
-          <div id="workspace-status" class="workspace-status"></div>
+        <div id="chat-canvas-body" class="offcanvas-body">
+            <!-- Chatting code here -->
+
         </div>
-      </div>
     </div>
 
-    <!-- ===== DEBUG LOG OVERLAY ===== -->
-    <div id="debug-panel" class="overlay hidden">
-      <div class="debug-panel-box">
-        <div class="overlay-header">
-          <span>DEBUG LOG</span>
-          <select id="log-level-filter" class="log-filter">
-            <option value="all">ALL</option><option value="info">INFO</option><option value="warn">WARN</option>
-            <option value="error">ERROR</option><option value="route">ROUTE</option>
-          </select>
-          <button id="debug-close" class="close-btn">&times;</button>
+    <section id="NexiOutputWorkspace" class="nexi-output-workspace hidden" aria-label="Nexi Output Workspace">
+        <div id="OutputWorkspaceHeader" class="workspace-header">
+            <div>
+                <div class="workspace-title">Nexi Output Workspace</div>
+                <span id="OutputWorkspaceType" class="workspace-type">Text</span>
+                <span id="OutputWorkspaceStatus" class="workspace-status">Ready</span>
+            </div>
+            <div class="workspace-window-actions">
+                <button id="OutputMinimizeBtn" type="button">_</button>
+                <button id="OutputPinBtn" type="button">pin</button>
+                <button id="OutputCloseBtn" type="button">x</button>
+            </div>
         </div>
-        <div id="debug-log-body" class="debug-log-body"></div>
-      </div>
-    </div>
+        <div class="workspace-body">
+            <div id="OutputWorkspaceSummary" class="workspace-summary"></div>
+            <div id="OutputWorkspaceContent" class="workspace-content"></div>
+        </div>
+        <div class="workspace-footer">
+            <button id="WorkspaceCopyBtn" type="button">Copy</button>
+            <button id="WorkspaceCreateFileBtn" type="button">Create File</button>
+            <button id="WorkspaceSaveMdBtn" type="button">Save .md</button>
+            <button id="WorkspaceSaveTxtBtn" type="button">Save .txt</button>
+            <button id="WorkspaceReadSummaryBtn" type="button">Read Summary</button>
+            <button id="WorkspaceShorterBtn" type="button">Make Shorter</button>
+            <button id="WorkspaceRegenerateBtn" type="button">Regenerate</button>
+        </div>
+    </section>
 
-  </div>
+    <!--Jquery  -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 
-  <script src="hud_orb.js"></script>
-  <script src="controller.js"></script>
-  <script src="main.js"></script>
+    <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+    <!-- Particle js -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+    <script src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
+    <script src="script.js"></script>
+
+    <!-- Siri wave -->
+    <script src="https://unpkg.com/siriwave/dist/siriwave.umd.min.js"></script>
+
+    <!-- Texllate js -->
+    <script src="assets/vendore/texllate/jquery.fittext.js"></script>
+    <script src="assets/vendore/texllate/jquery.lettering.js"></script>
+    <script src="http://jschr.github.io/textillate/jquery.textillate.js"></script>
+
+    <script src="/eel.js"></script>
+    <script src="main.js"></script>
+    <script src="controller.js"></script>
+
+
 </body>
+
 </html>
