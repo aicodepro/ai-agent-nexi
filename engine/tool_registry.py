@@ -96,6 +96,12 @@ _TOOLS: dict[str, ToolSpec] = {
     "what_am_i_working_on": _spec("what_am_i_working_on", "Describe what the user is currently working on", handler="engine.os_awareness.what_am_i_working_on", aliases=("what am i working on", "what am i doing", "what am i up to"), examples=["what am i working on", "what am i doing"], category="system"),
     "get_system_state": _spec("get_system_state", "Report CPU, memory, battery and uptime", handler="engine.os_awareness.get_system_state", aliases=("system status", "pc status", "system state", "how is my pc", "computer status", "resource usage", "how is my computer"), examples=["what's my system status", "how is my pc doing"], category="system"),
     "why_is_pc_slow": _spec("why_is_pc_slow", "Explain what is using the most CPU and memory", handler="engine.os_awareness.why_is_pc_slow", aliases=("why is my pc slow", "why is my computer slow", "what is slowing my pc", "whats using my cpu", "what is using memory", "why is it lagging", "why is my pc lagging"), examples=["why is my pc slow", "what's slowing my computer"], category="system"),
+    "am_i_online": _spec("am_i_online", "Check whether the internet is reachable", handler="engine.net_awareness.am_i_online", aliases=("am i online", "do i have internet", "are we connected", "is the internet working", "is the internet up"), examples=["am i online", "do i have internet"], category="system"),
+    "get_network_status": _spec("get_network_status", "Report online state, active interface and Wi-Fi network", handler="engine.net_awareness.get_network_status", aliases=("network status", "wifi status", "what network am i on", "what wifi am i on", "connection status", "am i on wifi"), examples=["network status", "what wifi am i on"], category="system"),
+    "get_ip_address": _spec("get_ip_address", "Report the local IP address of this PC", handler="engine.net_awareness.get_ip_address", aliases=("what is my ip address", "my ip address", "whats my ip", "what is my ip", "ip address", "show my ip"), examples=["what is my ip address", "what's my ip"], category="system"),
+    "get_disk_space": _spec("get_disk_space", "Report free and total disk space on the system drive", handler="engine.storage_awareness.get_disk_space", aliases=("how much disk space do i have", "disk space", "how much storage do i have", "how much space do i have", "free disk space", "storage space"), examples=["how much disk space do i have", "disk space"], category="system"),
+    "is_disk_full": _spec("is_disk_full", "Check whether any fixed drive is running low on space", handler="engine.storage_awareness.is_disk_full", aliases=("is my disk full", "is my drive full", "am i running out of space", "is my storage full", "is my disk almost full", "running low on space"), examples=["is my disk full", "am i running out of space"], category="system"),
+    "get_battery_status": _spec("get_battery_status", "Report battery percentage, charging state and time remaining", handler="engine.storage_awareness.get_battery_status", aliases=("battery status", "how much battery do i have", "am i charging", "battery level", "whats my battery", "how is my battery"), examples=["battery status", "how much battery do i have"], category="system"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
     "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
     "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
@@ -506,6 +512,12 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"get_active_window", "what_am_i_working_on", "get_system_state", "why_is_pc_slow"}:
         from engine import os_awareness
         return getattr(os_awareness, name)(slots)
+    if name in {"am_i_online", "get_network_status", "get_ip_address"}:
+        from engine import net_awareness
+        return getattr(net_awareness, name)(slots)
+    if name in {"get_disk_space", "is_disk_full", "get_battery_status"}:
+        from engine import storage_awareness
+        return getattr(storage_awareness, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":
