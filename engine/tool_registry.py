@@ -119,6 +119,8 @@ _TOOLS: dict[str, ToolSpec] = {
     "echo_guard_status": _spec("echo_guard_status", "Report the echo / self-TTS guard cooldown state", handler="engine.runtime_awareness.echo_guard_status", aliases=("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status"), examples=["echo guard status", "are you in cooldown"], category="system"),
     "get_hud_state": _spec("get_hud_state", "Report Nexi's HUD / presence state (mode, focus, goal)", handler="engine.runtime_awareness.get_hud_state", aliases=("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status"), examples=["show hud", "hud state"], category="system"),
     "what_did_you_learn": _spec("what_did_you_learn", "Report lessons Nexi has learned from past failures", handler="engine.runtime_awareness.what_did_you_learn", aliases=("what did you learn", "what did you learn from that", "show your lessons", "what lessons do you have", "reflection memory", "what mistakes have you learned from"), examples=["what did you learn", "show your lessons"], category="system"),
+    "list_skills": _spec("list_skills", "List what Nexi can do (capability catalog by area)", handler="engine.skill_library.list_skills", aliases=("what can you do", "list your skills", "what are your skills", "show skills", "list skills", "what can you help with", "list capabilities", "what skills do you have", "show your skills"), examples=["what can you do", "list your skills"], category="system"),
+    "describe_skill": _spec("describe_skill", "Explain a specific Nexi skill (what it does, example, risk)", optional=["name"], handler="engine.skill_library.describe_skill", examples=["tool help battery", "describe the camera skill"], category="system"),
     "resolve_app_for_task": _spec("resolve_app_for_task", "Pick the best app for a task (e.g. coding, presentation) with confidence", optional=["task"], handler="engine.app_intelligence.resolve_app_for_task", examples=["what's the best app for coding", "which app for presentation"], category="desktop"),
     "open_app_for_task": _spec("open_app_for_task", "Open the best app for a task", optional=["task"], handler="engine.app_intelligence.open_app_for_task", examples=["open the best app for coding"], category="desktop"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
@@ -549,6 +551,9 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"resolve_app_for_task", "open_app_for_task"}:
         from engine import app_intelligence
         return getattr(app_intelligence, name)(slots)
+    if name in {"list_skills", "describe_skill"}:
+        from engine import skill_library
+        return getattr(skill_library, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":

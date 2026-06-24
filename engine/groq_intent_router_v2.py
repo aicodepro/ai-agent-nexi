@@ -94,6 +94,7 @@ _SIMPLE_ALIAS_TOOLS = {
     "echo_guard_status": ("system", ("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status", "echo guard")),
     "get_hud_state": ("system", ("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status", "whats your current state")),
     "what_did_you_learn": ("system", ("what did you learn", "what did you learn from that", "show your lessons", "what lessons do you have", "reflection memory", "what mistakes have you learned from", "what have you learned from your mistakes")),
+    "list_skills": ("system", ("what can you do", "list your skills", "what are your skills", "show skills", "list skills", "what can you help with", "list capabilities", "what skills do you have", "show your skills", "what are you capable of")),
     "media_pause": ("desktop", ("pause the video", "pause video", "pause music", "pause media", "stop playing")),
     "media_resume": ("desktop", ("resume the video", "resume video", "play again", "resume media", "continue playing")),
     "media_mute": ("desktop", ("mute the video", "mute sound", "mute media")),
@@ -180,6 +181,25 @@ def _task_app_match(q: str, text: str) -> dict[str, Any] | None:
     return exact_schema(empty_result(route="tool", intent=intent, domain="desktop", confidence=0.9, reason="task_app") | {"slots": {"task": task}})
 
 
+_SKILL_HELP_RES = [
+    re.compile(r"^tool help\s+(.+)$"),
+    re.compile(r"^describe (?:the )?skill\s+(.+)$"),
+    re.compile(r"^describe (?:the )?(.+?)\s+skill$"),
+    re.compile(r"^(?:what does|tell me about) (?:the )?(.+?)\s+(?:skill|tool)(?:\s+do)?$"),
+]
+
+
+def _skill_help_match(q: str) -> dict[str, Any] | None:
+    """Route 'tool help <x>' / 'describe the <x> skill' / 'what does the <x> tool do' to describe_skill."""
+    for rx in _SKILL_HELP_RES:
+        m = rx.match(q)
+        if m:
+            name = m.group(1).strip(" .?!")
+            if name:
+                return exact_schema(empty_result(route="tool", intent="describe_skill", domain="system", confidence=0.9, reason="skill_help") | {"slots": {"name": name}})
+    return None
+
+
 def _settings_match(q: str) -> dict[str, Any] | None:
     """Match Windows Settings phrases. Longest phrase wins so 'open wifi settings' beats 'settings'."""
     best_intent = ""
@@ -222,7 +242,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
 
-    # ── Task->app and Windows Settings must beat the generic "open <app>" handler ─
+    # ── Task->app, skill-help and Windows Settings must beat the generic open handler ─
+    _skill_help = _skill_help_match(q)
+    if _skill_help:
+        return _skill_help
     _task_app = _task_app_match(q, str(text or ""))
     if _task_app:
         return _task_app
