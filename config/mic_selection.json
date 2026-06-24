@@ -1,38 +1,14 @@
 {
   "samplerate": 16000,
   "selected": {
-    "index": 2,
-    "name": "Headset (Phantom 550)",
-    "channels": 1,
+    "index": 1,
+    "name": "Microphone Array (Intel\u00ae Smart ",
+    "channels": 4,
     "default_samplerate": 44100,
-    "score": 90,
+    "score": 70,
     "openable": true
   },
   "ranked": [
-    {
-      "index": 2,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 44100,
-      "score": 90,
-      "openable": true
-    },
-    {
-      "index": 8,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 44100,
-      "score": 90,
-      "openable": true
-    },
-    {
-      "index": 15,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 16000,
-      "score": 90,
-      "openable": true
-    },
     {
       "index": 1,
       "name": "Microphone Array (Intel\u00ae Smart ",
@@ -47,6 +23,30 @@
       "channels": 4,
       "default_samplerate": 44100,
       "score": 70,
+      "openable": true
+    },
+    {
+      "index": 2,
+      "name": "Headset (Phantom 550)",
+      "channels": 1,
+      "default_samplerate": 44100,
+      "score": 40,
+      "openable": true
+    },
+    {
+      "index": 8,
+      "name": "Headset (Phantom 550)",
+      "channels": 1,
+      "default_samplerate": 44100,
+      "score": 40,
+      "openable": true
+    },
+    {
+      "index": 15,
+      "name": "Headset (Phantom 550)",
+      "channels": 1,
+      "default_samplerate": 16000,
+      "score": 40,
       "openable": true
     },
     {
