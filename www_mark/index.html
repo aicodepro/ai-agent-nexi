@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S</title>
+  <link rel="shortcut icon" href="assets/jarvis-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app" class="app-shell">
+
+    <!-- ===== HEADER ===== -->
+    <header id="top-header" class="top-header">
+      <span class="header-left">MARK XXXIX</span>
+      <div class="header-center">
+        <span class="header-title">J.A.R.V.I.S</span>
+        <span class="header-subtitle">Just A Rather Very Intelligent System</span>
+      </div>
+      <span id="header-clock" class="header-clock">00:00:00</span>
+    </header>
+
+    <!-- ===== LEFT PANEL: System Monitor ===== -->
+    <aside id="left-panel" class="left-panel">
+      <div class="panel-label">SYSTEM MONITOR</div>
+
+      <div class="metric-block">
+        <div class="metric-label">CPU</div>
+        <div class="metric-bar-bg"><div id="metric-cpu" class="metric-bar cpu" style="width:0%"></div></div>
+        <div id="metric-cpu-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">MEM</div>
+        <div class="metric-bar-bg"><div id="metric-mem" class="metric-bar mem" style="width:0%"></div></div>
+        <div id="metric-mem-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">NET</div>
+        <div class="metric-bar-bg"><div id="metric-net" class="metric-bar net" style="width:0%"></div></div>
+        <div id="metric-net-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">GPU</div>
+        <div class="metric-bar-bg"><div id="metric-gpu" class="metric-bar gpu" style="width:0%"></div></div>
+        <div id="metric-gpu-val" class="metric-val">--</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">TEMP</div>
+        <div class="metric-bar-bg"><div id="metric-tmp" class="metric-bar tmp" style="width:0%"></div></div>
+        <div id="metric-tmp-val" class="metric-val">--</div>
+      </div>
+
+      <div class="info-block state-info-block">
+        <div class="info-row">STATE</div>
+        <div id="jarvis-status-badge" class="info-row jarvis-state-sleep">SLEEPING</div>
+      </div>
+
+      <div class="info-block">
+        <div id="uptime-val" class="info-row">UP --:--</div>
+        <div id="proc-val" class="info-row">PROC --</div>
+        <div id="os-val" class="info-row">OS WIN</div>
+      </div>
+
+      <div class="status-badges">
+        <div class="status-badge ai-core">AI CORE<br>ACTIVE</div>
+        <div class="status-badge sec">SEC<br>CLEARED</div>
+        <div class="status-badge proto">PROTOCOL<br>XXXVIII</div>
+      </div>
+    </aside>
+
+    <!-- ===== CENTER: HUD Stage ===== -->
+    <main id="center-stage" class="center-stage">
+      <canvas id="hud-canvas"></canvas>
+      <div id="jarvis-center-state" class="state-badge jarvis-state-sleep">SLEEPING</div>
+      <div id="jarvis-state" class="state-shadow jarvis-state-sleep">SLEEPING</div>
+      <div id="jarvis-mode" class="state-shadow jarvis-state-sleep">SLEEPING</div>
+      <div id="jarvis-orb-state" class="state-shadow jarvis-state-sleep">SLEEPING</div>
+      <div id="jarvis-source" class="wake-hint">Say Hey Jarvis or double clap to wake</div>
+      <div id="jarvis-transcript" class="bridge-line"></div>
+      <div id="jarvis-response" class="bridge-line bridge-response"></div>
+      <div id="TranscriptCard" class="transcript-card" aria-live="polite">
+        <div class="transcript-entry user-entry">
+          <span class="entry-label">YOU</span>
+          <span id="UserText" class="entry-text"></span>
+        </div>
+        <div class="transcript-entry jarvis-entry">
+          <span class="entry-label">JARVIS</span>
+          <span id="JarvisText" class="entry-text"></span>
+          <div id="ResponseMeta" class="entry-meta"></div>
+        </div>
+      </div>
+      <div id="presence-panel" class="presence-panel" aria-live="polite">
+        <div>ATTENTION <span id="PresenceAttention">NONE</span></div>
+        <div>GOAL <span id="PresenceGoal">WAITING FOR WAKE WORD</span></div>
+        <div>CONFIDENCE <span id="PresenceConfidence">0%</span></div>
+      </div>
+      <div id="waveform" class="waveform-strip"></div>
+    </main>
+
+    <!-- ===== RIGHT PANEL: Activity + Chat + File Drop ===== -->
+    <aside id="right-panel" class="right-panel">
+      <div class="panel-label">ACTIVITY LOG</div>
+      <div id="jarvis-log" class="activity-log">
+        <div class="log-msg sys">SYS: Sleep mode</div>
+      </div>
+
+      <div class="panel-label">FILE UPLOAD</div>
+      <div id="file-drop-zone" class="file-drop-zone">
+        <div id="file-drop-hint" class="file-drop-hint">
+          <span class="file-drop-icon">&#8682;</span>
+          <span>Drop file here or click to browse</span>
+          <span class="file-drop-types">Images · Video · Audio · PDF · Docs · Code</span>
+        </div>
+      </div>
+      <div id="file-status" class="file-status">No file loaded</div>
+
+      <div class="panel-label">TOOLS</div>
+      <div id="suggestion-list" class="suggestion-list"></div>
+
+      <div id="diagnostics-dashboard" class="monitor-dashboard collapsed">
+        <div class="dashboard-header">
+          <span>DIAGNOSTICS DASHBOARD</span>
+          <div class="dashboard-actions">
+            <button id="dashboard-refresh" class="mini-btn" type="button">refresh</button>
+            <button id="dashboard-toggle" class="mini-btn" type="button">toggle</button>
+          </div>
+        </div>
+        <div id="dashboard-summary" class="dashboard-summary">Waiting for runtime...</div>
+        <div id="dashboard-panels" class="dashboard-panels"></div>
+      </div>
+    </aside>
+
+    <!-- ===== BOTTOM COMMAND BAR ===== -->
+    <footer id="command-bar" class="command-bar">
+      <div class="command-group">
+        <input type="text" id="command-input" class="command-input" placeholder="Ask Jarvis or type a command..." autofocus>
+        <button id="mic-button" class="cmd-btn" title="Voice">&#127908;</button>
+        <button id="send-button" class="cmd-btn glow" title="Send">&#9654;</button>
+        <button id="power-button" class="cmd-btn" title="Sleep / Wake">&#9210;</button>
+        <button id="chat-button" class="cmd-btn" title="Chat">&#128172;</button>
+        <button id="settings-button" class="cmd-btn" title="Settings">&#9881;</button>
+        <button id="log-toggle-btn" class="cmd-btn" title="Debug Log">&#9776;</button>
+      </div>
+      <div class="command-shortcuts">
+        <span id="jarvis-bottom-state" class="bottom-state jarvis-state-sleep">SLEEPING</span>
+        <span>[Alt+M] Mute &middot; [F11] Fullscreen</span>
+        <span>STARK INDUSTRIES &middot; MARK XXXIX &middot; CLASSIFIED</span>
+        <span id="provider-status-short"></span>
+      </div>
+    </footer>
+
+    <!-- ===== SETTINGS OVERLAY ===== -->
+    <div id="settings-overlay" class="overlay hidden">
+      <div class="overlay-backdrop"></div>
+      <div class="overlay-panel">
+        <div class="overlay-header">
+          <span>SETTINGS</span>
+          <button id="settings-close" class="close-btn">&times;</button>
+        </div>
+        <div class="overlay-body">
+          <div class="setting-section">
+            <div class="section-title">PROVIDERS</div>
+            <div id="provider-list" class="provider-list"></div>
+          </div>
+          <div class="setting-section">
+            <div class="section-title">RUNTIME</div>
+            <div id="runtime-list" class="runtime-list"></div>
+          </div>
+          <div class="setting-section">
+            <div class="section-title">SETUP</div>
+            <p>Copy <code>.env.example</code> to <code>.env</code> and add your API keys.</p>
+            <p>Never store keys in JSON files.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DEBUG LOG OVERLAY ===== -->
+    <div id="debug-panel" class="overlay hidden">
+      <div class="debug-panel-box">
+        <div class="overlay-header">
+          <span>DEBUG LOG</span>
+          <select id="log-level-filter" class="log-filter">
+            <option value="all">ALL</option><option value="info">INFO</option><option value="warn">WARN</option>
+            <option value="error">ERROR</option><option value="route">ROUTE</option><option value="tool">TOOL</option>
+          </select>
+          <button id="debug-close" class="close-btn">&times;</button>
+        </div>
+        <div id="debug-log-body" class="debug-log-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="text/javascript" src="/eel.js"></script>
+  <script src="hud_orb.js"></script>
+  <script src="controller.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

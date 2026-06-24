@@ -1,0 +1,75 @@
+{
+  "mcpServers": {
+    "ruv-swarm": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "ruv-swarm",
+        "mcp",
+        "start"
+      ],
+      "env": {
+        "npm_config_update_notifier": "false"
+      },
+      "autoStart": true
+    },
+    "ruflo": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "ruflo",
+        "mcp",
+        "start"
+      ],
+      "env": {
+        "npm_config_update_notifier": "false"
+      },
+      "autoStart": true,
+      "optional": true
+    },
+    "headroom": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        ".venv\\Scripts\\headroom.exe",
+        "mcp",
+        "serve"
+      ],
+      "env": {},
+      "autoStart": true,
+      "optional": true
+    },
+    "context7": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "npm_config_update_notifier": "false"
+      },
+      "autoStart": true,
+      "optional": true
+    },
+    "brave-search": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@brave/brave-search-mcp-server"
+      ],
+      "env": {
+        "npm_config_update_notifier": "false"
+      },
+      "autoStart": true,
+      "optional": true
+    }
+  }
+}

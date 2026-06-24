@@ -1,0 +1,540 @@
+from __future__ import annotations
+
+import json
+import os
+import time
+from dataclasses import dataclass, asdict
+from typing import Callable, Any
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    name: str
+    description: str
+    examples: list[str]
+    required_slots: list[str]
+    optional_slots: list[str]
+    safety: str
+    requires_confirmation: bool
+    handler: str
+    aliases: tuple[str, ...] = ()
+    category: str = "general"
+    enabled: bool = True
+
+    def to_openai_schema(self) -> dict[str, Any]:
+        properties = {}
+        for slot in self.required_slots:
+            properties[slot] = {"type": "string", "description": f"Required: {slot}"}
+        for slot in self.optional_slots:
+            properties[slot] = {"type": "string", "description": f"Optional: {slot}"}
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": list(self.required_slots),
+                },
+            },
+        }
+
+
+def _spec(name: str, description: str, required: list[str] | None = None, safety: str = "low", confirm: bool = False, handler: str = "", aliases: tuple[str, ...] = (), examples: list[str] | None = None, optional: list[str] | None = None, category: str = "general", enabled: bool = True) -> ToolSpec:
+    return ToolSpec(name, description, examples or [], required or [], optional or [], safety, confirm, handler, aliases, category, enabled)
+
+
+_TOOLS: dict[str, ToolSpec] = {
+    "open_app": _spec("open_app", "Open a Windows application", ["app_name"], handler="engine.local_skills.open_app"),
+    "open_website": _spec("open_website", "Open a website", ["url"], handler="engine.local_skills.open_website"),
+    "web_search": _spec("web_search", "Search the web", ["query"], handler="engine.local_skills.web_search"),
+    "create_folder": _spec("create_folder", "Create a folder", ["folder_name"], safety="medium"),
+    "create_project_folder": _spec("create_project_folder", "Create a project folder", ["folder_name"], safety="medium"),
+    "create_file": _spec("create_file", "Create a file", ["file_name"], safety="medium"),
+    "take_screenshot": _spec("take_screenshot", "Take a screenshot"),
+    "take_note": _spec("take_note", "Take a note", ["text"]),
+    "show_notes": _spec("show_notes", "Show saved notes"),
+    "remember": _spec("remember", "Remember a fact", ["text"]),
+    "recall_memory": _spec("recall_memory", "Recall memory"),
+    "forget_memory": _spec("forget_memory", "Forget memory", ["text"], safety="medium", confirm=True),
+    "open_output_workspace": _spec("open_output_workspace", "Open Jarvis Output Workspace"),
+    "close_output_workspace": _spec("close_output_workspace", "Close Jarvis Output Workspace"),
+    "minimize_output_workspace": _spec("minimize_output_workspace", "Minimize Jarvis Output Workspace"),
+    "pin_output_workspace": _spec("pin_output_workspace", "Pin Jarvis Output Workspace"),
+    "copy_latest_output": _spec("copy_latest_output", "Copy latest Jarvis output"),
+    "save_latest_output": _spec("save_latest_output", "Save latest Jarvis output", ["file_name"], safety="medium"),
+    "create_file_from_latest_output": _spec("create_file_from_latest_output", "Create a file from latest Jarvis output", ["file_name"], safety="medium"),
+    "show_latest_output": _spec("show_latest_output", "Show latest Jarvis output"),
+    "read_output_summary": _spec("read_output_summary", "Read latest output summary"),
+    "shorten_latest_output": _spec("shorten_latest_output", "Shorten latest Jarvis output"),
+    "regenerate_latest_output": _spec("regenerate_latest_output", "Regenerate latest Jarvis output"),
+    "volume_up": _spec("volume_up", "Increase volume"),
+    "volume_down": _spec("volume_down", "Decrease volume"),
+    "mute": _spec("mute", "Mute audio"),
+    "sleep": _spec("sleep", "Put Jarvis to sleep"),
+    "wake": _spec("wake", "Wake Jarvis"),
+    "repeat_last": _spec("repeat_last", "Repeat last answer"),
+    "system_status": _spec("system_status", "Show Jarvis system status"),
+    "clipboard_read": _spec("clipboard_read", "Read clipboard", safety="medium"),
+    "clipboard_write_safe": _spec("clipboard_write_safe", "Write clipboard", ["text"], safety="high", confirm=True),
+    "camera_preview": _spec("camera_preview", "Start camera preview", handler="engine.camera_control.start_camera_preview"),
+    "hand_gesture_control": _spec("hand_gesture_control", "Start hand gesture control", ["mode"], safety="high", confirm=True, handler="engine.camera_control.start_hand_gesture_control"),
+    "eye_mouse_control": _spec("eye_mouse_control", "Start eye mouse control", ["mode"], safety="high", confirm=True, handler="engine.camera_control.start_eye_mouse_control"),
+    "stop_camera_control": _spec("stop_camera_control", "Stop camera, hand, and eye control", handler="engine.camera_control.stop_all_controls"),
+    "gesture_click_mode": _spec("gesture_click_mode", "Enable gesture click mode", safety="high", confirm=True),
+    "gesture_scroll_mode": _spec("gesture_scroll_mode", "Enable gesture scroll mode", safety="medium"),
+    "eye_mouse_calibrate": _spec("eye_mouse_calibrate", "Calibrate eye mouse", handler="engine.camera_control.calibrate_eye_mouse"),
+    # ── Browser / web / media features migrated from legacy dispatch_intent ──
+    "search_youtube": _spec("search_youtube", "Search or play a video on YouTube", ["query"], handler="engine.features.PlayYoutube", aliases=("search youtube", "youtube search", "play on youtube", "play youtube", "youtube pe search karo", "youtube pe dhoondo"), examples=["play lofi on yt", "search youtube for python tutorial", "youtube pe search karo cats"], category="web"),
+    "play_youtube": _spec("play_youtube", "Play media on YouTube", ["query"], handler="engine.features.PlayYoutube", aliases=("play youtube", "youtube play"), examples=["play despacito on youtube"], category="web"),
+    "tell_time": _spec("tell_time", "Tell the current time", aliases=("what time is it", "current time", "time now", "tell me the time"), examples=["what time is it", "tell me the time"], category="system"),
+    "tell_joke": _spec("tell_joke", "Tell a joke", aliases=("tell a joke", "make me laugh", "crack a joke"), examples=["tell me a joke", "make me laugh"], category="conversation"),
+    "weather_lookup": _spec("weather_lookup", "Look up the weather", optional=["location"], aliases=("weather", "whats the weather", "weather today", "temperature"), examples=["what's the weather", "weather in london"], category="web"),
+    "internet_speed_test": _spec("internet_speed_test", "Run an internet speed test", aliases=("internet speed", "speed test", "check internet speed", "network speed"), examples=["check my internet speed", "run a speed test"], category="system"),
+    "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
+    "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
+    "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
+    "browser_new_tab": _spec("browser_new_tab", "Open a new browser tab", aliases=("new tab", "open new tab", "create tab"), examples=["open a new tab"], category="browser"),
+    "browser_close_tab": _spec("browser_close_tab", "Close the current browser tab", aliases=("close tab", "close current tab", "close this tab"), examples=["close the tab"], category="browser"),
+    "browser_refresh": _spec("browser_refresh", "Refresh the current page", aliases=("refresh", "reload", "refresh page", "reload page"), examples=["refresh the page"], category="browser"),
+    "browser_back": _spec("browser_back", "Go back in the browser", aliases=("go back", "navigate back", "previous page"), examples=["go back"], category="browser"),
+    "browser_forward": _spec("browser_forward", "Go forward in the browser", aliases=("go forward", "navigate forward", "next page"), examples=["go forward"], category="browser"),
+    "browser_history": _spec("browser_history", "Open browser history", aliases=("open history", "show history", "browser history"), examples=["show my history"], category="browser"),
+    "browser_fullscreen": _spec("browser_fullscreen", "Toggle browser fullscreen", aliases=("full screen", "fullscreen", "toggle fullscreen"), examples=["go fullscreen"], category="browser"),
+}
+
+
+def list_tools() -> list[dict[str, Any]]:
+    return [asdict(tool) for tool in _TOOLS.values()]
+
+
+def tools_openai_schema() -> list[dict[str, Any]]:
+    return [tool.to_openai_schema() for tool in _TOOLS.values()]
+
+
+def enabled_tools() -> list[ToolSpec]:
+    return [tool for tool in _TOOLS.values() if tool.enabled]
+
+
+def router_tool_manifest() -> list[dict[str, Any]]:
+    """Compact tool cards for every enabled tool — the LLM-facing capability list.
+
+    This is the single source of truth the intent router shows the model so it
+    can never be blind to a registered feature.
+    """
+    cards: list[dict[str, Any]] = []
+    for tool in enabled_tools():
+        cards.append({
+            "name": tool.name,
+            "description": tool.description,
+            "aliases": list(tool.aliases),
+            "examples": list(tool.examples),
+            "required_slots": list(tool.required_slots),
+            "optional_slots": list(tool.optional_slots),
+            "risk_level": tool.safety,
+            "requires_confirmation": tool.requires_confirmation,
+            "category": tool.category,
+        })
+    return cards
+
+
+def xai_tools_schema() -> list[dict[str, Any]]:
+    """JSON-schema function tools for provider-native function calling (enabled only)."""
+    return [tool.to_openai_schema() for tool in enabled_tools()]
+
+
+def alias_index() -> dict[str, str]:
+    """Map every alias and tool name to its canonical tool name (longest-first usage at call site)."""
+    index: dict[str, str] = {}
+    for tool in enabled_tools():
+        index[tool.name.replace("_", " ")] = tool.name
+        for alias in tool.aliases:
+            index[alias.strip().lower()] = tool.name
+    return index
+
+
+def registered_tool_names() -> list[str]:
+    return sorted(_TOOLS.keys())
+
+
+def get_tool(name: str) -> dict[str, Any] | None:
+    tool = _TOOLS.get((name or "").strip())
+    return asdict(tool) if tool else None
+
+
+def missing_slots(name: str, slots: dict[str, Any] | None = None) -> list[str]:
+    tool = _TOOLS.get(name)
+    values = slots or {}
+    if name == "open_website" and values.get("site") and not values.get("url"):
+        values = {**values, "url": values.get("site")}
+    return [slot for slot in (tool.required_slots if tool else []) if not values.get(slot)]
+
+
+def clarification_for_missing_slot(tool_name: str, slot: str) -> str:
+    if slot == "app_name":
+        return "Which app should I open?"
+    if slot == "query":
+        return "What should I search for?"
+    if slot == "url":
+        return "Which website should I open?"
+    if slot == "file_name":
+        return "What should I name the file?"
+    if slot == "folder_name":
+        return "What should I name it?"
+    if slot == "text":
+        return "What should I write in the note?"
+    if slot == "mode" and tool_name in {"hand_gesture_control", "eye_mouse_control"}:
+        return "Preview or control mode?"
+    return f"What should I use for {slot}?"
+
+
+def select_tool(text: str) -> dict[str, Any]:
+    q = (text or "").strip().lower().rstrip(".?!")
+    try:
+        from engine.tool_usage_intelligence import resolve_tool_alias
+        alias = resolve_tool_alias(q)
+        if alias.get("handled"):
+            name = alias.get("name", "")
+            return {
+                "handled": True,
+                "name": name,
+                "slots": alias.get("slots", {}),
+                "tool": get_tool(name),
+                "confidence": alias.get("confidence", 0.95),
+                "learned_rules_used": alias.get("learned_rules_used", []),
+            }
+    except Exception:
+        pass
+    intent = ""
+    slots: dict[str, Any] = {}
+    if q in {"open", "open app", "launch"}:
+        intent = "open_app"
+    elif q.startswith(("open ", "launch ")):
+        target = q.split(" ", 1)[1].strip()
+        try:
+            from engine.local_skills import SITES
+            is_site = target in SITES or "." in target
+        except Exception:
+            is_site = "." in target
+        if is_site:
+            intent = "open_website"
+            slots["url"] = "youtube.com" if target == "youtube" else target
+        else:
+            intent = "open_app"
+            slots["app_name"] = target
+    elif q in {"search", "google", "search web", "search the web"}:
+        intent = "web_search"
+    elif q.startswith(("search ", "google ")):
+        intent = "web_search"
+        slots["query"] = q.split(" ", 1)[1]
+    elif "stop" in q and any(word in q for word in ("camera", "gesture", "eye", "control")):
+        intent = "stop_camera_control"
+    elif "calibrate" in q and "eye" in q:
+        intent = "eye_mouse_calibrate"
+    elif "eye" in q and ("mouse" in q or "control" in q or "tracking" in q):
+        intent = "eye_mouse_control"
+        if "enable" in q or "eye control" in q:
+            slots["mode"] = "control"
+        elif "preview" in q or "start" in q:
+            slots["mode"] = "preview"
+    elif "hand" in q or "gesture" in q:
+        intent = "hand_gesture_control"
+        if "preview" in q:
+            slots["mode"] = "preview"
+        elif "enable" in q or "hand mouse" in q or "gesture mouse" in q or "mouse control" in q:
+            slots["mode"] = "control"
+    elif "camera" in q and "preview" in q:
+        intent = "camera_preview"
+    if not intent:
+        return {"handled": False}
+    print(f"[TOOL] selected name={intent} confidence=0.90", flush=True)
+    return {"handled": True, "name": intent, "slots": slots, "tool": get_tool(intent), "confidence": 0.90}
+
+
+def execute_tool(name: str, slots: dict[str, Any] | None = None, *, confirmed: bool = False) -> dict[str, Any]:
+    values = dict(slots or {})
+    if confirmed:
+        values["confirmed"] = True
+    tool = _TOOLS.get(name)
+    if not tool:
+        return {"handled": False, "ok": False, "success": False, "verified": False, "tool": name, "message": "Unknown tool."}
+    missing = missing_slots(name, values)
+    if missing:
+        slot = missing[0]
+        print(f"[TOOL] missing_slot name={slot}", flush=True)
+        return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "expects_user_reply": True, "message": clarification_for_missing_slot(name, slot), "missing_slot": slot}
+    if tool.requires_confirmation and tool.safety == "high" and values.get("mode") == "control" and not values.get("confirmed"):
+        return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "requires_confirmation": True, "message": "Control mode can move the mouse. Say confirm to continue, or preview for safe mode."}
+    try:
+        from engine.safety_gate import execution_is_safe
+        safety = execution_is_safe(name, values, user_text=name)
+        if not safety.get("allowed"):
+            return {
+                "handled": True,
+                "ok": False,
+                "success": False,
+                "verified": False,
+                "tool": name,
+                "requires_confirmation": bool(safety.get("requires_confirmation")),
+                "message": str(safety.get("reason") or "This action is blocked by the safety gate."),
+            }
+    except Exception:
+        pass
+    print(f"[TOOL] executing name={name}", flush=True)
+    try:
+        result = _execute_handler(name, values, confirmed=confirmed)
+        from engine.tool_result_verifier import verify_tool_result
+        final = verify_tool_result(name, result)
+        success = bool(final.get("success") is True and final.get("verified") is True)
+        if success:
+            print(f"[TOOL] success name={name}", flush=True)
+        else:
+            print(f"[TOOL] failed name={name} reason={final.get('verification_reason', 'unverified')}", flush=True)
+        try:
+            from engine.tool_usage_intelligence import record_tool_result
+            record_tool_result(name, values, final)
+        except Exception:
+            pass
+        return final
+    except Exception as e:
+        print(f"[TOOL] failed name={name} reason={type(e).__name__}", flush=True)
+        final = {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "message": "I couldn't run that tool safely."}
+        try:
+            from engine.tool_usage_intelligence import record_tool_result
+            record_tool_result(name, values, final)
+        except Exception:
+            pass
+        return final
+
+
+def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> Any:
+    if name == "open_app":
+        from engine.local_skills import open_app
+        return open_app(str(slots.get("app_name") or ""))
+    if name == "open_website":
+        from engine.local_skills import open_website
+        return open_website(url=str(slots.get("url") or slots.get("site") or ""))
+    if name == "web_search":
+        from engine.local_skills import web_search
+        return web_search(str(slots.get("query") or ""))
+    if name == "remember":
+        from engine.memory_store import remember_fact
+        return {"success": True, "message": remember_fact(str(slots.get("text") or "")), "tool": name, "verified": True}
+    if name == "recall_memory":
+        from engine.memory_store import recall_summary
+        query = str(slots.get("query") or slots.get("text") or "")
+        return {"success": True, "message": recall_summary(query), "tool": name, "verified": True}
+    if name == "forget_memory":
+        from engine.memory_store import forget
+        return {"success": True, "message": forget(str(slots.get("text") or "")), "tool": name, "verified": True}
+    if name == "take_note":
+        from engine.memory_store import add_note
+        return {"success": True, "message": add_note(str(slots.get("text") or "")), "tool": name, "verified": True}
+    if name == "show_notes":
+        from engine.memory_store import show_notes
+        return {"success": True, "message": show_notes(), "tool": name, "verified": True}
+    if name in {"copy_latest_output", "save_latest_output", "create_file_from_latest_output", "show_latest_output", "read_output_summary", "shorten_latest_output", "regenerate_latest_output"}:
+        from engine.smart_followup_engine import execute_output_action
+        return execute_output_action(name, slots)
+    if name == "camera_preview":
+        from engine.camera_control import start_camera_preview
+        ok = bool(start_camera_preview())
+        return {"success": ok, "message": "Camera preview started." if ok else "Camera preview did not start.", "tool": name, "verified": ok}
+    if name == "hand_gesture_control":
+        from engine.camera_control import start_hand_gesture_control
+        mode = str(slots.get("mode") or "preview")
+        ok = bool(start_hand_gesture_control(mode=mode, explicit=confirmed or mode == "preview"))
+        return {"success": ok, "message": "Hand gesture preview started." if ok else "Hand gesture control requires explicit confirmation.", "tool": name, "verified": ok}
+    if name == "eye_mouse_control":
+        from engine.camera_control import start_eye_mouse_control
+        mode = str(slots.get("mode") or "preview")
+        ok = bool(start_eye_mouse_control(mode=mode, explicit=confirmed or mode == "preview"))
+        return {"success": ok, "message": "Eye mouse preview started." if ok else "Eye mouse control requires calibration and confirmation.", "tool": name, "verified": ok}
+    if name == "eye_mouse_calibrate":
+        from engine.camera_control import calibrate_eye_mouse
+        ok = bool(calibrate_eye_mouse())
+        return {"success": ok, "message": "Eye mouse calibration complete." if ok else "Eye mouse calibration did not complete.", "tool": name, "verified": ok}
+    if name == "stop_camera_control":
+        from engine.camera_control import stop_all_controls
+        stop_all_controls()
+        return {"success": True, "message": "Camera controls stopped.", "tool": name, "verified": True}
+    if name == "create_folder" or name == "create_project_folder":
+        from pathlib import Path
+        folder = str(slots.get("folder_name") or slots.get("name") or "")
+        if not folder:
+            return {"success": False, "message": "What should I name the folder?", "tool": name, "expects_user_reply": True}
+        target = (Path.home() / "Desktop" / folder) if not os.path.sep in folder else Path(folder)
+        target.mkdir(parents=True, exist_ok=True)
+        return {"success": True, "message": f"Folder created: {target.name}", "tool": name, "verified": True}
+    if name == "create_file":
+        filename = str(slots.get("file_name") or slots.get("name") or "")
+        if not filename:
+            return {"success": False, "message": "What should I name the file?", "tool": name, "expects_user_reply": True}
+        from pathlib import Path
+        target = (Path.home() / "Desktop" / filename) if not os.path.sep in filename else Path(filename)
+        if not target.suffix:
+            target = target.with_suffix(".txt")
+        target.write_text("", encoding="utf-8")
+        return {"success": True, "message": f"File created: {target.name}", "tool": name, "verified": True}
+    if name == "take_screenshot":
+        try:
+            import pyautogui
+            from pathlib import Path
+            out = Path.home() / "Desktop" / f"screenshot_{int(time.time())}.png"
+            pyautogui.screenshot(str(out))
+            return {"success": True, "message": f"Screenshot saved: {out.name}", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Screenshot requires pyautogui which is not installed.", "tool": name}
+    if name == "system_status":
+        try:
+            from engine.diagnostics import Diagnostics, check_all_dict
+            checks = check_all_dict(force=True)
+            uptime = Diagnostics.get_uptime()
+            ok = sum(1 for c in checks.values() if c.get("status") == "ready" or c.get("status") == "active")
+            total = len(checks)
+            return {"success": True, "message": f"System status: {ok}/{total} components ready. Uptime: {uptime}.", "tool": name, "verified": True}
+        except Exception as exc:
+            return {"success": False, "message": f"Status check failed: {type(exc).__name__}", "tool": name}
+    if name == "clipboard_read":
+        try:
+            import pyperclip
+            text = pyperclip.paste()
+            return {"success": True, "message": f"Clipboard: {text[:200]}", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Clipboard access requires pyperclip which is not installed.", "tool": name}
+    if name == "clipboard_write_safe":
+        text = str(slots.get("text") or "")
+        if not text:
+            return {"success": False, "message": "What should I write to the clipboard?", "tool": name, "expects_user_reply": True}
+        try:
+            import pyperclip
+            pyperclip.copy(text)
+            return {"success": True, "message": "Copied to clipboard.", "tool": name, "verified": True}
+        except Exception:
+            try:
+                import tkinter as tk
+                root = tk.Tk()
+                root.withdraw()
+                root.clipboard_clear()
+                root.clipboard_append(text)
+                root.update()
+                root.destroy()
+                return {"success": True, "message": "Copied to clipboard.", "tool": name, "verified": True}
+            except Exception:
+                return {"success": False, "message": "Could not access clipboard.", "tool": name}
+    if name == "repeat_last":
+        try:
+            from engine.command import _last_spoken
+            if _last_spoken:
+                return {"success": True, "message": _last_spoken, "tool": name, "verified": True}
+            return {"success": False, "message": "Nothing to repeat.", "tool": name}
+        except Exception:
+            return {"success": False, "message": "Could not repeat last message.", "tool": name}
+    if name == "sleep":
+        try:
+            from engine.command import do_sleep
+            do_sleep()
+            return {"success": True, "message": "Jarvis is going to sleep.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Could not enter sleep mode.", "tool": name}
+    if name == "wake":
+        try:
+            from engine.command import do_wake
+            do_wake()
+            return {"success": True, "message": "Jarvis is awake.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Could not wake.", "tool": name}
+    if name in {"open_output_workspace", "close_output_workspace", "minimize_output_workspace", "pin_output_workspace"}:
+        try:
+            eel_func = {"open_output_workspace": "showOutputWorkspace", "close_output_workspace": "closeOutputWorkspace", "minimize_output_workspace": "minimizeOutputWorkspace", "pin_output_workspace": "pinOutputWorkspace"}[name]
+            from engine.command import safe_eel_call
+            safe_eel_call(eel_func, json.dumps({"show_workspace": True}) if name == "open_output_workspace" else "")
+            return {"success": True, "message": f"Output workspace: {name.replace('_', ' ')}.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Could not control output workspace.", "tool": name}
+    if name == "volume_up":
+        try:
+            from engine.control.audio import volume_up as ctrl
+            ctrl()
+            return {"success": True, "message": "Volume increased.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Volume control is not available.", "tool": name}
+    if name == "volume_down":
+        try:
+            from engine.control.audio import volume_down as ctrl
+            ctrl()
+            return {"success": True, "message": "Volume decreased.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Volume control is not available.", "tool": name}
+    if name == "mute":
+        try:
+            from engine.control.audio import mute as ctrl
+            ctrl()
+            return {"success": True, "message": "Audio muted.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Volume control is not available.", "tool": name}
+    if name in {"gesture_click_mode", "gesture_scroll_mode"}:
+        try:
+            from engine.camera_control import set_gesture_mode
+            mode_name = name.replace("gesture_", "").replace("_mode", "")
+            ok = set_gesture_mode(mode_name)
+            return {"success": ok, "message": f"Gesture {mode_name} mode {'enabled' if ok else 'not available'}.", "tool": name, "verified": ok}
+        except Exception:
+            return {"success": False, "message": "Gesture control is not available.", "tool": name}
+    if name in {"search_youtube", "play_youtube"}:
+        query = str(slots.get("query") or slots.get("text") or "")
+        if not query:
+            return {"success": False, "message": "What should I play on YouTube?", "tool": name, "expects_user_reply": True}
+        try:
+            from engine.features import PlayYoutube
+            PlayYoutube(query)
+            return {"success": True, "message": f"Playing {query} on YouTube.", "tool": name, "verified": True}
+        except Exception:
+            import webbrowser
+            from urllib.parse import quote_plus
+            webbrowser.open(f"https://www.youtube.com/results?search_query={quote_plus(query)}")
+            return {"success": True, "message": f"Searching YouTube for {query}.", "tool": name, "verified": True}
+    if name == "tell_time":
+        import datetime
+        now = datetime.datetime.now().strftime("%I:%M %p")
+        return {"success": True, "message": f"The time is {now}.", "tool": name, "verified": True}
+    if name == "tell_joke":
+        return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
+    if name == "weather_lookup":
+        location = str(slots.get("location") or "").strip()
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+            q = f"weather {location}".strip()
+            r = requests.get(f"https://www.google.com/search?q={q}", headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
+            temp = BeautifulSoup(r.text, "html.parser").find("div", class_="BNeawe")
+            if temp and temp.text:
+                return {"success": True, "message": f"The weather is {temp.text}.", "tool": name, "verified": True}
+            return {"success": False, "message": "I couldn't fetch the weather information.", "tool": name}
+        except Exception:
+            return {"success": False, "message": "I couldn't fetch the weather information.", "tool": name}
+    if name == "internet_speed_test":
+        try:
+            import speedtest
+            st = speedtest.Speedtest()
+            down = st.download() / 1_000_000
+            up = st.upload() / 1_000_000
+            return {"success": True, "message": f"Download {down:.1f} Mbps, upload {up:.1f} Mbps.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "Internet speed test is not available.", "tool": name}
+    if name in {"media_pause", "media_resume", "media_mute", "browser_new_tab", "browser_close_tab", "browser_refresh", "browser_back", "browser_forward", "browser_history", "browser_fullscreen"}:
+        hotkeys = {
+            "media_pause": ("playpause",), "media_resume": ("playpause",), "media_mute": ("volumemute",),
+            "browser_new_tab": ("ctrl", "t"), "browser_close_tab": ("ctrl", "w"), "browser_refresh": ("f5",),
+            "browser_back": ("alt", "left"), "browser_forward": ("alt", "right"), "browser_history": ("ctrl", "h"),
+            "browser_fullscreen": ("f11",),
+        }
+        try:
+            import pyautogui
+            pyautogui.hotkey(*hotkeys[name])
+            label = name.replace("media_", "").replace("browser_", "").replace("_", " ")
+            return {"success": True, "message": f"Done: {label}.", "tool": name, "verified": True}
+        except Exception:
+            return {"success": False, "message": "That control requires pyautogui which is not available.", "tool": name}
+    return {"success": False, "message": "That tool is registered but not available yet.", "tool": name, "verified": False}

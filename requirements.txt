@@ -1,34 +1,30 @@
-# ============================================================
-# NEXI — Python dependencies
-# ============================================================
-# Install:  pip install -r requirements.txt
-# Cloud LLM/ASR/TTS (Gemini, Groq) are called over REST via `requests`
-# — no vendor SDKs required.
-# ============================================================
+# Jarvis core runtime
+eel
+pyttsx3
+python-dotenv
+SpeechRecognition
+pyaudio
+requests
+pyautogui
+pyperclip
+beautifulsoup4
+pillow
+pywhatkit
+openai>=0.28,<1
+numpy
+keyboard
+pynput
+psutil
+comtypes
+pywin32
+hugchat
+playsound
 
-# --- Core runtime ---
-python-dotenv          # .env configuration loading
-eel                    # Python <-> JS desktop UI bridge
-requests               # Gemini / Groq REST calls, connectivity checks
-numpy                  # audio DSP (clap detection, framing)
-psutil                 # process / system checks
+# Testing
+pytest
 
-# --- Audio I/O & wake detection ---
-sounddevice            # microphone capture
-openwakeword           # local hotword detection ("Hey Nexi")
-playsound3             # TTS playback (maintained fork; builds on Python 3.13)
-pyttsx3                # offline TTS fallback
+# Browser automation (scripts/playwright_runtime_check.py)
+playwright
 
-# --- Desktop automation ---
-pyautogui              # keyboard/mouse + system control
-pyperclip              # clipboard operations
-
-# --- Web / parsing (skills) ---
-beautifulsoup4         # lightweight HTML parsing for web skills
-
-# --- Vision (hand / face cursor control; loaded only in the camera subprocess) ---
-mediapipe              # hand & face landmark detection
-opencv-python          # webcam capture & display
-
-# --- Optional (heavy; only needed for neural VAD / advanced wake) ---
-# torch                # Silero VAD backend; install only if VAD_BACKEND=silero
+# Transitive deps for the above (kept for clarity)
+typing_extensions

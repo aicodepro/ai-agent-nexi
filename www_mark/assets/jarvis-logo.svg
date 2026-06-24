@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.8"/>
+      <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.8"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="94" fill="none" stroke="url(#ringGrad)" stroke-width="2" opacity="0.6"/>
+  <!-- Inner ring -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.3"/>
+  <!-- Tick marks circle -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#00d4ff" stroke-width="6" stroke-dasharray="1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28 1.57 6.28" opacity="0.4"/>
+  <!-- Center text -->
+  <text x="100" y="96" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="18" font-weight="bold" fill="#00d4ff" letter-spacing="3">J.A.R.V.I.S</text>
+  <text x="100" y="118" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="9" fill="#007a99" letter-spacing="4">ONLINE</text>
+  <!-- Diamond markers N,S,E,W -->
+  <rect x="97" y="6" width="6" height="6" fill="#00d4ff" transform="rotate(45 100 9)" opacity="0.7"/>
+  <rect x="97" y="188" width="6" height="6" fill="#00d4ff" transform="rotate(45 100 191)" opacity="0.7"/>
+  <rect x="188" y="97" width="6" height="6" fill="#00d4ff" transform="rotate(45 191 100)" opacity="0.7"/>
+  <rect x="6" y="97" width="6" height="6" fill="#00d4ff" transform="rotate(45 9 100)" opacity="0.7"/>
+  <!-- Crosshair small -->
+  <line x1="60" y1="100" x2="78" y2="100" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+  <line x1="122" y1="100" x2="140" y2="100" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+  <line x1="100" y1="60" x2="100" y2="78" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+  <line x1="100" y1="122" x2="100" y2="140" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+</svg>

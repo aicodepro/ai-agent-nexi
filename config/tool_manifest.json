@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0",
+  "tools": {
+    "open_app": {
+      "name": "open_app",
+      "description": "Open a Windows application",
+      "required_slots": ["app_name"],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["open app", "launch app", "start app"],
+      "handler": "open_app"
+    },
+    "open_website": {
+      "name": "open_website",
+      "description": "Open a website URL",
+      "required_slots": ["url"],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["open site", "launch website", "go to"],
+      "handler": "open_website"
+    },
+    "web_search": {
+      "name": "web_search",
+      "description": "Search the web",
+      "required_slots": ["query"],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["search", "google", "search web"],
+      "handler": "web_search"
+    },
+    "copy_latest_output": {
+      "name": "copy_latest_output",
+      "description": "Copy latest Jarvis output",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["copy it", "copy this"],
+      "handler": "copy_latest_output"
+    },
+    "save_latest_output": {
+      "name": "save_latest_output",
+      "description": "Save latest Jarvis output to a file",
+      "required_slots": ["file_name"],
+      "optional_slots": [],
+      "risk_level": "medium",
+      "confirmation_required": true,
+      "aliases": ["save it", "save this"],
+      "handler": "save_latest_output"
+    },
+    "show_latest_output": {
+      "name": "show_latest_output",
+      "description": "Show latest Jarvis output",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["show it again", "open the box"],
+      "handler": "show_latest_output"
+    },
+    "hand_gesture_control": {
+      "name": "hand_gesture_control",
+      "description": "Start hand gesture control",
+      "required_slots": ["mode"],
+      "optional_slots": [],
+      "risk_level": "high",
+      "confirmation_required": true,
+      "aliases": ["hand gesture", "hand mouse"],
+      "handler": "hand_gesture_control"
+    },
+    "eye_mouse_control": {
+      "name": "eye_mouse_control",
+      "description": "Start eye mouse control",
+      "required_slots": ["mode"],
+      "optional_slots": [],
+      "risk_level": "high",
+      "confirmation_required": true,
+      "aliases": ["eye mouse", "eye control"],
+      "handler": "eye_mouse_control"
+    },
+    "search_youtube": {
+      "name": "search_youtube",
+      "description": "Search or play a video on YouTube",
+      "required_slots": ["query"],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["search youtube", "play on youtube", "play youtube", "youtube pe search karo", "play on yt"],
+      "handler": "search_youtube"
+    },
+    "tell_time": {
+      "name": "tell_time",
+      "description": "Tell the current time",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["what time is it", "current time", "tell me the time"],
+      "handler": "tell_time"
+    },
+    "tell_joke": {
+      "name": "tell_joke",
+      "description": "Tell a joke",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["tell a joke", "make me laugh", "crack a joke"],
+      "handler": "tell_joke"
+    },
+    "weather_lookup": {
+      "name": "weather_lookup",
+      "description": "Look up the weather",
+      "required_slots": [],
+      "optional_slots": ["location"],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["weather", "whats the weather", "weather today"],
+      "handler": "weather_lookup"
+    },
+    "media_pause": {
+      "name": "media_pause",
+      "description": "Pause media playback",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["pause", "pause video", "pause music"],
+      "handler": "media_pause"
+    },
+    "browser_new_tab": {
+      "name": "browser_new_tab",
+      "description": "Open a new browser tab",
+      "required_slots": [],
+      "optional_slots": [],
+      "risk_level": "none",
+      "confirmation_required": false,
+      "aliases": ["new tab", "open new tab"],
+      "handler": "browser_new_tab"
+    }
+  }
+}

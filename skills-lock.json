@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "agentic-harness-patterns": {
+      "source": "Jayl1n/agentic-harness-patterns-skill",
+      "sourceType": "github",
+      "skillPath": "skills/agentic-harness-patterns/SKILL.md",
+      "computedHash": "0a367d61d835fd37dcef7a21ec0f7cc388fec3f483e7c312cc6bcc617885c2bb"
+    },
+    "agentic-harness-patterns-zh": {
+      "source": "Jayl1n/agentic-harness-patterns-skill",
+      "sourceType": "github",
+      "skillPath": "skills/agentic-harness-patterns-zh/SKILL.md",
+      "computedHash": "da5ccfa6a78fc447062fb8d2c5bafdc4ed1d99bada60357efa91c571d4ae5408"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skill",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "ff24732ed5dfe28d4415db0c86c0ef4406893b551cf837529e01ec1d1fefcb32"
+    },
+    "review-animations": {
+      "source": "emilkowalski/skill",
+      "sourceType": "github",
+      "skillPath": "skills/review-animations/SKILL.md",
+      "computedHash": "57c681344448379fbec8c11b45e355b70799998427240662318d017f292571bd"
+    },
+    "taste": {
+      "source": "VOIDXAI/taste",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "6df9a65d35edea28fc1c6d106e65d60f4e116c3add21f5124c078a25161a4b35"
+    }
+  }
+}
