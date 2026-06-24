@@ -1,4 +1,4 @@
-"""Tzur-style clap detection adapter for JARVIS.
+"""Tzur-style clap detection adapter for NEXI.
 
 Adapted from TzurSoffer/clapDetection (MIT License):
   GitHub: https://github.com/TzurSoffer/clapDetection
@@ -11,7 +11,7 @@ Algorithm:
   5. Pattern extraction: claps within 80 ms grouped as double/triple
   6. Pattern reset after 350 ms of silence
 
-Accepts raw int16 PCM bytes (same format as Jarvis audio_pipeline).
+Accepts raw int16 PCM bytes (same format as Nexi audio_pipeline).
 Does NOT open its own microphone stream.
 """
 

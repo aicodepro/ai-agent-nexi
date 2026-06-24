@@ -116,7 +116,7 @@ $(document).ready(function () {
         if (indicator) indicator.className = active ? 'context-indicator' : 'context-indicator hidden';
     }
 
-    function updateJarvisState(payload) {
+    function updateNexiState(payload) {
         if (typeof payload === 'string') {
             try {
                 payload = JSON.parse(payload);
@@ -132,14 +132,14 @@ $(document).ready(function () {
         const label = document.getElementById('StatusLabel');
         const badge = document.getElementById('SourceBadge');
         const preview = document.getElementById('TranscriptPreview');
-        const hood = document.getElementById('JarvisHood');
+        const hood = document.getElementById('NexiHood');
         const bars = document.getElementById('WaveformBars');
         const sleepWakeBtn = document.getElementById('SleepWakeBtn');
 
-        if (window.__jarvisUiState && window.__jarvisUiState !== state) {
-            console.log('[UI_STATE] conflict_resolved previous=' + window.__jarvisUiState + ' next=' + state);
+        if (window.__nexiUiState && window.__nexiUiState !== state) {
+            console.log('[UI_STATE] conflict_resolved previous=' + window.__nexiUiState + ' next=' + state);
         }
-        window.__jarvisUiState = state;
+        window.__nexiUiState = state;
         if (payload.presence) {
             updatePresence(payload.presence);
         }
@@ -155,13 +155,13 @@ $(document).ready(function () {
             if (text && state !== 'error') {
                 preview.textContent = text;
             } else if (state === 'sleeping') {
-                preview.textContent = 'Say Hey Jarvis, double clap, or press Win+J';
+                preview.textContent = 'Say Hey Nexi, double clap, or press Win+J';
             } else if (state === 'idle') {
                 preview.textContent = 'Waiting for wake word...';
             }
         }
         if (hood) {
-            hood.className = 'jarvis-state-' + state;
+            hood.className = 'nexi-state-' + state;
         }
         if (bars) {
             bars.className = 'waveform-bars' + (['listening', 'online', 'recognising', 'transcribing'].includes(state) ? ' active' : '');
@@ -170,7 +170,7 @@ $(document).ready(function () {
             hideSpeechCapsule();
         }
         if (sleepWakeBtn) {
-            sleepWakeBtn.title = state === 'sleeping' ? 'Wake Jarvis' : 'Put Jarvis to sleep';
+            sleepWakeBtn.title = state === 'sleeping' ? 'Wake Nexi' : 'Put Nexi to sleep';
         }
         if (source === 'hotkey' && (state === 'wake_detected' || state === 'listening')) {
             window.focus();
@@ -178,8 +178,8 @@ $(document).ready(function () {
         console.log('[UI_STATE] set=' + state + ' source=' + source);
     }
 
-    window.updateJarvisState = updateJarvisState;
-    eel.expose(updateJarvisState)
+    window.updateNexiState = updateNexiState;
+    eel.expose(updateNexiState)
 
     function updatePresence(payload) {
         if (typeof payload === 'string') {
@@ -203,15 +203,15 @@ $(document).ready(function () {
         }
         payload = payload || {};
         var userText = String(payload.user_text || '');
-        var jarvisText = String(payload.jarvis_text || '');
+        var nexiText = String(payload.nexi_text || '');
         var meta = payload.metadata || {};
         if (userText) senderText(userText);
-        if (jarvisText) receiverText(jarvisText);
+        if (nexiText) receiverText(nexiText);
         var userEl = document.getElementById('UserText');
-        var jarvisEl = document.getElementById('JarvisText');
+        var nexiEl = document.getElementById('NexiText');
         var metaEl = document.getElementById('ResponseMeta');
         if (userEl && userText) userEl.textContent = userText.slice(0, 300);
-        if (jarvisEl && jarvisText) jarvisEl.textContent = jarvisText.slice(0, 400);
+        if (nexiEl && nexiText) nexiEl.textContent = nexiText.slice(0, 400);
         if (metaEl) {
             var parts = [];
             if (meta.route) parts.push('Route: ' + escapeHtml(meta.route));
@@ -255,7 +255,7 @@ $(document).ready(function () {
     // Display Speak Message
     eel.expose(DisplayMessage)
     function DisplayMessage(message) {
-        updateJarvisState({ state: 'speaking', source: 'tts', text: lastWords(message, 2) });
+        updateNexiState({ state: 'speaking', source: 'tts', text: lastWords(message, 2) });
         updateSpeechCapsule(message);
         $(".siri-message li:first").text(lastWords(message, 2));
         $('.siri-message').textillate('start');
@@ -267,8 +267,8 @@ $(document).ready(function () {
     function ShowHood() {
         $("#Oval").attr("hidden", false);
         $("#SiriWave").attr("hidden", true);
-        if (!['listening', 'transcribing', 'thinking', 'speaking'].includes(window.__jarvisUiState)) {
-            updateJarvisState({ state: 'idle', source: 'ready' });
+        if (!['listening', 'transcribing', 'thinking', 'speaking'].includes(window.__nexiUiState)) {
+            updateNexiState({ state: 'idle', source: 'ready' });
         }
     }
 
@@ -297,7 +297,7 @@ $(document).ready(function () {
             return;
         }
         if (safeLevel === 'ai') {
-            receiverText(safeMessage.replace(/^JARVIS:\s*/i, ''));
+            receiverText(safeMessage.replace(/^NEXI:\s*/i, ''));
             return;
         }
         var chatBox = document.getElementById("chat-canvas-body");
@@ -371,8 +371,8 @@ $(document).ready(function () {
         $('.siri-message').textillate('start');
     }
 
-    window.__jarvisRenderMarkdown = renderMarkdown;
-    window.__jarvisLastWords = lastWords;
+    window.__nexiRenderMarkdown = renderMarkdown;
+    window.__nexiLastWords = lastWords;
 
     function setWorkspaceStatus(text) {
         const status = document.getElementById('OutputWorkspaceStatus');
@@ -385,7 +385,7 @@ $(document).ready(function () {
             try { payload = JSON.parse(payload); } catch (e) { payload = {}; }
         }
         payload = payload || {};
-        const panel = document.getElementById('JarvisOutputWorkspace');
+        const panel = document.getElementById('NexiOutputWorkspace');
         if (!panel) return;
         const type = document.getElementById('OutputWorkspaceType');
         const summary = document.getElementById('OutputWorkspaceSummary');
@@ -393,26 +393,26 @@ $(document).ready(function () {
         if (type) type.textContent = payload.workspace_type || 'Text';
         if (summary) summary.textContent = payload.workspace_summary || '';
         if (content) content.innerHTML = renderMarkdown(payload.workspace_content || payload.main_ui_text || '');
-        panel.className = 'jarvis-output-workspace';
+        panel.className = 'nexi-output-workspace';
         setWorkspaceStatus('Ready');
-        localStorage.setItem('jarvis_latest_workspace', JSON.stringify(payload));
+        localStorage.setItem('nexi_latest_workspace', JSON.stringify(payload));
     }
 
     eel.expose(closeOutputWorkspace)
     function closeOutputWorkspace() {
-        const panel = document.getElementById('JarvisOutputWorkspace');
-        if (panel) panel.className = 'jarvis-output-workspace hidden';
+        const panel = document.getElementById('NexiOutputWorkspace');
+        if (panel) panel.className = 'nexi-output-workspace hidden';
     }
 
     eel.expose(minimizeOutputWorkspace)
     function minimizeOutputWorkspace() {
-        const panel = document.getElementById('JarvisOutputWorkspace');
+        const panel = document.getElementById('NexiOutputWorkspace');
         if (panel) panel.classList.toggle('minimized');
     }
 
     eel.expose(pinOutputWorkspace)
     function pinOutputWorkspace() {
-        const panel = document.getElementById('JarvisOutputWorkspace');
+        const panel = document.getElementById('NexiOutputWorkspace');
         if (panel) panel.classList.toggle('pinned');
         setWorkspaceStatus('Pinned');
     }
@@ -429,7 +429,7 @@ $(document).ready(function () {
 
     ['WorkspaceCreateFileBtn', 'WorkspaceSaveMdBtn', 'WorkspaceSaveTxtBtn'].forEach(function (id) {
         const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', function () { setWorkspaceStatus('Ask Jarvis: create a file'); });
+        if (btn) btn.addEventListener('click', function () { setWorkspaceStatus('Ask Nexi: create a file'); });
     });
 
     const minBtn = document.getElementById('OutputMinimizeBtn');
@@ -440,10 +440,10 @@ $(document).ready(function () {
     if (closeBtn) closeBtn.addEventListener('click', closeOutputWorkspace);
 
     (function makeWorkspaceDraggable() {
-        const panel = document.getElementById('JarvisOutputWorkspace');
+        const panel = document.getElementById('NexiOutputWorkspace');
         const header = document.getElementById('OutputWorkspaceHeader');
         if (!panel || !header) return;
-        const saved = localStorage.getItem('jarvis_workspace_position');
+        const saved = localStorage.getItem('nexi_workspace_position');
         if (saved) {
             try {
                 const pos = JSON.parse(saved);
@@ -472,7 +472,7 @@ $(document).ready(function () {
         document.addEventListener('mouseup', function () {
             if (!dragging) return;
             dragging = false;
-            localStorage.setItem('jarvis_workspace_position', JSON.stringify({ left: panel.style.left, top: panel.style.top }));
+            localStorage.setItem('nexi_workspace_position', JSON.stringify({ left: panel.style.left, top: panel.style.top }));
         });
     })();
 

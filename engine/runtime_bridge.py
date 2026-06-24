@@ -198,14 +198,14 @@ def handle_bridge_event(event: dict) -> None:
             _safe_log("[BRIDGE] dispatch command_bus finished")
             if not result:
                 _safe_log("[BRIDGE] command_bus returned False — no handler matched")
-                _safe_log("JARVIS: I heard you, but I could not complete that command.")
+                _safe_log("NEXI: I heard you, but I could not complete that command.")
                 try:
                     from engine.command import speak
                     speak("I heard you, but I could not complete that command.")
                 except Exception as speak_err:
                     _safe_log(f"[BRIDGE] fallback_speak_failed reason={type(speak_err).__name__}")
             try:
-                auto_followup = (os.getenv("JARVIS_AUTO_FOLLOWUP_AFTER_TTS", "false") or "").strip().lower() in {"1", "true", "yes", "on"}
+                auto_followup = (os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "false") or "").strip().lower() in {"1", "true", "yes", "on"}
                 from engine.followup_manager import has_pending_followup
                 from engine.clarification_manager import has_pending_clarification
                 if auto_followup and (has_pending_followup() or has_pending_clarification()):
@@ -374,9 +374,9 @@ def _set_ui_state(state: str, *, source: str = "system", text: str = "", status:
         emitted = emit_state(state, source=source or "system", text=text or "", status=status or state, session_id=session_id or "")
         return emitted is not None
     except AttributeError:
-        if "updateJarvisState" not in _ui_failure_logged:
-            _ui_failure_logged["updateJarvisState"] = True
-            _safe_log("[UI] updateJarvisState missing — Mark UI must call eel.expose(updateJarvisState)")
+        if "updateNexiState" not in _ui_failure_logged:
+            _ui_failure_logged["updateNexiState"] = True
+            _safe_log("[UI] updateNexiState missing — Mark UI must call eel.expose(updateNexiState)")
         return False
     except Exception as e:
         key = type(e).__name__

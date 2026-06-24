@@ -154,7 +154,7 @@ class PresenceState:
     def to_llm_context(self) -> str:
         data = self.to_dict()
         return (
-            "Jarvis internal state:\n"
+            "Nexi internal state:\n"
             f"- mode: {data['mode']}\n"
             f"- attention: {data['attention']}\n"
             f"- confidence: {data['confidence']:.2f}\n"

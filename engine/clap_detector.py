@@ -24,14 +24,14 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
-CLAP_DETECTION_ENABLED = _env_bool("JARVIS_CLAP_ENABLED", _env_bool("CLAP_DETECTION_ENABLED", False))
+CLAP_DETECTION_ENABLED = _env_bool("NEXI_CLAP_ENABLED", _env_bool("CLAP_DETECTION_ENABLED", False))
 CLAP_WAKE_MODE = os.getenv("CLAP_WAKE_MODE", "double")
-CLAP_COOLDOWN_SECONDS = _env_int("JARVIS_CLAP_COOLDOWN_MS", int(_env_float("CLAP_COOLDOWN_SECONDS", 2.0) * 1000)) / 1000.0
+CLAP_COOLDOWN_SECONDS = _env_int("NEXI_CLAP_COOLDOWN_MS", int(_env_float("CLAP_COOLDOWN_SECONDS", 2.0) * 1000)) / 1000.0
 CLAP_WINDOW_SECONDS = float(os.getenv("CLAP_WINDOW_SECONDS", "0.8"))
 CLAP_MIN_RMS = float(os.getenv("CLAP_MIN_RMS", "0.08"))
 CLAP_PEAK_THRESHOLD = float(os.getenv("CLAP_PEAK_THRESHOLD", "0.35"))
-CLAP_MIN_GAP_MS = _env_float("JARVIS_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 180.0))
-CLAP_MAX_GAP_MS = _env_float("JARVIS_DOUBLE_CLAP_WINDOW_MS", _env_float("CLAP_MAX_GAP_MS", 4500.0))
+CLAP_MIN_GAP_MS = _env_float("NEXI_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 180.0))
+CLAP_MAX_GAP_MS = _env_float("NEXI_DOUBLE_CLAP_WINDOW_MS", _env_float("CLAP_MAX_GAP_MS", 4500.0))
 CLAP_MAX_EVENT_MS = float(os.getenv("CLAP_MAX_EVENT_MS", "180"))
 CLAP_NOISE_FLOOR_ALPHA = float(os.getenv("CLAP_NOISE_FLOOR_ALPHA", "0.95"))
 CLAP_MAX_ACTIVE_RATIO = float(os.getenv("CLAP_MAX_ACTIVE_RATIO", "0.35"))
@@ -39,7 +39,7 @@ CLAP_MIN_CREST_FACTOR = float(os.getenv("CLAP_MIN_CREST_FACTOR", "1.8"))
 CLAP_MODEL_PATH = os.getenv("CLAP_MODEL_PATH", "")
 CLAP_SOURCE_PATH = os.getenv(
     "CLAP_SOURCE_PATH",
-    r"E:\jarvis-main\CLAP_NN-20260611T064455Z-3-001.zip",
+    r"E:\nexi-main\CLAP_NN-20260611T064455Z-3-001.zip",
 )
 
 

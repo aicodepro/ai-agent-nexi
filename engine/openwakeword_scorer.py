@@ -9,7 +9,7 @@ def _safe_log(msg: str) -> None:
 
 
 def _normalise_model_name(name: str) -> str:
-    """Map a human phrase like 'hey jarvis' to an openWakeWord model key 'hey_jarvis'.
+    """Map a human phrase like 'hey nexi' to an openWakeWord model key 'hey_nexi'.
 
     Paths and explicit model files are returned untouched.
     """
@@ -29,7 +29,7 @@ class OpenWakeWordScorer:
     wrapper preserves the int16 contract end-to-end.
     """
 
-    def __init__(self, model_path: str = "", pretrained: str = "hey_jarvis"):
+    def __init__(self, model_path: str = "", pretrained: str = "hey_nexi"):
         self.name = "openwakeword"
         try:
             from openwakeword.model import Model as _OWWModel
@@ -59,10 +59,10 @@ class OpenWakeWordScorer:
                 _safe_log(f"[OWW] custom model load failed ({self._load_error})")
 
         # 2) Otherwise load the pretrained model(s) by name. openWakeWord accepts
-        #    short names like 'hey_jarvis' and resolves them to the bundled ONNX.
+        #    short names like 'hey_nexi' and resolves them to the bundled ONNX.
         if self._model is None:
-            names = [_normalise_model_name(n) for n in (pretrained or "hey_jarvis").split(",")]
-            names = [n for n in names if n] or ["hey_jarvis"]
+            names = [_normalise_model_name(n) for n in (pretrained or "hey_nexi").split(",")]
+            names = [n for n in names if n] or ["hey_nexi"]
             try:
                 self._model = _OWWModel(wakeword_models=names, inference_framework="onnx")
                 self.model_name = ",".join(self._model.models.keys()) or names[0]
@@ -86,7 +86,7 @@ class OpenWakeWordScorer:
 
     @staticmethod
     def _resolve_bundled_path(name: str) -> str:
-        """Find the bundled ONNX file for a model name (e.g. 'hey_jarvis')."""
+        """Find the bundled ONNX file for a model name (e.g. 'hey_nexi')."""
         try:
             from importlib.resources import files
             base = files("openwakeword") / "resources" / "models"

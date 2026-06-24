@@ -65,18 +65,18 @@ class WakeOrchestrator:
         self._cooldown_ms = int(
             config.get(
                 "cooldown_ms",
-                _env_int("JARVIS_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1800)),
+                _env_int("NEXI_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1800)),
             )
         )
         self._suppress_while_listening = bool(
             config.get(
                 "suppress_while_listening",
-                _env_bool("JARVIS_WAKE_SUPPRESS_WHILE_LISTENING", True),
+                _env_bool("NEXI_WAKE_SUPPRESS_WHILE_LISTENING", True),
             )
         )
-        raw_sources = _env_str("JARVIS_WAKE_SOURCES", "hotword,double_clap,hotkey")
+        raw_sources = _env_str("NEXI_WAKE_SOURCES", "hotword,double_clap,hotkey")
         self._allow_sources = set(config.get("allow_sources")) if config.get("allow_sources") else {s.strip().lower() for s in raw_sources.split(",") if s.strip()}
-        self._debug = bool(config.get("debug", _env_bool("JARVIS_WAKE_DEBUG", False)))
+        self._debug = bool(config.get("debug", _env_bool("NEXI_WAKE_DEBUG", False)))
 
         self._last_wake_at = 0.0
         self._last_source = ""

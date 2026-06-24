@@ -55,7 +55,7 @@ def recommend_next_training_step(need: str) -> dict:
 def build_training_curriculum(need: str) -> list[dict]:
     return [
         {"level": 1, "name": "Basic rules", "action": "when I say X, do Y"},
-        {"level": 2, "name": "Need profile", "action": f"train Jarvis for {need}"},
+        {"level": 2, "name": "Need profile", "action": f"train Nexi for {need}"},
         {"level": 3, "name": "Examples", "action": "use this as ideal example"},
         {"level": 4, "name": "Dataset", "action": "create training dataset for this need"},
         {"level": 5, "name": "Evaluation", "action": "run training evaluation"},

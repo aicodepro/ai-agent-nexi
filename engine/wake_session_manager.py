@@ -16,7 +16,7 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
-_POST_SESSION_WAKE_SUPPRESS_MS = max(0, _env_int("JARVIS_POST_SESSION_WAKE_SUPPRESS_MS", 2000))
+_POST_SESSION_WAKE_SUPPRESS_MS = max(0, _env_int("NEXI_POST_SESSION_WAKE_SUPPRESS_MS", 2000))
 
 
 def _env_bool(key: str, default: bool) -> bool:

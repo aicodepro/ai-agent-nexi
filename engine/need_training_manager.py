@@ -28,7 +28,7 @@ def _style_for(need: str, rules: list[str]) -> str:
     joined = " ".join(rules).lower()
     if "founder" in joined:
         return "founder"
-    if "technical" in joined or need in {"coding", "seo", "jarvis debugging"}:
+    if "technical" in joined or need in {"coding", "seo", "nexi debugging"}:
         return "technical"
     if "demo" in joined or need == "client demo":
         return "demo"
@@ -47,8 +47,8 @@ def _aliases_for(need: str) -> list[str]:
         base += ["fix code", "debug", "patch", "run tests", "next.js component"]
     elif need == "sales":
         base += ["sales call", "client message", "lead", "proposal"]
-    elif need == "jarvis debugging":
-        base += ["jarvis debugging", "jarvis is not", "tts", "asr", "hotword"]
+    elif need == "nexi debugging":
+        base += ["nexi debugging", "nexi is not", "tts", "asr", "hotword"]
     return list(dict.fromkeys(base))
 
 
@@ -82,7 +82,7 @@ def stop_need_training() -> dict:
 
 def classify_training_need(text: str) -> dict:
     value = redact_training_text(text)
-    match = re.search(r"train jarvis (?:deeply )?for ([a-z0-9 ._/-]+)", value, re.I)
+    match = re.search(r"train nexi (?:deeply )?for ([a-z0-9 ._/-]+)", value, re.I)
     if match:
         return {"need": normalize_need(match.group(1)), "confidence": 0.98, "reason": "explicit training command"}
     detected = detect_text_need(value)

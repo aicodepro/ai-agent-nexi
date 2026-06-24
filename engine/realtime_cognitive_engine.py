@@ -98,7 +98,7 @@ def generate_intent_hypotheses(user_text: str, context: dict) -> list[dict]:
             })
     except Exception:
         pass
-    if low.startswith(("train jarvis for ", "train jarvis deeply for ", "start ultra training for ")):
+    if low.startswith(("train nexi for ", "train nexi deeply for ", "start ultra training for ")):
         hypotheses.append({"intent": "train_need_profile", "route": "training", "confidence": 1.0, "reason": "need training command", "slots": {}})
     if low.startswith(("create training dataset", "simulate training", "run training evaluation", "show training score", "show weak areas", "show training curriculum")):
         hypotheses.append({"intent": "deep_training_command", "route": "training", "confidence": 1.0, "reason": "ultra training command", "slots": {}})

@@ -200,7 +200,7 @@ def _summarize_exchange(exchange: dict[str, Any]) -> str:
     if assistant_text:
         # Extract key phrases from assistant text
         assistant_summary = _extract_key_phrases(assistant_text)
-        summary_parts.append(f"Jarvis responded: {assistant_summary}")
+        summary_parts.append(f"Nexi responded: {assistant_summary}")
 
     # Add category
     summary_parts.append(f"Category: {category}")

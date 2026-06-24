@@ -1,6 +1,6 @@
 # ui_loader.py
 #
-# Loads the appropriate Eel UI directory based on JARVIS_UI_MODE env var.
+# Loads the appropriate Eel UI directory based on NEXI_UI_MODE env var.
 # Supports legacy (www/) and Mark-style (www_mark/) UI modes.
 # Safe fallback: if www_mark is missing, falls back to www (legacy).
 
@@ -17,7 +17,7 @@ def _env_bool(key: str, default: bool = False) -> bool:
 
 
 def get_ui_mode() -> str:
-    mode = (os.getenv("JARVIS_UI_MODE") or "").strip().lower()
+    mode = (os.getenv("NEXI_UI_MODE") or "").strip().lower()
     if mode not in _ALLOWED_MODES:
         return "legacy"
     return mode
@@ -41,11 +41,11 @@ def init_eel_ui(eel_module) -> str:
 
 
 def should_open_fullscreen() -> bool:
-    return _env_bool("JARVIS_FULLSCREEN", True)
+    return _env_bool("NEXI_FULLSCREEN", True)
 
 
 def get_window_mode() -> str:
-    mode = (os.getenv("JARVIS_WINDOW_MODE", "fullscreen") or "fullscreen").strip().lower()
+    mode = (os.getenv("NEXI_WINDOW_MODE", "fullscreen") or "fullscreen").strip().lower()
     if mode not in {"fullscreen", "maximized", "normal"}:
         return "fullscreen" if should_open_fullscreen() else "normal"
     if should_open_fullscreen() and mode == "normal":

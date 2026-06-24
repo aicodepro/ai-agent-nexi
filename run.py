@@ -16,7 +16,7 @@ try:
     from engine.demo_mode import DemoMode
     if DemoMode.is_active():
         print("=" * 56, flush=True)
-        print("  === JARVIS DEMO MODE ===", flush=True)
+        print("  === NEXI DEMO MODE ===", flush=True)
         print("  Presentations & live demos — safe, scripted execution", flush=True)
         print("=" * 56, flush=True)
 except Exception:
@@ -40,7 +40,7 @@ def _fatal_pipeline_failure(reason: str, stop_event=None):
     return False
 
 
-def startJarvis(command_queue=None, stop_event=None):
+def startNexi(command_queue=None, stop_event=None):
     print(f"[RUN] ui_process starting pid={os.getpid()} cwd={os.getcwd()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     from main import main
     main(command_queue=command_queue, stop_event=stop_event)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     audio_ready = multiprocessing.Event()
     print(f"[BRIDGE] queue created id={id(command_queue)} pid={os.getpid()}", flush=True)
 
-    p1 = multiprocessing.Process(target=startJarvis, args=(command_queue, stop_event))
+    p1 = multiprocessing.Process(target=startNexi, args=(command_queue, stop_event))
     p2 = multiprocessing.Process(target=listenHotword, args=(command_queue, stop_event, audio_ready))
 
     p3 = None
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         p2.start()
         print(f"[RUN] audio_process spawned pid={p2.pid}", flush=True)
 
-        ready_timeout = float(os.getenv("JARVIS_AUDIO_READY_TIMEOUT", "30") or "30")
+        ready_timeout = float(os.getenv("NEXI_AUDIO_READY_TIMEOUT", "30") or "30")
         print(f"[RUN] waiting for voice stack ready (timeout={ready_timeout}s)...", flush=True)
         ready = audio_ready.wait(timeout=ready_timeout)
         print(f"[RUN] audio_ready={str(ready).lower()} — launching UI", flush=True)

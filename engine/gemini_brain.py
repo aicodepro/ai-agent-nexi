@@ -10,10 +10,10 @@ DEFAULT_GEMINI_MODELS = [
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
 ]
-PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "jarvis_system_prompt.txt"
-GEMINI_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "jarvis_gemini_brain_system_prompt.txt"
+PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "nexi_system_prompt.txt"
+GEMINI_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "nexi_gemini_brain_system_prompt.txt"
 DEFAULT_SYSTEM_PROMPT = (
-    "You are Jarvis, a concise Windows desktop assistant. Answer directly, "
+    "You are Nexi, a concise Windows desktop assistant. Answer directly, "
     "do not reveal hidden reasoning, and never claim to execute local actions."
 )
 
@@ -154,7 +154,7 @@ def _build_cognitive_context(user_prompt: str, max_chars: int = 3500) -> tuple[s
             )
     except Exception:
         pass
-    parts.append("Tool boundary: do not claim local actions succeeded unless a verified Jarvis tool result is present.")
+    parts.append("Tool boundary: do not claim local actions succeeded unless a verified Nexi tool result is present.")
     compact = "\n\n".join(parts)[:max_chars]
     print(f"[BRAIN] cognitive_context chars={len(compact)}", flush=True)
     print(f"[BRAIN] working_turns={working_turns}", flush=True)
@@ -194,7 +194,7 @@ def _memory_sections(user_prompt: str, context: str | None, max_chars: int = 430
         latest = get_latest_output()
         if latest.get("content"):
             summary = latest.get("summary") or latest.get("content", "")[:240]
-            parts.append(f"Current output reference:\n{latest.get('title', 'Jarvis Output')} ({latest.get('content_type', 'text')}): {summary}")
+            parts.append(f"Current output reference:\n{latest.get('title', 'Nexi Output')} ({latest.get('content_type', 'text')}): {summary}")
     except Exception:
         pass
     extra = str(context or "").strip()

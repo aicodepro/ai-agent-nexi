@@ -1,13 +1,13 @@
 """Clap backend manager — primary CLAP_NN adapter.
 
 Controls:
-   JARVIS_CLAP_ENABLED=true              master switch
-   JARVIS_CLAP_PRIMARY=clap_nn           primary backend (clap_nn|yamnet|dsp_clap|tzur|jarvis)
-   JARVIS_CLAP_FALLBACK=                 fallback if primary fails/unavailable
-   JARVIS_CLAP_BACKEND_ORDER=                 ordered priority list (comma-separated)
-  JARVIS_CLAP_DEBUG=true                enable per-chunk debug logging
-  JARVIS_CLAP_PATTERN=double            pattern to trigger wake (double)
-  JARVIS_CLAP_COOLDOWN_MS=1500          cooldown between wake events
+   NEXI_CLAP_ENABLED=true              master switch
+   NEXI_CLAP_PRIMARY=clap_nn           primary backend (clap_nn|yamnet|dsp_clap|tzur|nexi)
+   NEXI_CLAP_FALLBACK=                 fallback if primary fails/unavailable
+   NEXI_CLAP_BACKEND_ORDER=                 ordered priority list (comma-separated)
+  NEXI_CLAP_DEBUG=true                enable per-chunk debug logging
+  NEXI_CLAP_PATTERN=double            pattern to trigger wake (double)
+  NEXI_CLAP_COOLDOWN_MS=1500          cooldown between wake events
 """
 
 from __future__ import annotations
@@ -49,20 +49,20 @@ class ClapBackendManager:
         self._primary_ready = False
         self._fallback_ready = False
         self._last_wake_at = 0.0
-        self._cooldown_ms = _env_int("JARVIS_CLAP_COOLDOWN_MS", 1500) if cooldown_ms is None else int(cooldown_ms)
-        self._debug = _env_bool("JARVIS_CLAP_DEBUG", False)
+        self._cooldown_ms = _env_int("NEXI_CLAP_COOLDOWN_MS", 1500) if cooldown_ms is None else int(cooldown_ms)
+        self._debug = _env_bool("NEXI_CLAP_DEBUG", False)
 
-        self._min_gap_ms = _env_float("JARVIS_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 100.0))
-        self._configured_max_gap_ms = _env_float("JARVIS_CLAP_MAX_GAP_MS", _env_float("CLAP_MAX_GAP_MS", 3500.0))
+        self._min_gap_ms = _env_float("NEXI_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 100.0))
+        self._configured_max_gap_ms = _env_float("NEXI_CLAP_MAX_GAP_MS", _env_float("CLAP_MAX_GAP_MS", 3500.0))
         self._max_gap_ms = max(MIN_EFFECTIVE_MAX_GAP_MS, self._configured_max_gap_ms)
         self._double_clap = None
 
         self._init_backends()
 
     def _init_backends(self) -> None:
-        order = [item.strip() for item in (os.getenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn") or "dsp_clap,clap_nn").split(",") if item.strip()]
-        primary = order[0] if order else (os.getenv("JARVIS_CLAP_PRIMARY", "dsp_clap") or "dsp_clap").strip()
-        fallback = order[1] if len(order) > 1 else (os.getenv("JARVIS_CLAP_FALLBACK", "") or "").strip()
+        order = [item.strip() for item in (os.getenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn") or "dsp_clap,clap_nn").split(",") if item.strip()]
+        primary = order[0] if order else (os.getenv("NEXI_CLAP_PRIMARY", "dsp_clap") or "dsp_clap").strip()
+        fallback = order[1] if len(order) > 1 else (os.getenv("NEXI_CLAP_FALLBACK", "") or "").strip()
 
         self._primary_name = primary
         self._fallback_name = fallback
@@ -77,8 +77,8 @@ class ClapBackendManager:
         elif primary == "tzur":
             self._primary = self._build_tzur()
             self._primary_ready = self._primary is not None
-        elif primary == "jarvis":
-            self._primary, self._primary_ready = self._build_jarvis()
+        elif primary == "nexi":
+            self._primary, self._primary_ready = self._build_nexi()
 
         if fallback == "clap_nn":
             self._fallback, self._fallback_ready = self._build_clap_nn()
@@ -87,8 +87,8 @@ class ClapBackendManager:
         elif fallback == "dsp_clap":
             self._fallback = self._build_dsp_clap()
             self._fallback_ready = self._fallback is not None
-        elif fallback == "jarvis":
-            self._fallback, self._fallback_ready = self._build_jarvis()
+        elif fallback == "nexi":
+            self._fallback, self._fallback_ready = self._build_nexi()
         elif fallback == "tzur":
             self._fallback = self._build_tzur()
             self._fallback_ready = self._fallback is not None
@@ -121,7 +121,7 @@ class ClapBackendManager:
     def _build_clap_nn(self) -> tuple:
         try:
             from engine.clap_nn_backend import ClapNNBackend
-            model_path = os.getenv("JARVIS_CLAP_NN_MODEL_PATH", "")
+            model_path = os.getenv("NEXI_CLAP_NN_MODEL_PATH", "")
             if not model_path:
                 base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 model_path = os.path.join(base, "external", "CLAP_NN",
@@ -166,20 +166,20 @@ class ClapBackendManager:
             return TzurClapAdapter(
                 sample_rate=16000,
                 clock=self._clock,
-                min_clap_gap_ms=_env_float("JARVIS_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 180.0)),
-                max_clap_gap_ms=max(MIN_EFFECTIVE_MAX_GAP_MS, _env_float("JARVIS_DOUBLE_CLAP_WINDOW_MS", _env_float("CLAP_MAX_GAP_MS", 3500.0))),
+                min_clap_gap_ms=_env_float("NEXI_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 180.0)),
+                max_clap_gap_ms=max(MIN_EFFECTIVE_MAX_GAP_MS, _env_float("NEXI_DOUBLE_CLAP_WINDOW_MS", _env_float("CLAP_MAX_GAP_MS", 3500.0))),
             )
         except Exception as e:
             print(f"[CLAP_MGR] tzur_init_failed reason={type(e).__name__}", flush=True)
             return None
 
-    def _build_jarvis(self) -> tuple:
+    def _build_nexi(self) -> tuple:
         try:
             from engine.clap_detector import ClapStateMachine
             sm = ClapStateMachine(clock=self._clock)
             return sm, True
         except Exception as e:
-            print(f"[CLAP_MGR] jarvis_init_failed reason={type(e).__name__}", flush=True)
+            print(f"[CLAP_MGR] nexi_init_failed reason={type(e).__name__}", flush=True)
             return None, False
 
     @property
@@ -261,7 +261,7 @@ class ClapBackendManager:
 
     def process_audio_chunk(self, frame_int16: bytes) -> dict:
         """Process one audio chunk through the primary backend, falling back
-        to Jarvis if the primary is unavailable or fails.
+        to Nexi if the primary is unavailable or fails.
 
         Double-clap detection is done via DoubleClapDetector.
         Individual backends only report is_clap; wake is decided here.
@@ -341,8 +341,8 @@ class ClapBackendManager:
                 return self._wrap_dsp_clap(backend.process_pcm16(frame, self._clock()))
             elif name == "tzur":
                 return self._wrap_tzur(backend.process_audio_chunk(frame))
-            elif name == "jarvis":
-                return self._wrap_jarvis(backend.process_frame(frame))
+            elif name == "nexi":
+                return self._wrap_nexi(backend.process_frame(frame))
         except Exception as e:
             print(f"[CLAP_MGR] backend={name} error reason={type(e).__name__}", flush=True)
         return {"wake": False, "clap": False, "source": None}
@@ -414,13 +414,13 @@ class ClapBackendManager:
             "pattern": raw.get("pattern", []),
         }
 
-    def _wrap_jarvis(self, raw: dict) -> dict:
+    def _wrap_nexi(self, raw: dict) -> dict:
         return {
             "wake": raw.get("wake", False),
             "clap": raw.get("clap", False),
             "source": "double_clap" if raw.get("wake") else None,
-            "backend": "jarvis",
-            "backend_used": "jarvis",
+            "backend": "nexi",
+            "backend_used": "nexi",
             "fallback_used": False,
             "cooldown": raw.get("cooldown", False),
             "amplitude": 0.0,
@@ -448,5 +448,5 @@ class ClapBackendManager:
 
 
 def create_backend_manager(cooldown_ms: int = 1500) -> ClapBackendManager:
-    ms = int(os.getenv("JARVIS_CLAP_COOLDOWN_MS", str(cooldown_ms or 1500)))
+    ms = int(os.getenv("NEXI_CLAP_COOLDOWN_MS", str(cooldown_ms or 1500)))
     return ClapBackendManager(cooldown_ms=ms)

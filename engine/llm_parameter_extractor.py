@@ -10,7 +10,7 @@ import requests
 
 def _load_prompt(intent: str) -> str:
     return (
-        f"You are a parameter extractor for Jarvis desktop assistant. "
+        f"You are a parameter extractor for Nexi desktop assistant. "
         f"Given a user command classified as intent '{intent}', extract all parameters from the full text. "
         f"Return strict JSON only. No markdown, no explanation, no chain-of-thought.\n\n"
         f"Schema:\n"

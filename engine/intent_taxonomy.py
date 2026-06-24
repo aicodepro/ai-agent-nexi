@@ -126,7 +126,7 @@ ALLOWED_INTENTS = {
     "workflow_answer",
     "workflow_switch",
     "react_multi_step",
-    "train_jarvis",
+    "train_nexi",
     "learn_rule",
     "correction",
     "training_answer",

@@ -97,7 +97,7 @@ def _set_ui_state(state: str, source: str = "system", text: str = "") -> None:
         allowed = {"sleep", "listening", "recognising", "thinking", "saying", "error"}
         normalized_state = state if state in allowed else ("listening" if state in {"wake_detected", "hearing_speech"} else "sleep")
         payload = {"state": normalized_state, "source": source, "text": (text or "")[:120], "status": normalized_state}
-        safe_eel_call("updateJarvisState", json.dumps(payload))
+        safe_eel_call("updateNexiState", json.dumps(payload))
     if _current_ui_state and _current_ui_state != normalized_state:
         print(f"[UI_STATE] conflict_resolved previous={_current_ui_state} next={normalized_state}", flush=True)
     _current_ui_state = normalized_state
@@ -129,7 +129,7 @@ def _prepare_tts_texts(text: str) -> tuple[str, str]:
         if route.get("show_workspace"):
             output = set_latest_output(
                 route.get("workspace_content", display_text),
-                route.get("workspace_title", "Jarvis Output"),
+                route.get("workspace_title", "Nexi Output"),
                 route.get("workspace_type", "text"),
                 route.get("workspace_summary", ""),
             )
@@ -294,11 +294,11 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
     _last_spoken = display_text
     try:
         safe_eel_call("updateTranscript", json.dumps({
-            "jarvis_text": display_text[:300],
+            "nexi_text": display_text[:300],
             "metadata": {
                 "route": (handler_reason or "unknown").strip()[:60],
                 "intent": "response",
-                "provider": "jarvis",
+                "provider": "nexi",
             }
         }))
     except Exception:
@@ -337,7 +337,7 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
     try:
         try:
             _update_speech_capsule(voice_text)
-            if os.getenv("JARVIS_ONLINE_TTS") == "1" and is_online():
+            if os.getenv("NEXI_ONLINE_TTS") == "1" and is_online():
                 error = speak_streamelements(voice_text, voice, display_message=display_text)
                 if error is None:
                     return
@@ -409,10 +409,10 @@ def _safe_chatbot(query: str):
 
 _GREETING_RESPONSES = (
     "Hello sir, how can I help you?",
-    "Hi, I am Jarvis. What can I do for you?",
+    "Hi, I am Nexi. What can I do for you?",
 )
 _IDENTITY_RESPONSE = (
-    "I am Jarvis, your desktop assistant. I can open apps, create folders, "
+    "I am Nexi, your desktop assistant. I can open apps, create folders, "
     "answer questions, and more."
 )
 
@@ -570,13 +570,13 @@ def _ask_for_clarification(query: str, reason: str = "clarification") -> None:
 def _handle_wake_sleep_command(query: str) -> bool:
     q = (query or "").strip().lower().rstrip(".!?")
     sleep_commands = {"sleep", "go to sleep", "stop listening"}
-    wake_commands = {"wake up", "activate jarvis"}
+    wake_commands = {"wake up", "activate nexi"}
     if q in sleep_commands:
         from engine.interrupt_controller import request_interrupt, clear_interrupt
         request_interrupt(source="command", reason="sleep")
         clear_interrupt()
-        from engine.jarvis_wake_controller import sleep_jarvis
-        sleep_jarvis(reason="command")
+        from engine.nexi_wake_controller import sleep_nexi
+        sleep_nexi(reason="command")
         speak("Sleeping.")
         _store_conversation_turn(query, "Sleeping.")
         return True
@@ -584,8 +584,8 @@ def _handle_wake_sleep_command(query: str) -> bool:
         from engine.interrupt_controller import request_interrupt, clear_interrupt
         request_interrupt(source="command", reason="wake")
         clear_interrupt()
-        from engine.jarvis_wake_controller import wake_jarvis
-        wake_jarvis("command")
+        from engine.nexi_wake_controller import wake_nexi
+        wake_nexi("command")
         speak("I am awake.")
         _store_conversation_turn(query, "I am awake.")
         return True
@@ -594,7 +594,7 @@ def _handle_wake_sleep_command(query: str) -> bool:
 
 def _handle_voice_diagnostic_command(query: str) -> bool:
     q = (query or "").strip().lower().rstrip(".?!")
-    for prefix in ("hey jarvis ", "jarvis ", "hey jarbos ", "jarbos "):
+    for prefix in ("hey nexi ", "nexi ", "hey jarbos ", "jarbos "):
         if q.startswith(prefix):
             q = q[len(prefix):].strip()
             break
@@ -746,7 +746,7 @@ def _handle_output_command(query: str) -> bool:
     elif q in {"open the box", "show it again", "show latest output", "show the box"}:
         result = reopen_latest_output()
         if result.get("ok"):
-            safe_eel_call("showOutputWorkspace", json.dumps({"show_workspace": True, "workspace_content": result["output"].get("content", ""), "workspace_summary": result["output"].get("summary", ""), "workspace_type": result["output"].get("content_type", "text"), "workspace_title": result["output"].get("title", "Jarvis Output")}))
+            safe_eel_call("showOutputWorkspace", json.dumps({"show_workspace": True, "workspace_content": result["output"].get("content", ""), "workspace_summary": result["output"].get("summary", ""), "workspace_type": result["output"].get("content_type", "text"), "workspace_title": result["output"].get("title", "Nexi Output")}))
         response = result.get("message", "Showing the latest output.")
     elif q in {"close the box", "close output workspace"}:
         safe_eel_call("closeOutputWorkspace")
@@ -789,7 +789,7 @@ def _should_try_output_command(query: str) -> bool:
 
 
 def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
-    if (os.getenv("JARVIS_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
+    if (os.getenv("NEXI_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
         return False
     try:
         from engine.groq_intent_router_v2 import route_intent_v2
@@ -860,7 +860,7 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
                 "workspace_content": result["output"].get("content", ""),
                 "workspace_summary": result["output"].get("summary", ""),
                 "workspace_type": result["output"].get("content_type", "text"),
-                "workspace_title": result["output"].get("title", "Jarvis Output"),
+                "workspace_title": result["output"].get("title", "Nexi Output"),
             }))
         response_text = str(result.get("message") or "I couldn't run that output action safely.")
         if not verified_action(result) and not result.get("expects_user_reply"):
@@ -2037,7 +2037,7 @@ def forgetMemory(key):
 
 
 @eel.expose
-def diagnoseJarvis():
+def diagnoseNexi():
     try:
         from src.orin.diagnostics.runtime_doctor import RuntimeDoctor
         result = RuntimeDoctor.diagnose()
@@ -2083,19 +2083,19 @@ def submitUserCommand(message="", source="typed"):
 
 
 @eel.expose
-def wakeJarvisFromUi(source="ui_button"):
-    from engine.jarvis_wake_controller import wake_jarvis
-    wake_jarvis(source or "ui_button")
+def wakeNexiFromUi(source="ui_button"):
+    from engine.nexi_wake_controller import wake_nexi
+    wake_nexi(source or "ui_button")
     return "awake"
 
 
 @eel.expose
-def toggleJarvisSleepWake():
-    from engine.jarvis_wake_controller import is_jarvis_awake, sleep_jarvis, wake_jarvis
-    if is_jarvis_awake():
-        sleep_jarvis(reason="ui_button")
+def toggleNexiSleepWake():
+    from engine.nexi_wake_controller import is_nexi_awake, sleep_nexi, wake_nexi
+    if is_nexi_awake():
+        sleep_nexi(reason="ui_button")
         return "sleeping"
-    wake_jarvis("ui_button")
+    wake_nexi("ui_button")
     return "awake"
 
 

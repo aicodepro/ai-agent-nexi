@@ -112,19 +112,19 @@ def _try_pynput_fallback(listener: HotkeyListener, hotkey: str, callback) -> boo
 
 
 def start_hotkey_listener(callback: Optional[Callable[[str], bool]] = None) -> Optional[HotkeyListener]:
-    if os.getenv("JARVIS_HOTKEY_WAKE_ENABLED") is not None:
-        enabled = _env_bool("JARVIS_HOTKEY_WAKE_ENABLED", False)
+    if os.getenv("NEXI_HOTKEY_WAKE_ENABLED") is not None:
+        enabled = _env_bool("NEXI_HOTKEY_WAKE_ENABLED", False)
     else:
-        enabled = _env_bool("JARVIS_HOTKEY_ENABLED", False)
+        enabled = _env_bool("NEXI_HOTKEY_ENABLED", False)
     if not enabled:
         print("[HOTKEY] disabled", flush=True)
         return None
     if callback is None:
-        from engine.jarvis_wake_controller import wake_jarvis
-        callback = wake_jarvis
+        from engine.nexi_wake_controller import wake_nexi
+        callback = wake_nexi
 
-    primary = _display_hotkey(os.getenv("JARVIS_HOTKEY", "win+j"))
-    fallback = _display_hotkey(os.getenv("JARVIS_HOTKEY_FALLBACK", "ctrl+alt+j"))
+    primary = _display_hotkey(os.getenv("NEXI_HOTKEY", "win+j"))
+    fallback = _display_hotkey(os.getenv("NEXI_HOTKEY_FALLBACK", "ctrl+alt+j"))
     listener = HotkeyListener()
 
     print(f"[HOTKEY] registering hotkey={primary}", flush=True)

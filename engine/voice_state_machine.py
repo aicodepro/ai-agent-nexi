@@ -1,5 +1,5 @@
 """
-Strict voice lifecycle state machine for Jarvis.
+Strict voice lifecycle state machine for Nexi.
 
 The state machine is intentionally small and explicit: it gates full voice
 commands, permits only hotword/interrupt handling during TTS, records live
@@ -19,8 +19,8 @@ BARGE_IN_WORDS = ["stop", "pause", "cancel", "sleep"]
 MAX_STATE_HISTORY = 50
 
 VOICE_STATE_CONFIG = {
-    "POST_TTS_COOLDOWN_MS": int(os.getenv("JARVIS_POST_TTS_COOLDOWN_MS", str(POST_TTS_COOLDOWN_MS))),
-    "BARGE_IN_WORDS": [w.strip().lower() for w in os.getenv("JARVIS_BARGE_IN_WORDS", ",".join(BARGE_IN_WORDS)).split(",") if w.strip()],
+    "POST_TTS_COOLDOWN_MS": int(os.getenv("NEXI_POST_TTS_COOLDOWN_MS", str(POST_TTS_COOLDOWN_MS))),
+    "BARGE_IN_WORDS": [w.strip().lower() for w in os.getenv("NEXI_BARGE_IN_WORDS", ",".join(BARGE_IN_WORDS)).split(",") if w.strip()],
 }
 
 
@@ -248,8 +248,8 @@ class VoiceStateMachine:
 
     def is_hotword_text(self, text: str) -> bool:
         value = re.sub(r"[^a-z\s]", " ", (text or "").lower())
-        phrases = [p.strip().lower() for p in os.getenv("JARVIS_HOTWORD_PHRASES", os.getenv("JARVIS_HOTWORD_PHRASE", "hey jarvis,jarvis")).split(",") if p.strip()]
-        if os.getenv("JARVIS_ENABLE_JARBOS_HOTWORD", "false").lower() in {"1", "true", "yes", "on"}:
+        phrases = [p.strip().lower() for p in os.getenv("NEXI_HOTWORD_PHRASES", os.getenv("NEXI_HOTWORD_PHRASE", "hey nexi,nexi")).split(",") if p.strip()]
+        if os.getenv("NEXI_ENABLE_JARBOS_HOTWORD", "false").lower() in {"1", "true", "yes", "on"}:
             phrases.append("jarbos")
         return any(re.search(rf"\b{re.escape(phrase)}\b", value) for phrase in phrases)
 

@@ -15,7 +15,7 @@ DEFAULT_EPISODIC_PATH = Path(__file__).resolve().parents[2] / "data" / "memory" 
 
 
 def _memory_path() -> Path:
-    override = os.getenv("JARVIS_EPISODIC_MEMORY_PATH", "").strip()
+    override = os.getenv("NEXI_EPISODIC_MEMORY_PATH", "").strip()
     return Path(override) if override else DEFAULT_EPISODIC_PATH
 
 

@@ -115,11 +115,11 @@ def _location_label(path: Path) -> str:
 def _starter_content(file_type: str) -> str:
     ft = _norm(file_type)
     if ft == "python" or ft == "py":
-        return 'print("Hello from Jarvis")\n'
+        return 'print("Hello from Nexi")\n'
     if ft == "html":
-        return "<!doctype html>\n<html>\n<body>\n  <h1>Hello from Jarvis</h1>\n</body>\n</html>\n"
+        return "<!doctype html>\n<html>\n<body>\n  <h1>Hello from Nexi</h1>\n</body>\n</html>\n"
     if ft == "react":
-        return "export default function App() {\n  return <h1>Hello from Jarvis</h1>;\n}\n"
+        return "export default function App() {\n  return <h1>Hello from Nexi</h1>;\n}\n"
     return ""
 
 
@@ -174,16 +174,16 @@ def web_search(query: str) -> dict:
 
 
 def _take_screenshot() -> str:
-    folder = Path.home() / "Pictures" / "Jarvis Screenshots"
+    folder = Path.home() / "Pictures" / "Nexi Screenshots"
     folder.mkdir(parents=True, exist_ok=True)
-    target = folder / f"jarvis-screenshot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.png"
+    target = folder / f"nexi-screenshot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.png"
     import pyautogui
     pyautogui.screenshot().save(str(target))
     return f"Screenshot saved to {target}."
 
 
 def _save_note(text: str) -> str:
-    folder = Path.home() / "Documents" / "Jarvis Notes"
+    folder = Path.home() / "Documents" / "Nexi Notes"
     folder.mkdir(parents=True, exist_ok=True)
     target = folder / f"{datetime.now().strftime('%Y-%m-%d')}-notes.txt"
     with target.open("a", encoding="utf-8") as f:
@@ -246,7 +246,7 @@ def _create_project(slots: dict) -> str:
         elif kind == "react":
             (target / "App.jsx").write_text(_starter_content("react"), encoding="utf-8")
         else:
-            (target / "README.txt").write_text("Created by Jarvis.\n", encoding="utf-8")
+            (target / "README.txt").write_text("Created by Nexi.\n", encoding="utf-8")
     if slots.get("open_vscode"):
         try:
             subprocess.Popen(f'code "{target}"', shell=True)

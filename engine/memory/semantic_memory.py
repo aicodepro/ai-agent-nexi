@@ -36,7 +36,7 @@ def _now() -> str:
 
 
 def _memory_path() -> Path:
-    override = os.getenv("JARVIS_SEMANTIC_MEMORY_PATH", "").strip()
+    override = os.getenv("NEXI_SEMANTIC_MEMORY_PATH", "").strip()
     return Path(override) if override else DEFAULT_SEMANTIC_PATH
 
 
@@ -287,7 +287,7 @@ def extract_semantic_facts(user_text: str, assistant_text: str = "") -> list[Sem
 
     assistant = _clean_text(assistant_text, 300)
     if assistant and any(term in assistant.lower() for term in ("done", "created", "opened", "saved", "copied")):
-        facts.append(SemanticFact(subject="jarvis", predicate="completed", object=f"User: {text} -> Jarvis: {assistant}", category="workflow", source="assistant", confidence=0.6, tags=["success"]))
+        facts.append(SemanticFact(subject="nexi", predicate="completed", object=f"User: {text} -> Nexi: {assistant}", category="workflow", source="assistant", confidence=0.6, tags=["success"]))
 
     return facts
 

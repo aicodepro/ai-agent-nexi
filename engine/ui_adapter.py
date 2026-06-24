@@ -1,7 +1,7 @@
 # ui_adapter.py
 #
 # Single safe backend entry point for the Mark-style UI.
-# All UI commands route through Jarvis command_bus.
+# All UI commands route through Nexi command_bus.
 # Never calls tools, brain, or ASR directly.
 
 from __future__ import annotations
@@ -72,7 +72,7 @@ def get_env_status() -> dict[str, bool]:
 def get_runtime_status() -> dict[str, Any]:
     status: dict[str, Any] = {"mode": "mark", "providers": get_env_status()}
     try:
-        from engine.jarvis_wake_controller import is_wake_enabled as _wake
+        from engine.nexi_wake_controller import is_wake_enabled as _wake
         status["wake_enabled"] = _wake() if callable(_wake) else True
     except Exception:
         status["wake_enabled"] = True

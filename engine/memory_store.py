@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-MEMORY_PATH = Path(__file__).resolve().parents[1] / "data" / "jarvis_memory.json"
+MEMORY_PATH = Path(__file__).resolve().parents[1] / "data" / "nexi_memory.json"
 SECRET_WORDS = {"password", "token", "api key", "secret", "private key", "cookie"}
 
 

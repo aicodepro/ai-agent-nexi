@@ -8,7 +8,7 @@ from engine.intent_taxonomy import empty_result, exact_schema
 STOP_PHRASES = {"stop", "stop speaking", "stop talking", "shut up", "enough", "cancel speech"}
 CANCEL_PHRASES = {"cancel", "never mind", "nevermind", "forget it", "abort"}
 SLEEP_PHRASES = {"sleep", "go to sleep", "stop listening"}
-WAKE_PHRASES = {"wake", "wake up", "activate jarvis"}
+WAKE_PHRASES = {"wake", "wake up", "activate nexi"}
 
 
 def _norm(text: str) -> str:

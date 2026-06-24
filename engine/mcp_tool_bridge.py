@@ -46,7 +46,7 @@ def is_tool_allowed(tool_name: str) -> bool:
 def blocked_tool_result(tool_name: str) -> ToolResult:
     return ToolResult(
         ok=False,
-        message="Tool blocked. Jarvis can only expose read-only context to the brain.",
+        message="Tool blocked. Nexi can only expose read-only context to the brain.",
         data={"tool": (tool_name or "").strip()},
         error_code="TOOL_BLOCKED",
     )

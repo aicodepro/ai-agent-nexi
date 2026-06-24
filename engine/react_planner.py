@@ -272,7 +272,7 @@ class ReActPlanner:
         except Exception:
             reflection = ""
         return (
-            "You are Jarvis ReAct planner. Use registered tools for multi-step tasks. "
+            "You are Nexi ReAct planner. Use registered tools for multi-step tasks. "
             "Do not reveal chain-of-thought. Return final user-facing messages only, or call one tool. "
             "Never claim an action succeeded unless the tool observation says it was verified."
             + (f"\n{reflection}" if reflection else "")

@@ -97,7 +97,7 @@ def format_last_ten_exchanges() -> str:
     for idx, ex in enumerate(exchanges, 1):
         user = (ex.get("user_text") or "")[:120]
         assistant = (ex.get("assistant_text") or "")[:120]
-        rendered.append(f"{idx}. User: {user or 'none'} | Jarvis: {assistant or 'none'}")
+        rendered.append(f"{idx}. User: {user or 'none'} | Nexi: {assistant or 'none'}")
     return "\n".join(rendered)
 
 

@@ -46,19 +46,19 @@ class HotwordEngineManager:
 
     def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
-        self.enabled = bool(self.config.get("enabled", _env_bool("JARVIS_HOTWORD_ENABLED", True)))
-        self.phrases = _normalise_oww_list(str(self.config.get("phrases", os.getenv("JARVIS_HOTWORD_PHRASES", os.getenv("JARVIS_HOTWORD_PHRASE", "hey jarvis,jarvis")))))
-        self.phrase = _normalise_oww_name(str(self.config.get("phrase", (self.phrases.split(",") or ["hey jarvis"])[0] or "hey jarvis")))
-        self.sample_rate = int(self.config.get("sample_rate", _env_int("JARVIS_WAKE_SAMPLE_RATE", _env_int("AUDIO_SAMPLE_RATE", 16000))))
-        self.frame_ms = int(self.config.get("frame_ms", _env_int("JARVIS_WAKE_FRAME_MS", 80)))
+        self.enabled = bool(self.config.get("enabled", _env_bool("NEXI_HOTWORD_ENABLED", True)))
+        self.phrases = _normalise_oww_list(str(self.config.get("phrases", os.getenv("NEXI_HOTWORD_PHRASES", os.getenv("NEXI_HOTWORD_PHRASE", "hey nexi,nexi")))))
+        self.phrase = _normalise_oww_name(str(self.config.get("phrase", (self.phrases.split(",") or ["hey nexi"])[0] or "hey nexi")))
+        self.sample_rate = int(self.config.get("sample_rate", _env_int("NEXI_WAKE_SAMPLE_RATE", _env_int("AUDIO_SAMPLE_RATE", 16000))))
+        self.frame_ms = int(self.config.get("frame_ms", _env_int("NEXI_WAKE_FRAME_MS", 80)))
         self.threshold = float(self.config.get("threshold", _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.25)))
         self.consecutive_hits_required = int(self.config.get("consecutive_hits", _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 1)))
-        self.cooldown_ms = int(self.config.get("cooldown_ms", _env_int("JARVIS_HOTWORD_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", _env_int("WAKE_COOLDOWN_MS", 1500)))))
-        self.min_rms = float(self.config.get("min_rms", _env_float("JARVIS_HOTWORD_MIN_RMS", 0.003)))
-        self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.02)))
+        self.cooldown_ms = int(self.config.get("cooldown_ms", _env_int("NEXI_HOTWORD_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", _env_int("WAKE_COOLDOWN_MS", 1500)))))
+        self.min_rms = float(self.config.get("min_rms", _env_float("NEXI_HOTWORD_MIN_RMS", 0.003)))
+        self.rising_edge_delta = float(self.config.get("rising_edge_delta", _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02)))
         self.model_path = str(self.config.get("model_path", os.getenv("OPENWAKEWORD_MODEL_PATH", "")) or "")
         self.pretrained = _normalise_oww_list(str(self.config.get("pretrained", os.getenv("OPENWAKEWORD_PRETRAINED_MODELS", self.phrase)) or self.phrase))
-        self.debug = bool(self.config.get("debug", _env_bool("JARVIS_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)))
+        self.debug = bool(self.config.get("debug", _env_bool("NEXI_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)))
         self._clock: Callable[[], float] = self.config.get("clock", time.time)
         self._scorer = self.config.get("scorer")
         self._model = None
@@ -258,6 +258,6 @@ class HotwordEngineManager:
         _safe_log(f"[HOTWORD] model_name={self._model_name}")
         _safe_log(f"[HOTWORD] prediction_keys={self._last_prediction_keys}")
         _safe_log(f"[HOTWORD] selected_key={self._last_prediction_key}")
-        if self._last_prediction_key and "hey jarvis" in self._last_prediction_key.lower() and "jarvis" in self.phrases.split(","):
-            _safe_log("[HOTWORD] Note: only 'hey jarvis' key found in model. Standalone 'jarvis' requires custom model.")
-            _safe_log("[HOTWORD] custom_hotword_required=true for 'jarvis' standalone")
+        if self._last_prediction_key and "hey nexi" in self._last_prediction_key.lower() and "nexi" in self.phrases.split(","):
+            _safe_log("[HOTWORD] Note: only 'hey nexi' key found in model. Standalone 'nexi' requires custom model.")
+            _safe_log("[HOTWORD] custom_hotword_required=true for 'nexi' standalone")

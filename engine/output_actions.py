@@ -8,17 +8,17 @@ from pathlib import Path
 from engine.memory_safety import is_safe_to_store, redact_sensitive
 
 
-OUTPUT_DIR = Path(os.environ.get("JARVIS_OUTPUT_DIR") or (Path.home() / "Documents" / "Jarvis Outputs"))
+OUTPUT_DIR = Path(os.environ.get("NEXI_OUTPUT_DIR") or (Path.home() / "Documents" / "Nexi Outputs"))
 _latest_output: dict = {}
 
 
 def sanitize_filename(name: str) -> str:
     value = re.sub(r"[<>:\"/\\|?*]+", "_", str(name or "").strip().strip("."))
     value = re.sub(r"\s+", " ", value).strip()
-    return (value or "jarvis-output")[:120]
+    return (value or "nexi-output")[:120]
 
 
-def set_latest_output(content, title="Jarvis Output", content_type="text", summary=""):
+def set_latest_output(content, title="Nexi Output", content_type="text", summary=""):
     global _latest_output
     text = redact_sensitive(str(content or ""))
     safe, _reason = is_safe_to_store(text[:500])
@@ -27,7 +27,7 @@ def set_latest_output(content, title="Jarvis Output", content_type="text", summa
     _latest_output = {
         "id": datetime.now().strftime("out_%Y%m%d_%H%M%S"),
         "content": text,
-        "title": str(title or "Jarvis Output")[:120],
+        "title": str(title or "Nexi Output")[:120],
         "content_type": str(content_type or "text"),
         "summary": str(summary or "")[:500],
         "created_at": datetime.now().isoformat(timespec="seconds"),

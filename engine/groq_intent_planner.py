@@ -16,7 +16,7 @@ ALLOWED_INTENTS = {
     "summarize", "explain", "copy_latest_output", "save_latest_output", "clarify", "unknown",
     "repeat_last", "stop_speaking", "workflow_answer", "cancel", "camera_preview", "hand_gesture_control", "eye_mouse_control",
     "eye_mouse_calibrate", "stop_camera_control", "local_skill",
-    "train_jarvis", "learn_rule", "correction", "show_training_rules", "cognitive_status",
+    "train_nexi", "learn_rule", "correction", "show_training_rules", "cognitive_status",
     "learned_rule_match", "user_preference_update", "why_did_you_do_that", "what_did_you_understand",
     "train_need_profile", "start_ultra_training", "deep_training_command", "show_training_profiles",
 }
@@ -50,7 +50,7 @@ def get_model_config() -> dict:
 def _load_prompt() -> str:
     from engine.prompt_loader import load_prompt_file
 
-    return load_prompt_file("jarvis_groq_intent_system_prompt.txt", load_prompt_file("groq_intent_system_prompt.txt", "You are Jarvis Intent Planner. Return strict JSON only."))
+    return load_prompt_file("nexi_groq_intent_system_prompt.txt", load_prompt_file("groq_intent_system_prompt.txt", "You are Nexi Intent Planner. Return strict JSON only."))
 
 
 def _json_object(text: str) -> dict:
@@ -133,13 +133,13 @@ def _deterministic_classify(text: str, active_workflow: dict | None = None, pend
         return _normalize({"route": "interrupt", "intent": "stop_speaking", "confidence": 1.0, "reason": "interrupt phrase"})
     if q in {"sleep", "go to sleep", "stop listening"}:
         return _normalize({"route": "sleep", "intent": "unknown", "confidence": 1.0, "reason": "sleep phrase"})
-    if q in {"wake", "wake up", "activate jarvis"}:
+    if q in {"wake", "wake up", "activate nexi"}:
         return _normalize({"route": "wake", "intent": "unknown", "confidence": 1.0, "reason": "wake phrase"})
-    if q in {"train jarvis", "start training", "start training mode", "training mode"}:
-        return _normalize({"route": "training", "intent": "train_jarvis", "confidence": 1.0, "reason": "training mode phrase"})
-    if q.startswith("train jarvis deeply for ") or q.startswith("start ultra training for "):
+    if q in {"train nexi", "start training", "start training mode", "training mode"}:
+        return _normalize({"route": "training", "intent": "train_nexi", "confidence": 1.0, "reason": "training mode phrase"})
+    if q.startswith("train nexi deeply for ") or q.startswith("start ultra training for "):
         return _normalize({"route": "training", "intent": "start_ultra_training", "confidence": 1.0, "reason": "ultra training phrase"})
-    if q.startswith("train jarvis for "):
+    if q.startswith("train nexi for "):
         return _normalize({"route": "training", "intent": "train_need_profile", "confidence": 1.0, "reason": "need training phrase"})
     if q.startswith(("create training dataset", "simulate training", "run training evaluation", "show training score", "show weak areas", "show training curriculum")):
         return _normalize({"route": "training", "intent": "deep_training_command", "confidence": 1.0, "reason": "deep training management phrase"})
@@ -147,7 +147,7 @@ def _deterministic_classify(text: str, active_workflow: dict | None = None, pend
         return _normalize({"route": "training", "intent": "learn_rule", "confidence": 1.0, "reason": "training rule phrase"})
     if q in {"show training rules", "what have you learned", "what have you learned?"}:
         return _normalize({"route": "memory", "intent": "show_training_rules", "confidence": 1.0, "reason": "training summary phrase"})
-    if q in {"show training profiles", "show need profiles", "show jarvis profiles"}:
+    if q in {"show training profiles", "show need profiles", "show nexi profiles"}:
         return _normalize({"route": "memory", "intent": "show_training_profiles", "confidence": 1.0, "reason": "training profile summary phrase"})
     if q == "cognitive status":
         return _normalize({"route": "memory", "intent": "cognitive_status", "confidence": 1.0, "reason": "cognitive status phrase"})

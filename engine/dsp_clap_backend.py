@@ -11,14 +11,14 @@ Detects acoustic clap events using:
   - Cooldown/debounce to prevent double-fire on one acoustic event
 
 Config env vars:
-  JARVIS_DSP_CLAP_ENABLED=true
-  JARVIS_DSP_CLAP_RMS_THRESHOLD=0.030      min RMS for a clap frame
-  JARVIS_DSP_CLAP_PEAK_THRESHOLD=0.10      min absolute peak (normalized)
-  JARVIS_DSP_CLAP_PEAK_RATIO=4.0           peak / avg RMS ratio
-  JARVIS_DSP_CLAP_HF_RATIO=0.30            min high-freq energy ratio
-  JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS=80     cooldown between individual clap events
-  JARVIS_DSP_CLAP_SPEECH_REJECT_MS=250     reject sustained energy lasting longer than this
-  JARVIS_DSP_CLAP_DEBUG=false
+  NEXI_DSP_CLAP_ENABLED=true
+  NEXI_DSP_CLAP_RMS_THRESHOLD=0.030      min RMS for a clap frame
+  NEXI_DSP_CLAP_PEAK_THRESHOLD=0.10      min absolute peak (normalized)
+  NEXI_DSP_CLAP_PEAK_RATIO=4.0           peak / avg RMS ratio
+  NEXI_DSP_CLAP_HF_RATIO=0.30            min high-freq energy ratio
+  NEXI_DSP_CLAP_EVENT_COOLDOWN_MS=80     cooldown between individual clap events
+  NEXI_DSP_CLAP_SPEECH_REJECT_MS=250     reject sustained energy lasting longer than this
+  NEXI_DSP_CLAP_DEBUG=false
 """
 
 from __future__ import annotations
@@ -73,14 +73,14 @@ class DspClapBackend:
     ):
         self._sample_rate = sample_rate
         self._clock = clock or time.time
-        self._debug = _env_bool("JARVIS_DSP_CLAP_DEBUG", False)
+        self._debug = _env_bool("NEXI_DSP_CLAP_DEBUG", False)
 
-        self._rms_threshold = _env_float("JARVIS_DSP_CLAP_RMS_THRESHOLD", 0.030)
-        self._peak_threshold = _env_float("JARVIS_DSP_CLAP_PEAK_THRESHOLD", 0.10)
-        self._peak_ratio_threshold = _env_float("JARVIS_DSP_CLAP_PEAK_RATIO", 4.0)
-        self._hf_ratio_threshold = _env_float("JARVIS_DSP_CLAP_HF_RATIO", 0.30)
-        self._event_cooldown_ms = _env_int("JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS", 80)
-        self._speech_reject_ms = _env_int("JARVIS_DSP_CLAP_SPEECH_REJECT_MS", 250)
+        self._rms_threshold = _env_float("NEXI_DSP_CLAP_RMS_THRESHOLD", 0.030)
+        self._peak_threshold = _env_float("NEXI_DSP_CLAP_PEAK_THRESHOLD", 0.10)
+        self._peak_ratio_threshold = _env_float("NEXI_DSP_CLAP_PEAK_RATIO", 4.0)
+        self._hf_ratio_threshold = _env_float("NEXI_DSP_CLAP_HF_RATIO", 0.30)
+        self._event_cooldown_ms = _env_int("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", 80)
+        self._speech_reject_ms = _env_int("NEXI_DSP_CLAP_SPEECH_REJECT_MS", 250)
 
         self._last_event_time = 0.0
         self._speech_start_time: float | None = None
@@ -285,7 +285,7 @@ class DoubleClapDetector:
         self._state = "reset"
         self._first_clap_time = 0.0
         self._last_wake_at = 0.0
-        self._debug = _env_bool("JARVIS_CLAP_DEBUG", False) or _env_bool("DOUBLE_CLAP_DEBUG", False)
+        self._debug = _env_bool("NEXI_CLAP_DEBUG", False) or _env_bool("DOUBLE_CLAP_DEBUG", False)
 
     def detect(self, clap_timestamp: float | None = None) -> dict:
         now = clap_timestamp if clap_timestamp is not None else self._clock()

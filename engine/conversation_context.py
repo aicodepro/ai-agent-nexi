@@ -67,7 +67,7 @@ def get_recent_turns(limit: int = 10) -> list[dict]:
 
 
 def get_working_memory(limit: int = 10, max_chars: int = 3000) -> str:
-    labels = {"user": "User", "assistant": "Jarvis", "tool": "Tool"}
+    labels = {"user": "User", "assistant": "Nexi", "tool": "Tool"}
     lines = []
     turns = get_recent_turns(limit)
     for turn in turns:
@@ -98,7 +98,7 @@ def get_current_task_context() -> dict:
 
 
 def get_recent_context_text(limit: int = 10, max_chars: int = 2500) -> str:
-    labels = {"user": "User", "assistant": "Jarvis", "tool": "Tool"}
+    labels = {"user": "User", "assistant": "Nexi", "tool": "Tool"}
     lines = []
     for turn in get_recent_turns(limit):
         text = turn.get("text", "")

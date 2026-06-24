@@ -359,7 +359,7 @@ body{
 }
 /* Chat Box Start End*/
 
-.jarvis-orb-core {
+.nexi-orb-core {
   width: 92px;
   height: 92px;
   border-radius: 50%;
@@ -370,36 +370,36 @@ body{
   z-index: 2;
 }
 
-#JarvisHood.jarvis-state-online .jarvis-orb-core,
-#JarvisHood.jarvis-state-listening .jarvis-orb-core,
-#JarvisHood.jarvis-state-recognising .jarvis-orb-core,
-#JarvisHood.jarvis-state-thinking .jarvis-orb-core,
-#JarvisHood.jarvis-state-saying .jarvis-orb-core {
+#NexiHood.nexi-state-online .nexi-orb-core,
+#NexiHood.nexi-state-listening .nexi-orb-core,
+#NexiHood.nexi-state-recognising .nexi-orb-core,
+#NexiHood.nexi-state-thinking .nexi-orb-core,
+#NexiHood.nexi-state-saying .nexi-orb-core {
   opacity: 1;
   box-shadow: 0 0 46px rgba(0, 255, 213, 0.7), 0 0 90px rgba(0, 43, 255, 0.32), inset 0 0 26px rgba(255, 255, 255, 0.22);
 }
 
-#JarvisHood.jarvis-state-online .jarvis-orb-core {
+#NexiHood.nexi-state-online .nexi-orb-core {
   animation: orbPulse 2.8s ease-in-out infinite;
 }
 
-#JarvisHood.jarvis-state-listening .jarvis-orb-core,
-#JarvisHood.jarvis-state-recognising .jarvis-orb-core,
-#JarvisHood.jarvis-state-thinking .jarvis-orb-core {
+#NexiHood.nexi-state-listening .nexi-orb-core,
+#NexiHood.nexi-state-recognising .nexi-orb-core,
+#NexiHood.nexi-state-thinking .nexi-orb-core {
   animation: orbPulse 1.45s ease-in-out infinite;
 }
 
-#JarvisHood.jarvis-state-saying .jarvis-orb-core {
+#NexiHood.nexi-state-saying .nexi-orb-core {
   animation: orbPulse 2.4s ease-in-out infinite;
 }
 
-#JarvisHood.jarvis-state-error .jarvis-orb-core {
+#NexiHood.nexi-state-error .nexi-orb-core {
   opacity: 1;
   background: radial-gradient(circle at 35% 30%, #fff7ed 0%, #fb923c 34%, #7f1d1d 100%);
   box-shadow: 0 0 48px rgba(251, 146, 60, 0.72);
 }
 
-#JarvisHood.jarvis-state-sleeping .jarvis-orb-core {
+#NexiHood.nexi-state-sleeping .nexi-orb-core {
   opacity: 0.22;
   filter: grayscale(0.7);
 }
@@ -454,7 +454,7 @@ body{
   color: #fde68a;
 }
 
-.jarvis-output-workspace {
+.nexi-output-workspace {
   position: fixed;
   right: 34px;
   top: 22vh;
@@ -472,12 +472,12 @@ body{
   overflow: hidden;
 }
 
-.jarvis-output-workspace.hidden {
+.nexi-output-workspace.hidden {
   display: none;
 }
 
-.jarvis-output-workspace.minimized .workspace-body,
-.jarvis-output-workspace.minimized .workspace-footer {
+.nexi-output-workspace.minimized .workspace-body,
+.nexi-output-workspace.minimized .workspace-footer {
   display: none;
 }
 
@@ -563,7 +563,7 @@ body{
     width: min(760px, calc(100vw - 32px));
     bottom: 18px;
   }
-  .jarvis-output-workspace {
+  .nexi-output-workspace {
     left: 12px;
     right: 12px;
     top: auto;

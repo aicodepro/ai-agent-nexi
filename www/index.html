@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jarvis</title>
+    <title>Nexi</title>
 
     <link rel="shortcut icon" href="assets/img/logo.ico" type="image/x-icon">
 
@@ -40,25 +40,25 @@
 
                         <canvas id="canvasOne" width="700" height="420" style="position: absolute;"></canvas>
 
-                        <div id="JarvisHood" class="jarvis-state-idle">
+                        <div id="NexiHood" class="nexi-state-idle">
 
                             <div class="square">
                                 <span class="circle"></span>
                                 <span class="circle"></span>
                                 <span class="circle"></span>
-                                <div id="JarvisOrbCore" class="jarvis-orb-core"></div>
+                                <div id="NexiOrbCore" class="nexi-orb-core"></div>
                             </div>
 
                         </div>
 
                     </div>
-                    <div id="StatusLabel" class="text-light text-center status-label">Say Hey Jarvis or double clap</div>
+                    <div id="StatusLabel" class="text-light text-center status-label">Say Hey Nexi or double clap</div>
                     <div id="SourceBadge" class="source-badge">Idle</div>
                     <div id="ContextIndicator" class="context-indicator hidden"><span></span>Context Active</div>
                     <div id="TranscriptPreview" class="transcript-preview">Waiting for wake word...</div>
                     <div id="TranscriptCard" class="transcript-card" aria-live="polite">
                         <div><span class="entry-label">YOU</span> <span id="UserText"></span></div>
-                        <div><span class="entry-label">JARVIS</span> <span id="JarvisText"></span></div>
+                        <div><span class="entry-label">NEXI</span> <span id="NexiText"></span></div>
                         <div id="ResponseMeta" class="entry-meta"></div>
                     </div>
                     <div id="presence-panel" class="presence-panel" aria-live="polite">
@@ -86,7 +86,7 @@
                                     placeholder="type here ... ">
                                 <button id="SendBtn" class="glow-on-hover" hidden><i class="bi bi-send"></i></button>
                                 <button id="MicBtn" class="glow-on-hover"><i class="bi bi-mic"></i></button>
-                                <button id="SleepWakeBtn" class="glow-on-hover" title="Sleep or wake Jarvis"><i class="bi bi-power"></i></button>
+                                <button id="SleepWakeBtn" class="glow-on-hover" title="Sleep or wake Nexi"><i class="bi bi-power"></i></button>
                                 <button id="ChatBtn" class="glow-on-hover" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling" aria-controls="offcanvasScrolling"><i class="bi bi-chat-dots"></i></button>
                                 <button id="SettingsBtn" class="glow-on-hover"><i class="bi bi-gear"></i></button>
 
@@ -133,10 +133,10 @@
         </div>
     </div>
 
-    <section id="JarvisOutputWorkspace" class="jarvis-output-workspace hidden" aria-label="Jarvis Output Workspace">
+    <section id="NexiOutputWorkspace" class="nexi-output-workspace hidden" aria-label="Nexi Output Workspace">
         <div id="OutputWorkspaceHeader" class="workspace-header">
             <div>
-                <div class="workspace-title">Jarvis Output Workspace</div>
+                <div class="workspace-title">Nexi Output Workspace</div>
                 <span id="OutputWorkspaceType" class="workspace-type">Text</span>
                 <span id="OutputWorkspaceStatus" class="workspace-status">Ready</span>
             </div>

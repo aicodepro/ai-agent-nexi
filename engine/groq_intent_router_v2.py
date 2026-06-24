@@ -18,9 +18,9 @@ def _norm(text: str) -> str:
 def _load_prompt() -> str:
     try:
         from engine.prompt_loader import load_prompt_file
-        return load_prompt_file("jarvis_groq_intent_system_prompt.txt", "You are Jarvis Intent Router v2. Return strict JSON only.")
+        return load_prompt_file("nexi_groq_intent_system_prompt.txt", "You are Nexi Intent Router v2. Return strict JSON only.")
     except Exception:
-        return "You are Jarvis Intent Router v2. Return strict JSON only."
+        return "You are Nexi Intent Router v2. Return strict JSON only."
 
 
 def _json_object(text: str) -> dict[str, Any]:
@@ -180,11 +180,11 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q.startswith(("remember ", "remember that ")) or q in {"show memory", "what do you remember"}:
         return empty_result(route="memory", intent="remember" if q.startswith("remember") else "recall_memory", domain="memory", confidence=0.94, reason="memory_phrase")
 
-    if q in {"train jarvis", "start training", "start training mode", "training mode"}:
-        return empty_result(route="training", intent="train_jarvis", domain="training", confidence=1.0, reason="training_phrase")
-    if q.startswith("train jarvis deeply for ") or q.startswith("start ultra training for "):
+    if q in {"train nexi", "start training", "start training mode", "training mode"}:
+        return empty_result(route="training", intent="train_nexi", domain="training", confidence=1.0, reason="training_phrase")
+    if q.startswith("train nexi deeply for ") or q.startswith("start ultra training for "):
         return empty_result(route="training", intent="start_ultra_training", domain="training", confidence=1.0, reason="ultra_training_phrase")
-    if q.startswith("train jarvis for "):
+    if q.startswith("train nexi for "):
         return empty_result(route="training", intent="train_need_profile", domain="training", confidence=1.0, reason="need_training_phrase")
     if q.startswith(("create training dataset", "simulate training", "run training evaluation", "show training score", "show weak areas", "show training curriculum")):
         return empty_result(route="training", intent="deep_training_command", domain="training", confidence=1.0, reason="deep_training_phrase")

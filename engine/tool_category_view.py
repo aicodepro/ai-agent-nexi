@@ -1,6 +1,6 @@
 # tool_category_view.py
 #
-# Exposes safe tool categories from Jarvis tool_registry for the Mark-style UI.
+# Exposes safe tool categories from Nexi tool_registry for the Mark-style UI.
 # Never exposes dangerous tools or executes anything directly.
 
 from __future__ import annotations

@@ -9,7 +9,7 @@ _ALIASES = {
     "sales": ["sales", "sales call", "client message", "lead", "follow up", "cta", "proposal"],
     "client demo": ["client demo", "demo", "presentation", "pitch", "polished", "walkthrough"],
     "founder": ["founder", "strategy", "pitch deck", "investor", "positioning"],
-    "jarvis debugging": ["jarvis is not", "jarvis failed", "jarvis debugging", "voice not", "tts", "asr", "hotword"],
+    "nexi debugging": ["nexi is not", "nexi failed", "nexi debugging", "voice not", "tts", "asr", "hotword"],
     "ui design": ["ui", "ux", "design", "layout", "visual", "component"],
     "content writing": ["content", "blog", "copy", "write", "caption"],
 }

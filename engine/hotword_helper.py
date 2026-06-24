@@ -3,9 +3,9 @@ import time
 import struct
 
 # ---- Hotword matcher (Task 1) ----
-HOTWORD_VARIANTS = {"jarvis", "jervis", "jarves"}
+HOTWORD_VARIANTS = {"nexi", "jervis", "jarves"}
 
-def is_jarvis_hotword(text: str) -> bool:
+def is_nexi_hotword(text: str) -> bool:
     if not text or not text.strip():
         return False
     words = text.lower().strip().split()

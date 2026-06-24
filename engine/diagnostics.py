@@ -39,7 +39,7 @@ def _status(name: str, status: str, detail: str, started: float) -> ComponentSta
 
 
 class Diagnostics:
-    """Read-only component health checks for Jarvis runtime."""
+    """Read-only component health checks for Nexi runtime."""
 
     @classmethod
     def check_all(cls, *, force: bool = False) -> dict[str, ComponentStatus]:
@@ -81,7 +81,7 @@ class Diagnostics:
     @staticmethod
     def check_hotword() -> ComponentStatus:
         started = time.time()
-        enabled = _env_bool("JARVIS_HOTWORD_ENABLED", True) and _env_bool("OPENWAKEWORD_ENABLED", True)
+        enabled = _env_bool("NEXI_HOTWORD_ENABLED", True) and _env_bool("OPENWAKEWORD_ENABLED", True)
         backend = os.getenv("VOICE_WAKE_BACKEND", "openwakeword")
         if not enabled:
             return _status("Hotword", "disabled", f"backend={backend}", started)
@@ -91,8 +91,8 @@ class Diagnostics:
     @staticmethod
     def check_clap() -> ComponentStatus:
         started = time.time()
-        enabled = _env_bool("JARVIS_CLAP_ENABLED", True) or _env_bool("CLAP_DETECTION_ENABLED", False)
-        primary = os.getenv("JARVIS_CLAP_PRIMARY", "dsp_clap")
+        enabled = _env_bool("NEXI_CLAP_ENABLED", True) or _env_bool("CLAP_DETECTION_ENABLED", False)
+        primary = os.getenv("NEXI_CLAP_PRIMARY", "dsp_clap")
         status = "active" if enabled else "disabled"
         return _status("Clap", status, f"primary={primary}", started)
 

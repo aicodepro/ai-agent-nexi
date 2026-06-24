@@ -1,5 +1,5 @@
 # intent_router.py
-# Deterministic intent router for Jarvis.
+# Deterministic intent router for Nexi.
 #
 # Priority order:
 #   1. Active workflow         -> route="workflow"
@@ -42,7 +42,7 @@ _IDENTITY_EXACT = {
     "who are you", "introduce yourself", "what is your name",
     "what's your name", "whats your name", "tell me about yourself",
     "who r u", "your name", "say your name", "what are you",
-    "are you jarvis", "who is jarvis",
+    "are you nexi", "who is nexi",
 }
 
 # --- Workflow cancel words (used when a workflow is active) -------------------

@@ -43,7 +43,7 @@ def route_assistant_output(display_text: str, spoken_text: str = "", content_typ
         return {
             "main_ui_text": "I've prepared it in the workspace.",
             "show_workspace": True,
-            "workspace_title": "Jarvis Output",
+            "workspace_title": "Nexi Output",
             "workspace_type": ctype,
             "workspace_summary": _summary(text),
             "workspace_content": text,

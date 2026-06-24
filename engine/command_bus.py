@@ -10,7 +10,7 @@ _SYSTEM_CONTROL_COMMANDS = {
     "go to sleep",
     "stop listening",
     "wake up",
-    "activate jarvis",
+    "activate nexi",
 }
 
 
@@ -43,7 +43,7 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
     # During SPEAKING, only interrupt words (stop/pause/cancel/sleep) pass — and
     # they trigger a TTS interrupt rather than a new command. Typed UI commands
     # are never gated. This prevents recognition/thinking/speaking from spawning
-    # accidental second commands and stops Jarvis hearing its own voice.
+    # accidental second commands and stops Nexi hearing its own voice.
     if mode == "voice":
         try:
             from engine.voice_state_machine import get_voice_state_machine
@@ -95,8 +95,8 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
                         pass
                     if reason == "sleep":
                         try:
-                            from engine.jarvis_wake_controller import sleep_jarvis
-                            sleep_jarvis(reason="interrupt_word")
+                            from engine.nexi_wake_controller import sleep_nexi
+                            sleep_nexi(reason="interrupt_word")
                         except Exception:
                             pass
                         vsm.transition("sleep", source=source)

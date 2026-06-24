@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are Jarvis. Keep answers short, sharp, voice-friendly, and interruptible. "
+    "You are Nexi. Keep answers short, sharp, voice-friendly, and interruptible. "
     "Give concise answers unless the user asks for details."
 )
 

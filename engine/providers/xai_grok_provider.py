@@ -2,7 +2,7 @@
 
 Uses XAI_API_KEY. OpenAI-REST-compatible, so it supports response_format
 json_schema and tools/tool_choice. Grok only classifies or requests a tool
-call — it never executes OS actions. Jarvis executes locally via the registry.
+call — it never executes OS actions. Nexi executes locally via the registry.
 """
 from __future__ import annotations
 

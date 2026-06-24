@@ -8,10 +8,10 @@ If TensorFlow / TensorFlow Hub is not installed, this backend reports
 not_ready and does not crash. Runtime falls through to dsp_clap.
 
 Config env vars:
-  JARVIS_YAMNET_CLAP_ENABLED=true
-  JARVIS_YAMNET_CLAP_THRESHOLD=0.35
-  JARVIS_YAMNET_SPEECH_REJECT_THRESHOLD=0.25
-  JARVIS_YAMNET_DEBUG=false
+  NEXI_YAMNET_CLAP_ENABLED=true
+  NEXI_YAMNET_CLAP_THRESHOLD=0.35
+  NEXI_YAMNET_SPEECH_REJECT_THRESHOLD=0.25
+  NEXI_YAMNET_DEBUG=false
 """
 
 from __future__ import annotations
@@ -65,9 +65,9 @@ class YamnetClapBackend:
     ):
         self._sample_rate = sample_rate
         self._clock = clock or time.time
-        self._debug = _env_bool("JARVIS_YAMNET_DEBUG", False)
-        self._threshold = _env_float("JARVIS_YAMNET_CLAP_THRESHOLD", 0.35)
-        self._speech_reject = _env_float("JARVIS_YAMNET_SPEECH_REJECT_THRESHOLD", 0.25)
+        self._debug = _env_bool("NEXI_YAMNET_DEBUG", False)
+        self._threshold = _env_float("NEXI_YAMNET_CLAP_THRESHOLD", 0.35)
+        self._speech_reject = _env_float("NEXI_YAMNET_SPEECH_REJECT_THRESHOLD", 0.25)
 
         self._model = None
         self._model_loaded = False

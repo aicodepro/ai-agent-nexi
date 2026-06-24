@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
-TRAINING_DIR = Path(__file__).resolve().parents[1] / "data" / "jarvis_training"
+TRAINING_DIR = Path(__file__).resolve().parents[1] / "data" / "nexi_training"
 
 
 def training_path(name: str) -> Path:

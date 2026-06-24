@@ -71,7 +71,7 @@ def _summarize_preference(text: str) -> tuple[str, str]:
     if "short" in lower and ("answer" in lower or "reply" in lower or "direct" in lower):
         return "preferences", "User prefers short and direct answers."
     if "long" in lower and ("box" in lower or "workspace" in lower or "main ui" in lower):
-        return "output_preferences", "User prefers long answers in the Jarvis Output Workspace."
+        return "output_preferences", "User prefers long answers in the Nexi Output Workspace."
     if "copy code" in lower:
         return "output_preferences", "User prefers code to be copied by default when requested."
     if "markdown" in lower:
@@ -197,7 +197,7 @@ def learn_from_exchange(user_text: str, assistant_text: str) -> None:
     maybe_extract_memory(user_text, assistant_text)
     lower = str(assistant_text or "").lower()
     if any(term in lower for term in ("done", "created", "opened", "saved", "copied")):
-        remember(f"User: {user_text} -> Jarvis: {assistant_text}", "successful_workflows", "tool_success", 0.6)
+        remember(f"User: {user_text} -> Nexi: {assistant_text}", "successful_workflows", "tool_success", 0.6)
 
 
 def record_tool_failure(tool: str, reason: str) -> None:

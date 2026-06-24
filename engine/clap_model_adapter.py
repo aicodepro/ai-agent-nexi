@@ -1,7 +1,7 @@
 # clap_model_adapter.py
 #
 # Lazy adapter that wires CLAP_NN (external_tools/clap_nn_source/CLAP_NN)
-# into Jarvis runtime detection.
+# into Nexi runtime detection.
 #
 # Strategy: Option B from CLAP_NN_BATCH4_SOURCE_AUDIT.md.
 #   - Reuse CLAP_NN preprocessing + inference logic when:
@@ -11,7 +11,7 @@
 #     to the RMS+peak signal detector in engine.clap_detector.
 #
 # No torch import happens at module import time. Everything is lazy so
-# Jarvis runs without PyTorch installed.
+# Nexi runs without PyTorch installed.
 
 from __future__ import annotations
 

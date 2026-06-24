@@ -31,7 +31,7 @@ class ClapNNResult:
 
 
 class ClapNNBackend:
-    """Real-time CLAP_NN clap detection for Jarvis 16 kHz pipeline.
+    """Real-time CLAP_NN clap detection for Nexi 16 kHz pipeline.
 
     If torch/torchaudio/torchvision are missing or the model file does not
     exist, init fails with a readable message.

@@ -321,7 +321,7 @@ def _format_candidate_text(user_text: str, assistant_text: str, category: str) -
         if "short" in user_text.lower() and ("answer" in user_text.lower() or "reply" in user_text.lower() or "direct" in user_text.lower()):
             return "User prefers short and direct answers."
         elif "long" in user_text.lower() and ("box" in user_text.lower() or "workspace" in user_text.lower() or "main ui" in user_text.lower()):
-            return "User prefers long answers in the Jarvis Output Workspace."
+            return "User prefers long answers in the Nexi Output Workspace."
 
     elif category == "output_preferences":
         if "copy code" in user_text.lower():
@@ -336,7 +336,7 @@ def _format_candidate_text(user_text: str, assistant_text: str, category: str) -
         return user_text
 
     elif category == "successful_workflows":
-        return f"User: {user_text} -> Jarvis: {assistant_text}"
+        return f"User: {user_text} -> Nexi: {assistant_text}"
 
     # Default: combine user and assistant text
     return f"{user_text} {assistant_text}".strip()

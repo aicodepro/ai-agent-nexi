@@ -58,24 +58,24 @@ _TOOLS: dict[str, ToolSpec] = {
     "remember": _spec("remember", "Remember a fact", ["text"]),
     "recall_memory": _spec("recall_memory", "Recall memory"),
     "forget_memory": _spec("forget_memory", "Forget memory", ["text"], safety="medium", confirm=True),
-    "open_output_workspace": _spec("open_output_workspace", "Open Jarvis Output Workspace"),
-    "close_output_workspace": _spec("close_output_workspace", "Close Jarvis Output Workspace"),
-    "minimize_output_workspace": _spec("minimize_output_workspace", "Minimize Jarvis Output Workspace"),
-    "pin_output_workspace": _spec("pin_output_workspace", "Pin Jarvis Output Workspace"),
-    "copy_latest_output": _spec("copy_latest_output", "Copy latest Jarvis output"),
-    "save_latest_output": _spec("save_latest_output", "Save latest Jarvis output", ["file_name"], safety="medium"),
-    "create_file_from_latest_output": _spec("create_file_from_latest_output", "Create a file from latest Jarvis output", ["file_name"], safety="medium"),
-    "show_latest_output": _spec("show_latest_output", "Show latest Jarvis output"),
+    "open_output_workspace": _spec("open_output_workspace", "Open Nexi Output Workspace"),
+    "close_output_workspace": _spec("close_output_workspace", "Close Nexi Output Workspace"),
+    "minimize_output_workspace": _spec("minimize_output_workspace", "Minimize Nexi Output Workspace"),
+    "pin_output_workspace": _spec("pin_output_workspace", "Pin Nexi Output Workspace"),
+    "copy_latest_output": _spec("copy_latest_output", "Copy latest Nexi output"),
+    "save_latest_output": _spec("save_latest_output", "Save latest Nexi output", ["file_name"], safety="medium"),
+    "create_file_from_latest_output": _spec("create_file_from_latest_output", "Create a file from latest Nexi output", ["file_name"], safety="medium"),
+    "show_latest_output": _spec("show_latest_output", "Show latest Nexi output"),
     "read_output_summary": _spec("read_output_summary", "Read latest output summary"),
-    "shorten_latest_output": _spec("shorten_latest_output", "Shorten latest Jarvis output"),
-    "regenerate_latest_output": _spec("regenerate_latest_output", "Regenerate latest Jarvis output"),
+    "shorten_latest_output": _spec("shorten_latest_output", "Shorten latest Nexi output"),
+    "regenerate_latest_output": _spec("regenerate_latest_output", "Regenerate latest Nexi output"),
     "volume_up": _spec("volume_up", "Increase volume"),
     "volume_down": _spec("volume_down", "Decrease volume"),
     "mute": _spec("mute", "Mute audio"),
-    "sleep": _spec("sleep", "Put Jarvis to sleep"),
-    "wake": _spec("wake", "Wake Jarvis"),
+    "sleep": _spec("sleep", "Put Nexi to sleep"),
+    "wake": _spec("wake", "Wake Nexi"),
     "repeat_last": _spec("repeat_last", "Repeat last answer"),
-    "system_status": _spec("system_status", "Show Jarvis system status"),
+    "system_status": _spec("system_status", "Show Nexi system status"),
     "clipboard_read": _spec("clipboard_read", "Read clipboard", safety="medium"),
     "clipboard_write_safe": _spec("clipboard_write_safe", "Write clipboard", ["text"], safety="high", confirm=True),
     "camera_preview": _spec("camera_preview", "Start camera preview", handler="engine.camera_control.start_camera_preview"),
@@ -435,14 +435,14 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         try:
             from engine.command import do_sleep
             do_sleep()
-            return {"success": True, "message": "Jarvis is going to sleep.", "tool": name, "verified": True}
+            return {"success": True, "message": "Nexi is going to sleep.", "tool": name, "verified": True}
         except Exception:
             return {"success": False, "message": "Could not enter sleep mode.", "tool": name}
     if name == "wake":
         try:
             from engine.command import do_wake
             do_wake()
-            return {"success": True, "message": "Jarvis is awake.", "tool": name, "verified": True}
+            return {"success": True, "message": "Nexi is awake.", "tool": name, "verified": True}
         except Exception:
             return {"success": False, "message": "Could not wake.", "tool": name}
     if name in {"open_output_workspace", "close_output_workspace", "minimize_output_workspace", "pin_output_workspace"}:

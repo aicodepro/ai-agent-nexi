@@ -57,16 +57,16 @@ def _resolve_temperature() -> str:
 def _load_asr_prompt() -> str:
     try:
         from engine.prompt_loader import load_prompt_file
-        return load_prompt_file("jarvis_asr_prompt.txt", "Transcribe English desktop assistant commands for Jarvis. Return only the spoken words.")
+        return load_prompt_file("nexi_asr_prompt.txt", "Transcribe English desktop assistant commands for Nexi. Return only the spoken words.")
     except Exception:
-        return "Transcribe English desktop assistant commands for Jarvis. Return only the spoken words."
+        return "Transcribe English desktop assistant commands for Nexi. Return only the spoken words."
 
 
 def _demo_transcript() -> str:
     try:
         from engine.demo_mode import DemoMode
         if DemoMode.is_active():
-            return (os.getenv("JARVIS_DEMO_ASR_FALLBACK_TEXT", "hello") or "hello").strip()
+            return (os.getenv("NEXI_DEMO_ASR_FALLBACK_TEXT", "hello") or "hello").strip()
     except Exception:
         pass
     return ""

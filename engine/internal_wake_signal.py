@@ -41,7 +41,7 @@ class InternalWakeSignalBus:
     def __init__(self, queue: Any = None, post_fn: Callable | None = None, debug: bool | None = None):
         self._queue = queue
         self._post_fn = post_fn
-        self._debug = debug if debug is not None else _env_bool("JARVIS_INTERNAL_WAKE_SIGNAL_DEBUG", False)
+        self._debug = debug if debug is not None else _env_bool("NEXI_INTERNAL_WAKE_SIGNAL_DEBUG", False)
         self._signal_count = 0
 
     def set_queue(self, queue: Any) -> None:

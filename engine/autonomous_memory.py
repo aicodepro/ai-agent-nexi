@@ -1,7 +1,7 @@
 """
 Autonomous Exchange Memory
 
-Implements the autonomous last-10-exchange memory system for Jarvis.
+Implements the autonomous last-10-exchange memory system for Nexi.
 
 Features:
 - Stores the latest 10 user-assistant exchanges automatically
@@ -93,7 +93,7 @@ class Exchange:
         if self.user_text:
             summary_parts.append(f"User: {self.user_text[:200]}")
         if self.assistant_text:
-            summary_parts.append(f"Jarvis: {self.assistant_text[:200]}")
+            summary_parts.append(f"Nexi: {self.assistant_text[:200]}")
 
         return " | ".join(summary_parts)
 
@@ -272,7 +272,7 @@ class AutonomousExchangeMemory:
                 if exchange.get("user_text"):
                     context_parts.append(f"User{i+1}: {exchange['user_text'][:200]}")
                 if exchange.get("assistant_text"):
-                    context_parts.append(f"Jarvis{i+1}: {exchange['assistant_text'][:200]}")
+                    context_parts.append(f"Nexi{i+1}: {exchange['assistant_text'][:200]}")
 
         # 4. Relevant long-term memories (if enabled)
         if include_long_term:
@@ -419,7 +419,7 @@ class AutonomousExchangeMemory:
         if exchange.assistant_text:
             # Summarize assistant text (extract key actions/decisions)
             assistant_summary = self._summarize_text(exchange.assistant_text)
-            parts.append(f"Jarvis: {assistant_summary}")
+            parts.append(f"Nexi: {assistant_summary}")
 
         # Add metadata if available
         if exchange.user_source:

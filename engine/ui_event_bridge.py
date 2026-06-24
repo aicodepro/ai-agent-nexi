@@ -1,6 +1,6 @@
 # ui_event_bridge.py
 #
-# Pushes Jarvis backend state to the Mark-style Eel UI.
+# Pushes Nexi backend state to the Mark-style Eel UI.
 # Single source of truth for UI state updates.
 # Safe: redacts secrets, survives Eel failure, no API key exposure.
 
@@ -83,7 +83,7 @@ def show_error(message: str) -> dict[str, Any]:
     safe = _redact_secrets((message or "")[:300])
     with _lock:
         payload = {"state": "error", "source": "system", "text": safe}
-        _safe_eel_call("updateJarvisState", payload)
+        _safe_eel_call("updateNexiState", payload)
         print(f"[UI_BRIDGE] show_error message={safe[:120]}", flush=True)
         return payload
 

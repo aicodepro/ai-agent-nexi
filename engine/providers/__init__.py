@@ -5,7 +5,7 @@ Keeps provider HTTP details out of the router. Two providers ship today:
 - groq  : groq.com inference (existing GROQ_API_KEY behaviour).
 - xai_grok : xAI / Grok (XAI_API_KEY, https://api.x.ai/v1).
 
-Grok/Groq classify or request a tool call only — Jarvis executes local actions
+Grok/Groq classify or request a tool call only — Nexi executes local actions
 itself through engine.tool_registry.execute_tool().
 """
 from __future__ import annotations

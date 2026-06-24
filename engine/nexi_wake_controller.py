@@ -13,13 +13,13 @@ def set_wake_queue(queue) -> None:
         _wake_queue = queue
 
 
-def is_jarvis_awake() -> bool:
+def is_nexi_awake() -> bool:
     with _lock:
         return _awake
 
 
-def wake_jarvis(source: str) -> bool:
-    """Wake internal Jarvis, update UI state, start command capture.
+def wake_nexi(source: str) -> bool:
+    """Wake internal Nexi, update UI state, start command capture.
 
     Status events (wake_detected, listening) are already posted by the
     AudioWakePipeline via InternalWakeSignalBus. This function only sets
@@ -40,8 +40,8 @@ def wake_jarvis(source: str) -> bool:
     return True
 
 
-def sleep_jarvis(reason: str = "") -> bool:
-    """Put Jarvis into sleep/idle state."""
+def sleep_nexi(reason: str = "") -> bool:
+    """Put Nexi into sleep/idle state."""
     global _awake
     safe_reason = (reason or "").strip()
     with _lock:

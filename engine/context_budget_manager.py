@@ -1,7 +1,7 @@
 """
 Context Budget Manager
 
-Implements bounded context building for Jarvis by combining:
+Implements bounded context building for Nexi by combining:
 - Active mode/workflow
 - Long-term memory
 - Rolling summary of older exchanges
@@ -136,7 +136,7 @@ def build_context(
                     if exchange.get("user_text"):
                         exchanges_parts.append(f"User{i+1}: {exchange['user_text'][:200]}")
                     if exchange.get("assistant_text"):
-                        exchanges_parts.append(f"Jarvis{i+1}: {exchange['assistant_text'][:200]}")
+                        exchanges_parts.append(f"Nexi{i+1}: {exchange['assistant_text'][:200]}")
 
                 exchanges_content = "\n".join(exchanges_parts)
                 chars_used += _add_section(

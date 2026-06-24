@@ -209,7 +209,7 @@ class UIStateManager:
         try:
             import eel
             payload = event.to_payload()
-            eel.updateJarvisState(payload)
+            eel.updateNexiState(payload)
             try:
                 eel.updatePresence(payload.get("presence", {}))
             except Exception:

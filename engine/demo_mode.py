@@ -31,19 +31,19 @@ class DemoMode:
 
     @staticmethod
     def is_active() -> bool:
-        return _env_bool("JARVIS_DEMO_MODE", False)
+        return _env_bool("NEXI_DEMO_MODE", False)
 
     @classmethod
     def should_suppress_followup(cls) -> bool:
-        return cls.is_active() and _env_bool("JARVIS_DEMO_DISABLE_AUTO_FOLLOWUP", True)
+        return cls.is_active() and _env_bool("NEXI_DEMO_DISABLE_AUTO_FOLLOWUP", True)
 
     @classmethod
     def use_local_tts(cls) -> bool:
-        return cls.is_active() and _env_bool("JARVIS_DEMO_USE_LOCAL_TTS", True)
+        return cls.is_active() and _env_bool("NEXI_DEMO_USE_LOCAL_TTS", True)
 
     @classmethod
     def reduce_logs(cls) -> bool:
-        return cls.is_active() and _env_bool("JARVIS_DEMO_REDUCE_LOGS", True)
+        return cls.is_active() and _env_bool("NEXI_DEMO_REDUCE_LOGS", True)
 
     @classmethod
     def safe_response(cls, key: str = "fallback") -> str:

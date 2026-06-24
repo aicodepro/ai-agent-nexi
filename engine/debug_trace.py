@@ -8,7 +8,7 @@ from typing import Any
 
 
 _MAJOR_EVENTS = {
-    "JARVIS READY",
+    "NEXI READY",
     "SLEEPING",
     "HOTWORD DETECTED",
     "DOUBLE CLAP DETECTED",
@@ -25,12 +25,12 @@ _FILTER_INSTALLED = False
 
 
 def _debug_path() -> Path:
-    configured = (os.getenv("JARVIS_DEBUG_LOG_FILE", "artifacts/jarvis_interview_debug.log") or "").strip()
-    return Path(configured or "artifacts/jarvis_interview_debug.log")
+    configured = (os.getenv("NEXI_DEBUG_LOG_FILE", "artifacts/nexi_interview_debug.log") or "").strip()
+    return Path(configured or "artifacts/nexi_interview_debug.log")
 
 
 def _console_clean() -> bool:
-    return (os.getenv("JARVIS_CONSOLE_LOG_LEVEL", "normal") or "normal").strip().lower() == "clean"
+    return (os.getenv("NEXI_CONSOLE_LOG_LEVEL", "normal") or "normal").strip().lower() == "clean"
 
 
 def _format(event: str, fields: dict[str, Any]) -> str:
@@ -80,8 +80,8 @@ def line(message: str) -> None:
         return
 
     lower = msg.lower()
-    if "jarvis ready" in lower or "pipeline running" in lower:
-        major("JARVIS READY")
+    if "nexi ready" in lower or "pipeline running" in lower:
+        major("NEXI READY")
     elif "hotword detected" in lower or "[wake] detected source=hotword" in lower:
         major("HOTWORD DETECTED")
     elif "double_clap_detected=true" in lower or "double clap detected" in lower:
@@ -102,8 +102,8 @@ def line(message: str) -> None:
 
 def _event_from_message(message: str) -> str:
     lower = message.lower()
-    if "jarvis ready" in lower or "pipeline running" in lower:
-        return "JARVIS READY"
+    if "nexi ready" in lower or "pipeline running" in lower:
+        return "NEXI READY"
     if "hotword detected" in lower or "[wake] detected source=hotword" in lower:
         return "HOTWORD DETECTED"
     if "double_clap_detected=true" in lower or "double clap detected" in lower:

@@ -19,7 +19,7 @@ class DashboardPanel:
 
 
 class WorldMonitorDashboard:
-    """Read-only dashboard aggregator for Jarvis runtime state."""
+    """Read-only dashboard aggregator for Nexi runtime state."""
 
     def get_all_panels(self) -> list[DashboardPanel]:
         panels = [
@@ -124,8 +124,8 @@ class WorldMonitorDashboard:
         data = {
             "wake_backend": os.getenv("VOICE_WAKE_BACKEND", "openwakeword"),
             "hotword_threshold": os.getenv("OPENWAKEWORD_SCORE_THRESHOLD", "0.25"),
-            "clap_primary": os.getenv("JARVIS_CLAP_PRIMARY", "dsp_clap"),
-            "clap_cooldown_ms": os.getenv("JARVIS_CLAP_COOLDOWN_MS", "1500"),
+            "clap_primary": os.getenv("NEXI_CLAP_PRIMARY", "dsp_clap"),
+            "clap_cooldown_ms": os.getenv("NEXI_CLAP_COOLDOWN_MS", "1500"),
         }
         return DashboardPanel("wake", "Wake", data, priority=30)
 

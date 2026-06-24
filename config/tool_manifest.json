@@ -33,7 +33,7 @@
     },
     "copy_latest_output": {
       "name": "copy_latest_output",
-      "description": "Copy latest Jarvis output",
+      "description": "Copy latest Nexi output",
       "required_slots": [],
       "optional_slots": [],
       "risk_level": "none",
@@ -43,7 +43,7 @@
     },
     "save_latest_output": {
       "name": "save_latest_output",
-      "description": "Save latest Jarvis output to a file",
+      "description": "Save latest Nexi output to a file",
       "required_slots": ["file_name"],
       "optional_slots": [],
       "risk_level": "medium",
@@ -53,7 +53,7 @@
     },
     "show_latest_output": {
       "name": "show_latest_output",
-      "description": "Show latest Jarvis output",
+      "description": "Show latest Nexi output",
       "required_slots": [],
       "optional_slots": [],
       "risk_level": "none",

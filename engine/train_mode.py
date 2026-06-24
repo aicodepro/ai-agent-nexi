@@ -74,17 +74,17 @@ def _format_profile_message(result: dict) -> str:
 
 def _handle_need_or_ultra_command(text: str, q: str) -> str | None:
     global _training_mode
-    if q.startswith("train jarvis deeply for "):
+    if q.startswith("train nexi deeply for "):
         _training_mode = True
-        need = _need_from_suffix(text, "train jarvis deeply for ")
+        need = _need_from_suffix(text, "train nexi deeply for ")
         from engine.deep_training_engine import start_ultra_training
         from engine.need_training_manager import start_need_training
         start_need_training(need)
         result = start_ultra_training(need)
         return result.get("message", f"Ultra training active for {need}.")
-    if q.startswith("train jarvis for "):
+    if q.startswith("train nexi for "):
         _training_mode = True
-        need = _need_from_suffix(text, "train jarvis for ")
+        need = _need_from_suffix(text, "train nexi for ")
         from engine.need_training_manager import start_need_training
         return _format_profile_message(start_need_training(need))
     if q.startswith("start ultra training for "):
@@ -92,7 +92,7 @@ def _handle_need_or_ultra_command(text: str, q: str) -> str | None:
         need = _need_from_suffix(text, "start ultra training for ")
         from engine.deep_training_engine import start_ultra_training
         return start_ultra_training(need).get("message", f"Ultra training active for {need}.")
-    if q in {"show training profiles", "show need profiles", "show jarvis profiles"}:
+    if q in {"show training profiles", "show need profiles", "show nexi profiles"}:
         from engine.need_training_manager import format_need_profiles
         return format_need_profiles()
     if q.startswith("forget training profile about "):
@@ -142,7 +142,7 @@ def handle_training_command(text: str) -> str | None:
     routed = _handle_need_or_ultra_command(text, q)
     if routed:
         return routed
-    if q in {"train jarvis", "start training", "start training mode", "training mode"}:
+    if q in {"train nexi", "start training", "start training mode", "training mode"}:
         return start_training_mode()
     if q in {"stop training", "stop training mode", "end training"}:
         return stop_training_mode()

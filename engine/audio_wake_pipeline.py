@@ -10,7 +10,7 @@
 #   * wake detector runs in worker thread (consumes queue)
 #   * Groq transcription happens after wake + VAD stop
 #   * allCommands() is called only by the UI process after transcript is ready
-#   * graceful degradation on missing deps -> Jarvis still starts
+#   * graceful degradation on missing deps -> Nexi still starts
 #
 # Heavy deps (openwakeword, sounddevice, silero-vad, torch, numpy) are all
 # lazy-imported. Missing deps surface as a single safe log line; the
@@ -68,21 +68,21 @@ def _normalise_oww_list(value: str) -> str:
 
 
 def _clap_enabled_env() -> bool:
-    if os.getenv("JARVIS_CLAP_ENABLED") is not None:
-        return _env_bool("JARVIS_CLAP_ENABLED", False)
+    if os.getenv("NEXI_CLAP_ENABLED") is not None:
+        return _env_bool("NEXI_CLAP_ENABLED", False)
     return _env_bool("CLAP_DETECTION_ENABLED", False)
 
 
-SAMPLE_RATE = _env_int("JARVIS_WAKE_SAMPLE_RATE", _env_int("AUDIO_SAMPLE_RATE", 16000))
+SAMPLE_RATE = _env_int("NEXI_WAKE_SAMPLE_RATE", _env_int("AUDIO_SAMPLE_RATE", 16000))
 CHANNELS = _env_int("AUDIO_CHANNELS", 1)
-WAKE_FRAME_MS = _env_int("JARVIS_WAKE_FRAME_MS", 80)
+WAKE_FRAME_MS = _env_int("NEXI_WAKE_FRAME_MS", 80)
 FRAME_SAMPLES = _env_int("AUDIO_FRAME_SAMPLES", max(1, int(SAMPLE_RATE * WAKE_FRAME_MS / 1000)))
 WAKE_BACKEND = _env("VOICE_WAKE_BACKEND", "openwakeword")
-WAKE_ACTION = _env("WAKE_ACTION", "jarvis_internal")
-OWW_ENABLED = _env_bool("JARVIS_HOTWORD_ENABLED", _env_bool("OPENWAKEWORD_ENABLED", True))
+WAKE_ACTION = _env("WAKE_ACTION", "nexi_internal")
+OWW_ENABLED = _env_bool("NEXI_HOTWORD_ENABLED", _env_bool("OPENWAKEWORD_ENABLED", True))
 OWW_MODEL_PATH = _env("OPENWAKEWORD_MODEL_PATH", "")
-OWW_PHRASES = _normalise_oww_list(_env("JARVIS_HOTWORD_PHRASES", _env("JARVIS_HOTWORD_PHRASE", "hey jarvis,jarvis")))
-OWW_DEFAULT_MODEL = _normalise_oww_name((OWW_PHRASES.split(",") or ["hey jarvis"])[0]) or "hey jarvis"
+OWW_PHRASES = _normalise_oww_list(_env("NEXI_HOTWORD_PHRASES", _env("NEXI_HOTWORD_PHRASE", "hey nexi,nexi")))
+OWW_DEFAULT_MODEL = _normalise_oww_name((OWW_PHRASES.split(",") or ["hey nexi"])[0]) or "hey nexi"
 OWW_PRETRAINED = _normalise_oww_list(
     _env(
         "OPENWAKEWORD_PRETRAINED_MODELS",
@@ -91,27 +91,27 @@ OWW_PRETRAINED = _normalise_oww_list(
 )
 OWW_THRESHOLD = _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.25)
 OWW_CONSECUTIVE = _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 1)
-WAKE_COOLDOWN_SECONDS = _env_float("WAKE_COOLDOWN_SECONDS", _env_int("JARVIS_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1500)) / 1000.0)
-HOTWORD_MIN_RMS = _env_float("JARVIS_HOTWORD_MIN_RMS", 0.003)
-HOTWORD_RISING_EDGE_DELTA = _env_float("JARVIS_HOTWORD_RISING_EDGE_DELTA", 0.02)
+WAKE_COOLDOWN_SECONDS = _env_float("WAKE_COOLDOWN_SECONDS", _env_int("NEXI_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1500)) / 1000.0)
+HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.003)
+HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02)
 AUDIO_INPUT_DEVICE = _env("AUDIO_INPUT_DEVICE", "")
-WAKE_DEBUG = _env_bool("WAKE_DEBUG", False) or _env_bool("JARVIS_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)
+WAKE_DEBUG = _env_bool("WAKE_DEBUG", False) or _env_bool("NEXI_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)
 
 VAD_BACKEND = _env("VAD_BACKEND", "silero")
-VAD_MIN_SPEECH_MS = _env_int("VAD_MIN_SPEECH_MS", _env_int("JARVIS_COMMAND_MIN_SPEECH_MS", 400))
-VAD_SILENCE_END_MS = _env_int("VAD_SILENCE_END_MS", _env_int("ASR_SILENCE_TIMEOUT_MS", _env_int("JARVIS_COMMAND_END_SILENCE_MS", 2200)))
+VAD_MIN_SPEECH_MS = _env_int("VAD_MIN_SPEECH_MS", _env_int("NEXI_COMMAND_MIN_SPEECH_MS", 400))
+VAD_SILENCE_END_MS = _env_int("VAD_SILENCE_END_MS", _env_int("ASR_SILENCE_TIMEOUT_MS", _env_int("NEXI_COMMAND_END_SILENCE_MS", 2200)))
 COMMAND_LISTEN_TIMEOUT_SECONDS = _env_float(
     "COMMAND_LISTEN_TIMEOUT_SECONDS",
-    _env_float("ASR_MAX_RECORD_SECONDS", _env_float("VAD_MAX_COMMAND_SECONDS", _env_float("JARVIS_COMMAND_MAX_SPEECH_MS", 30000) / 1000.0)),
+    _env_float("ASR_MAX_RECORD_SECONDS", _env_float("VAD_MAX_COMMAND_SECONDS", _env_float("NEXI_COMMAND_MAX_SPEECH_MS", 30000) / 1000.0)),
 )
-NO_SPEECH_TIMEOUT_SECONDS = _env_float("JARVIS_COMMAND_NO_SPEECH_TIMEOUT_MS", 20000) / 1000.0
+NO_SPEECH_TIMEOUT_SECONDS = _env_float("NEXI_COMMAND_NO_SPEECH_TIMEOUT_MS", 20000) / 1000.0
 VAD_MAX_COMMAND_SECONDS = COMMAND_LISTEN_TIMEOUT_SECONDS
 ASR_MAX_RECORD_SECONDS = _env_float("ASR_MAX_RECORD_SECONDS", VAD_MAX_COMMAND_SECONDS)
 ASR_SILENCE_TIMEOUT_MS = _env_int("ASR_SILENCE_TIMEOUT_MS", VAD_SILENCE_END_MS)
 ASR_FOLLOWUP_MAX_RECORD_SECONDS = _env_float("ASR_FOLLOWUP_MAX_RECORD_SECONDS", 4.0)
 ASR_FOLLOWUP_SILENCE_TIMEOUT_MS = _env_int("ASR_FOLLOWUP_SILENCE_TIMEOUT_MS", 650)
 ASR_MIN_AUDIO_MS = _env_int("ASR_MIN_AUDIO_MS", 1800)
-POST_WAKE_DELAY_MS = _env_int("JARVIS_POST_WAKE_DELAY_MS", _env_int("POST_WAKE_DELAY_MS", 1000))
+POST_WAKE_DELAY_MS = _env_int("NEXI_POST_WAKE_DELAY_MS", _env_int("POST_WAKE_DELAY_MS", 1000))
 VAD_MIN_RMS = _env_float("VAD_MIN_RMS", 0.015)
 VAD_PREROLL_MS = _env_int("VAD_PREROLL_MS", 400)
 WAKE_FLUSH_AUDIO_MS = _env_int("WAKE_FLUSH_AUDIO_MS", 500)
@@ -158,7 +158,7 @@ class WakeScorer:
 
 
 # The concrete openWakeWord scorer lives in engine.openwakeword_scorer (fixed
-# and verified: int16 input contract, loads the bundled hey_jarvis model, fires
+# and verified: int16 input contract, loads the bundled hey_nexi model, fires
 # ~0.99 on a real utterance). It duck-types WakeScorer (exposes .name / .score /
 # .model_name / .get_debug_snapshot) so it drops straight into this pipeline.
 from engine.openwakeword_scorer import OpenWakeWordScorer  # noqa: E402,F401
@@ -265,7 +265,7 @@ def _save_asr_request_wav(audio_wav_bytes: bytes) -> None:
 
 
 def _is_speaking() -> bool:
-    """True while Jarvis is producing TTS output (used for wake barge-in)."""
+    """True while Nexi is producing TTS output (used for wake barge-in)."""
     try:
         from engine.interrupt_controller import is_speaking
         return bool(is_speaking())
@@ -345,7 +345,7 @@ class AudioWakePipeline:
         self._clap_manager = None
 
         try:
-            from engine.jarvis_wake_controller import set_wake_queue
+            from engine.nexi_wake_controller import set_wake_queue
             set_wake_queue(command_queue)
         except Exception:
             pass
@@ -397,7 +397,7 @@ class AudioWakePipeline:
         now = self._clock()
         result = {"wake": False, "source": None, "score": 0.0, "cooldown": False, "reason": "none"}
 
-        # --- Barge-in: a wake word spoken WHILE Jarvis is talking interrupts
+        # --- Barge-in: a wake word spoken WHILE Nexi is talking interrupts
         # the TTS instead of being captured as a command. Checked before the
         # detectors-paused gate because detectors are paused during "saying".
         if _is_speaking():
@@ -742,7 +742,7 @@ class AudioWakePipeline:
                 )
             )
 
-        if WAKE_ACTION != "jarvis_internal":
+        if WAKE_ACTION != "nexi_internal":
             _safe_log(f"[WAKE] unsupported_action={WAKE_ACTION}; using internal wake")
         with self._capture_lock:
             if self._wake_orch is not None:
@@ -750,8 +750,8 @@ class AudioWakePipeline:
             if self._wake_signal_bus is not None:
                 self._wake_signal_bus.emit_listening_started(source, session_id=session_id)
             try:
-                from engine.jarvis_wake_controller import wake_jarvis
-                wake_jarvis(source)
+                from engine.nexi_wake_controller import wake_nexi
+                wake_nexi(source)
             except Exception as e:
                 _safe_log(f"[WAKE] internal_wake failed reason={type(e).__name__}")
                 if self._wake_orch is not None:
@@ -764,8 +764,8 @@ class AudioWakePipeline:
                 self.flush_wake_tail()
 
                 # Non-blocking wake confirmation TTS
-                if _env_bool("JARVIS_WAKE_CONFIRMATION_ENABLED", False):
-                    confirm_text = _env("JARVIS_WAKE_CONFIRMATION_TEXT", "Awake, sir.")
+                if _env_bool("NEXI_WAKE_CONFIRMATION_ENABLED", False):
+                    confirm_text = _env("NEXI_WAKE_CONFIRMATION_TEXT", "Awake, sir.")
                     if confirm_text:
                         try:
                             _safe_log(f"[WAKE_CONFIRM] speak text={confirm_text}")
@@ -815,7 +815,7 @@ class AudioWakePipeline:
                     # rest of the session lifecycle (recognising -> thinking ->
                     # speaking) and resumes the detectors only after TTS finishes.
                     # Finishing the session here would re-open the mic mid-response
-                    # and let Jarvis re-wake on its own speech.
+                    # and let Nexi re-wake on its own speech.
                     if self._command_queue is not None and get_session_manager().is_active():
                         _safe_log("[COMMAND_CAPTURE] command dispatched — session owned by bridge")
                         return True

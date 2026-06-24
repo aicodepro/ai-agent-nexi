@@ -40,9 +40,9 @@ $(document).ready(function () {
 
     // mic button click event
 
-    function setJarvisUiState(state, source, text) {
-        if (window.updateJarvisState) {
-            window.updateJarvisState({ state: state, source: source || 'ui', text: text || '' });
+    function setNexiUiState(state, source, text) {
+        if (window.updateNexiState) {
+            window.updateNexiState({ state: state, source: source || 'ui', text: text || '' });
         } else {
             eel.setStatus(state === 'thinking' ? 'Thinking...' : 'Listening...', state);
         }
@@ -50,12 +50,12 @@ $(document).ready(function () {
 
     $("#MicBtn").click(function () { 
         eel.playAssistantSound()
-        setJarvisUiState('listening', 'wake');
+        setNexiUiState('listening', 'wake');
         eel.allCommands()()
     });
 
     $("#SleepWakeBtn").click(function () {
-        eel.toggleJarvisSleepWake()()
+        eel.toggleNexiSleepWake()()
     });
 
 
@@ -66,7 +66,7 @@ $(document).ready(function () {
             eel.playAssistantSound()
             $("#Oval").attr("hidden", true);
             $("#SiriWave").attr("hidden", false);
-            eel.wakeJarvisFromUi("hotkey")()
+            eel.wakeNexiFromUi("hotkey")()
         }
     }
     document.addEventListener('keyup', doc_keyUp, false);
@@ -76,7 +76,7 @@ $(document).ready(function () {
 
         if (message != "") {
             
-            setJarvisUiState('thinking', 'typed', message);
+            setNexiUiState('thinking', 'typed', message);
             eel.submitUserCommand(message, "typed")();
             $("#chatbox").val("")
             $("#MicBtn").attr('hidden', false);

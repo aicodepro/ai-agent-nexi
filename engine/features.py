@@ -71,7 +71,7 @@ from hugchat import hugchat
 from pipes import quote
 from time import sleep
 import eel
-con = sqlite3.connect("jarvis.db")
+con = sqlite3.connect("nexi.db")
 cursor = con.cursor()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 HUGCHAT_COOKIE_PATH = os.path.join(os.path.dirname(__file__), "cookies.json")
@@ -155,7 +155,7 @@ def hotword():
 
             if keyword_index>=0:
                 print("hotword detected")
-                speak("Hello, I am Jarvis")
+                speak("Hello, I am Nexi")
                 break
     except Exception as e:
         print(f"Hotword error: {e}")
@@ -169,7 +169,7 @@ def hotword():
 
 
 def hotword_no_key():
-    from engine.hotword_helper import is_jarvis_hotword, check_hotword_cooldown, set_hotword_awake
+    from engine.hotword_helper import is_nexi_hotword, check_hotword_cooldown, set_hotword_awake
     recognizer = sr.Recognizer()
     recognizer.dynamic_energy_threshold = True
     recognizer.energy_threshold = int(os.getenv("MIC_ENERGY_THRESHOLD", "250"))
@@ -186,14 +186,14 @@ def hotword_no_key():
             try:
                 audio = recognizer.listen(source, timeout=None, phrase_time_limit=2)
                 query = recognizer.recognize_google(audio, language='en-in').lower()
-                match = is_jarvis_hotword(query)
+                match = is_nexi_hotword(query)
                 print(f"[HOTWORD] heard={query} match={match}")
                 if match:
                     if not check_hotword_cooldown():
                         continue
-                    print("[HOTWORD] detected=jarvis")
+                    print("[HOTWORD] detected=nexi")
                     set_hotword_awake(True)
-                    speak("Hello, I am Jarvis")
+                    speak("Hello, I am Nexi")
                     print("[VOICE] listening_for_command")
                     try:
                         max_record_seconds = float(os.getenv("ASR_MAX_RECORD_SECONDS", "6") or "6")
@@ -254,17 +254,17 @@ def whatsApp(mobile_no, message, flag, name):
 
     if flag == 'message':
         target_tab = 12
-        jarvis_message = "message send successfully to "+name
+        nexi_message = "message send successfully to "+name
 
     elif flag == 'call':
         target_tab = 7
         message = ''
-        jarvis_message = "calling to "+name
+        nexi_message = "calling to "+name
 
     else:
         target_tab = 6
         message = ''
-        jarvis_message = "staring video call with "+name
+        nexi_message = "staring video call with "+name
 
 
     # Encode the message for URL
@@ -287,7 +287,7 @@ def whatsApp(mobile_no, message, flag, name):
         pyautogui.hotkey('tab')
 
     pyautogui.hotkey('enter')
-    speak(jarvis_message)
+    speak(nexi_message)
 
 # chat bot 
 def strip_reasoning(text):
@@ -319,7 +319,7 @@ def ask_hugchat(prompt):
 
     chatbot = hugchat.ChatBot(
         cookie_path=HUGCHAT_COOKIE_PATH,
-        system_prompt="You are Jarvis, a concise desktop assistant. Answer directly in one or two sentences with no reasoning preamble."
+        system_prompt="You are Nexi, a concise desktop assistant. Answer directly in one or two sentences with no reasoning preamble."
     )
     conversation_id = chatbot.new_conversation()
     chatbot.change_conversation(conversation_id)
@@ -522,7 +522,7 @@ def _try_gemini(prompt):
                 if episodes:
                     context_lines.append("episodic:\n" + "\n".join(str(item)[:180] for item in episodes[:3]))
                 if context_lines:
-                    parts.append("Jarvis memory context:\n" + "\n".join(context_lines))
+                    parts.append("Nexi memory context:\n" + "\n".join(context_lines))
             except Exception:
                 pass
             context = "\n\n".join(parts)
@@ -555,12 +555,12 @@ def _resolve_provider_chain():
     """Return provider names in try order.
 
     Gemini is the default. Legacy providers are skipped unless
-    JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS is explicitly enabled.
+    NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS is explicitly enabled.
     """
-    legacy_enabled = _env_flag("JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS")
-    primary = (os.getenv("JARVIS_BRAIN_PRIMARY", "") or "").lower().strip()
-    fallback = (os.getenv("JARVIS_BRAIN_FALLBACK", "") or "").lower().strip()
-    legacy_provider = (os.getenv("JARVIS_BRAIN_PROVIDER", "") or "").lower().strip()
+    legacy_enabled = _env_flag("NEXI_ENABLE_LEGACY_BRAIN_PROVIDERS")
+    primary = (os.getenv("NEXI_BRAIN_PRIMARY", "") or "").lower().strip()
+    fallback = (os.getenv("NEXI_BRAIN_FALLBACK", "") or "").lower().strip()
+    legacy_provider = (os.getenv("NEXI_BRAIN_PROVIDER", "") or "").lower().strip()
 
     if not primary and legacy_provider in _PROVIDER_FUNCS:
         primary = legacy_provider

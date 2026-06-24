@@ -45,14 +45,14 @@ def _is_port_available(host: str, port: int) -> bool:
 
 
 def _find_free_port(host: str, preferred: int, max_port: int = 8020) -> tuple[int, str]:
-    auto_port = _env_bool("JARVIS_UI_AUTO_PORT", True)
+    auto_port = _env_bool("NEXI_UI_AUTO_PORT", True)
     if not auto_port:
         if _is_port_available(host, preferred):
             return preferred, ""
         return preferred, "in_use_but_auto_disabled"
     if _is_port_available(host, preferred):
         return preferred, ""
-    kill_stale = _env_bool("JARVIS_KILL_STALE_UI_PORT", False)
+    kill_stale = _env_bool("NEXI_KILL_STALE_UI_PORT", False)
     if kill_stale:
         try:
             import subprocess as _sp
@@ -202,11 +202,11 @@ def _launch_edge_in_thread(url: str, delay_ms: int = 1500) -> None:
     threading.Thread(target=_launch, daemon=True).start()
 
 
-def start_jarvis(command_queue=None, stop_event=None):
-    print(f"[RUN] ui start_jarvis pid={os.getpid()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
+def start_nexi(command_queue=None, stop_event=None):
+    print(f"[RUN] ui start_nexi pid={os.getpid()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     init_eel_ui(eel)
     try:
-        from engine.jarvis_wake_controller import set_wake_queue
+        from engine.nexi_wake_controller import set_wake_queue
         set_wake_queue(command_queue)
     except Exception as e:
         print(f"[WAKE] queue setup failed: {e}")
@@ -216,7 +216,7 @@ def start_jarvis(command_queue=None, stop_event=None):
             start_ui_bridge_pump(command_queue, stop_event)
         except Exception as e:
             print(f"[BRIDGE] pump start failed: {e}")
-    requested_port = _env_int("JARVIS_UI_PORT", 8000)
+    requested_port = _env_int("NEXI_UI_PORT", 8000)
     host = "localhost"
     try:
         selected_port, reason = _find_free_port(host, requested_port)
@@ -236,7 +236,7 @@ def start_jarvis(command_queue=None, stop_event=None):
     print(f"[RUN] eel.start pid={os.getpid()} host={host} port={selected_port}", flush=True)
     try:
         from engine.debug_trace import major
-        major("JARVIS READY")
+        major("NEXI READY")
         major("SLEEPING")
     except Exception:
         pass
@@ -251,7 +251,7 @@ def greet_user():
         speak("Good Afternoon!")
     else:
         speak("Good Evening!")
-    speak("I am Jarvis. How may I help you, sir?")
+    speak("I am Nexi. How may I help you, sir?")
 
 def main(command_queue=None, stop_event=None):
     global face_authenticated
@@ -262,12 +262,12 @@ def main(command_queue=None, stop_event=None):
         recognize_thread.join()
 
     if face_authenticated:
-        print("Face recognized. Starting Jarvis...")
+        print("Face recognized. Starting Nexi...")
         if _env_bool("TTS_BEFORE_COMMAND_CAPTURE", False):
             greet_user()
         else:
             print("[TTS] startup_greeting skipped reason=TTS_BEFORE_COMMAND_CAPTURE=false", flush=True)
-        start_jarvis(command_queue=command_queue, stop_event=stop_event)
+        start_nexi(command_queue=command_queue, stop_event=stop_event)
 
     if cap is not None:
         cap.release()

@@ -112,7 +112,7 @@ class SessionMemory:
         print("[SESSION_MEMORY] cleared=true", flush=True)
 
     def to_context_string(self, limit: int = 10, max_chars: int = 1800) -> str:
-        labels = {"user": "User", "assistant": "Jarvis", "tool": "Tool"}
+        labels = {"user": "User", "assistant": "Nexi", "tool": "Tool"}
         lines = []
         for turn in self.get_recent(limit):
             text = turn.get("text", "")
