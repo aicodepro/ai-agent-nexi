@@ -6,9 +6,6 @@ import time
 import uuid
 
 
-_AUTO_FINISH_TIMEOUT_SECONDS = 60.0
-
-
 def _env_int(key: str, default: int) -> int:
     try:
         return int(os.getenv(key, str(default)))
@@ -16,7 +13,21 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
-_POST_SESSION_WAKE_SUPPRESS_MS = max(0, _env_int("NEXI_POST_SESSION_WAKE_SUPPRESS_MS", 2000))
+def _env_float(key: str, default: float) -> float:
+    try:
+        return float(os.getenv(key, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+# How long the wake session may stay idle (detectors paused) before it auto-
+# finishes and re-arms the hotword. Was 60s — far too long: the bridge owns the
+# turn in a separate process, so this idle timeout is the wake process's only
+# re-arm path. Kept short AND speaking-aware (see check_timeout) so the hotword
+# returns within a few seconds of speech actually stopping, never mid-response.
+_AUTO_FINISH_TIMEOUT_SECONDS = max(1.0, _env_float("NEXI_SESSION_IDLE_TIMEOUT_SECONDS", 3.0))
+
+_POST_SESSION_WAKE_SUPPRESS_MS = max(0, _env_int("NEXI_POST_SESSION_WAKE_SUPPRESS_MS", 800))
 
 
 def _env_bool(key: str, default: bool) -> bool:
@@ -133,6 +144,7 @@ class WakeSessionManager:
             except Exception:
                 pass
             print(f"[SESSION] finish id={sid} reason={reason}", flush=True)
+            print(f"[SLEEP] entering_sleep hotword_rearmed=true reason={reason}", flush=True)
             print(f"[SESSION] detectors_resumed=true", flush=True)
 
     def ignore_if_stale(self, session_id: str) -> bool:
@@ -164,6 +176,18 @@ class WakeSessionManager:
             return time.time() - self._last_event_at
 
     def check_timeout(self) -> bool:
+        # The turn is still in progress while NEXI is speaking — keep the idle
+        # window from accumulating so we measure idle only from when speech
+        # actually stops, and never re-arm/echo mid-response.
+        try:
+            from engine.interrupt_controller import is_speaking
+            if is_speaking():
+                with self._session_lock:
+                    if self._session_id is not None:
+                        self._last_event_at = time.time()
+                return False
+        except Exception:
+            pass
         with self._session_lock:
             if self._session_id is None:
                 return False
@@ -182,7 +206,8 @@ class WakeSessionManager:
                     clear_session_memory()
                 except Exception:
                     pass
-                print(f"[SESSION] auto_timeout_finish id={sid} idle_seconds={idle:.0f}", flush=True)
+                print(f"[SESSION] auto_timeout_finish id={sid} idle_seconds={idle:.1f}", flush=True)
+                print(f"[SLEEP] entering_sleep hotword_rearmed=true reason=idle_timeout idle_s={idle:.1f}", flush=True)
                 print(f"[SESSION] detectors_resumed=true", flush=True)
                 return True
             return False
