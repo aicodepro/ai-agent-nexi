@@ -1,5 +1,47 @@
 # Nexi AI Assistant — Error & Audit Report
 
+> ## SESSION 2026-06-24 — Roadmap features #1/#3/#7/#14/#5/#15 (ultracode)
+>
+> **Methodology:** 16-agent audit workflow → TDD implementation → 3× full-suite regression + per-failure isolation.
+>
+> ### Defect Dashboard
+> | ID | Severity | Area | Status |
+> |----|----------|------|--------|
+> | S2-D1 | High | `engine/memory/local_memory.py` path validation | ✅ FIXED this session |
+> | S2-D2 | Medium | ~89 pre-existing test failures (3 categories) | ⚠️ Pre-existing, out of scope (documented) |
+> | S2-D3 | Info | Working tree mutated by pytest runs | ⚠️ Side-effect (not committed) |
+>
+> ### Technical Breakdown & Remediation
+>
+> **S2-D1 — `_PROJECT_ROOT` overshoot (FIXED).**
+> `engine/memory/local_memory.py:8` computed `_PROJECT_ROOT` with three `".."` from
+> `engine/memory/`, resolving to the **drive root `E:\`** instead of the project root. In
+> `_is_inside_project`, `normalized.startswith(_PROJECT_ROOT + os.sep)` then failed for the
+> degenerate drive-root case, so legitimate in-project paths (e.g. `data/memory/test.json`)
+> were wrongly rejected — a correctness **and** security-relevant flaw (the "inside project"
+> guard was effectively "anywhere on the drive", yet also broke valid paths).
+> *Remediation:* `"..","..",".."` → `"..",".."`. Verified: `test_memory_brain.py` → **70 passed**.
+> (File was untracked and not authored/modified by this session's feature work; fixed because
+> the zero-bugs mandate surfaced it.)
+>
+> **S2-D2 — Pre-existing suite failures (~89, NOT regressions).** Three categories:
+> 1. *Stale tests for the never-built modular layout* — import `skills.apps`, `wake.*`,
+>    `control.*`, `brain.planner` (the top-level `intent/ core/ skills/ brain/ wake/` dirs are
+>    empty stubs). e.g. `test_skills_basic.py`, `test_imports.py`.
+> 2. *Module-API drift* — e.g. `test_session_summary_manager.py` imports `get_summary_manager`
+>    which no longer exists.
+> 3. *Timing-sensitive voice/clap/UI tests* — `test_voice_barge_in_upgrade.py`, `test_speech_*`,
+>    `test_runtime_bridge.py`, `test_mark_ui_*artifacts` — flaky run-to-run (count wobbles ±1–3).
+> *Remediation (recommended, not done):* delete/retarget the stale modular-layout tests to
+> `engine/*`, update drifted imports, and mark the timing tests with retries or `@flaky`.
+>
+> **S2-D3 — pytest mutates the working tree.** Running the full suite regenerates
+> `artifacts/*.wav`, creates `datasets/`, and deletes the root `phase-1-*.md` planning docs.
+> *Remediation:* none committed; commits stage only intended files. A test fixture should use
+> `tmp_path` instead of writing into the repo, and the phase-1 doc deletion should be traced.
+>
+> ---
+
 **Generated:** 2026-06-23  
 **Methodology:** Multi-pass line-level analysis + 137 automated tests + AST analysis  
 **Verification:** Python syntax check, import check, pytest suite, AST audit, ruff-style static analysis

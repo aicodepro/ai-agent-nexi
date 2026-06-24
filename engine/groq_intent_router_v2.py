@@ -87,6 +87,12 @@ _SIMPLE_ALIAS_TOOLS = {
     "get_disk_space": ("system", ("how much disk space do i have", "disk space", "how much storage do i have", "how much space do i have", "free disk space", "storage space", "how much free space")),
     "is_disk_full": ("system", ("is my disk full", "is my drive full", "am i running out of space", "is my storage full", "is my disk almost full", "running low on space", "is my disk getting full")),
     "get_battery_status": ("system", ("battery status", "how much battery do i have", "am i charging", "battery level", "whats my battery", "what's my battery", "how is my battery", "how much battery is left")),
+    "get_running_apps": ("system", ("what apps are running", "list running apps", "running apps", "what programs are open", "what programs are running", "show running apps", "whats running", "what is running", "what apps are open")),
+    "get_idle_time": ("system", ("how long have i been idle", "idle time", "how long was i away", "am i idle", "how long have i been away", "how long was i idle", "how long have i been inactive")),
+    "show_diagnostics": ("system", ("show diagnostics", "voice diagnostics", "show voice diagnostics", "diagnostics", "run diagnostics", "system diagnostics", "show your diagnostics")),
+    "get_monitor_state": ("system", ("monitor state", "monitor status", "what are you monitoring", "show monitor", "world monitor", "dashboard state", "whats on the monitor")),
+    "echo_guard_status": ("system", ("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status", "echo guard")),
+    "get_hud_state": ("system", ("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status", "whats your current state")),
     "media_pause": ("desktop", ("pause the video", "pause video", "pause music", "pause media", "stop playing")),
     "media_resume": ("desktop", ("resume the video", "resume video", "play again", "resume media", "continue playing")),
     "media_mute": ("desktop", ("mute the video", "mute sound", "mute media")),
@@ -142,6 +148,33 @@ def _weather_match(q: str, text: str) -> dict[str, Any] | None:
     return exact_schema(empty_result(route="tool", intent="weather_lookup", domain="web", confidence=0.9, reason="weather_lookup") | {"slots": slots})
 
 
+# Windows Settings phrases routed before the generic "open <app>" handler.
+_SETTINGS_ROUTES = {
+    "open_wifi_settings": ("open wifi settings", "open wi-fi settings", "wifi settings", "wi-fi settings", "network settings"),
+    "open_bluetooth_settings": ("open bluetooth settings", "bluetooth settings", "open bluetooth"),
+    "open_display_settings": ("open display settings", "display settings", "screen settings"),
+    "open_sound_settings": ("open sound settings", "sound settings", "audio settings"),
+    "open_microphone_settings": ("open microphone settings", "microphone settings", "open mic settings", "mic settings"),
+    "open_camera_settings": ("open camera settings", "camera settings", "webcam settings"),
+    "open_startup_settings": ("open startup apps", "open startup settings", "startup apps", "startup settings"),
+    "open_windows_update": ("open windows update", "windows update", "check for updates"),
+    "open_settings": ("open windows settings", "open settings", "windows settings"),
+}
+
+
+def _settings_match(q: str) -> dict[str, Any] | None:
+    """Match Windows Settings phrases. Longest phrase wins so 'open wifi settings' beats 'settings'."""
+    best_intent = ""
+    best_len = 0
+    for intent, phrases in _SETTINGS_ROUTES.items():
+        for phrase in phrases:
+            if (q == phrase or f" {phrase} " in f" {q} " or q.startswith(phrase + " ") or q.endswith(" " + phrase)) and len(phrase) > best_len:
+                best_intent, best_len = intent, len(phrase)
+    if best_intent:
+        return empty_result(route="tool", intent=best_intent, domain="system", confidence=0.95, reason="settings_" + best_intent)
+    return None
+
+
 def _deterministic_router(text: str, context: dict | None = None) -> dict[str, Any]:
     q = _norm(text)
     if not q:
@@ -170,6 +203,11 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
         return _yt
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
+
+    # ── Windows Settings pages must beat the generic "open <app>" handler ─────
+    _settings = _settings_match(q)
+    if _settings:
+        return _settings
 
     if q in {"open", "launch", "start"}:
         return exact_schema(empty_result(route="clarify", intent="open_app", domain="desktop", confidence=0.92, reason="missing_app", clarification_question="Which app should I open?") | {"missing_slots": ["app_name"]})

@@ -102,6 +102,22 @@ _TOOLS: dict[str, ToolSpec] = {
     "get_disk_space": _spec("get_disk_space", "Report free and total disk space on the system drive", handler="engine.storage_awareness.get_disk_space", aliases=("how much disk space do i have", "disk space", "how much storage do i have", "how much space do i have", "free disk space", "storage space"), examples=["how much disk space do i have", "disk space"], category="system"),
     "is_disk_full": _spec("is_disk_full", "Check whether any fixed drive is running low on space", handler="engine.storage_awareness.is_disk_full", aliases=("is my disk full", "is my drive full", "am i running out of space", "is my storage full", "is my disk almost full", "running low on space"), examples=["is my disk full", "am i running out of space"], category="system"),
     "get_battery_status": _spec("get_battery_status", "Report battery percentage, charging state and time remaining", handler="engine.storage_awareness.get_battery_status", aliases=("battery status", "how much battery do i have", "am i charging", "battery level", "whats my battery", "how is my battery"), examples=["battery status", "how much battery do i have"], category="system"),
+    "get_running_apps": _spec("get_running_apps", "List the user-facing apps currently running", handler="engine.os_awareness.get_running_apps", aliases=("what apps are running", "list running apps", "running apps", "what programs are open", "what is running", "show running apps", "whats running"), examples=["what apps are running", "list running apps"], category="system"),
+    "get_idle_time": _spec("get_idle_time", "Report how long since the user last used the keyboard or mouse", handler="engine.os_awareness.get_idle_time", aliases=("how long have i been idle", "idle time", "how long was i away", "am i idle", "how long have i been away", "how long was i idle"), examples=["how long have i been idle", "idle time"], category="system"),
+    "open_settings": _spec("open_settings", "Open the Windows Settings app", handler="engine.windows_settings.open_settings", aliases=("open settings", "open windows settings", "windows settings"), examples=["open settings", "open windows settings"], category="system"),
+    "open_wifi_settings": _spec("open_wifi_settings", "Open Wi-Fi settings", handler="engine.windows_settings.open_wifi_settings", aliases=("open wifi settings", "wifi settings", "open wi-fi settings", "network settings"), examples=["open wifi settings"], category="system"),
+    "open_bluetooth_settings": _spec("open_bluetooth_settings", "Open Bluetooth settings", handler="engine.windows_settings.open_bluetooth_settings", aliases=("open bluetooth settings", "bluetooth settings", "open bluetooth"), examples=["open bluetooth settings"], category="system"),
+    "open_display_settings": _spec("open_display_settings", "Open display settings", handler="engine.windows_settings.open_display_settings", aliases=("open display settings", "display settings", "screen settings"), examples=["open display settings"], category="system"),
+    "open_sound_settings": _spec("open_sound_settings", "Open sound settings", handler="engine.windows_settings.open_sound_settings", aliases=("open sound settings", "sound settings", "audio settings"), examples=["open sound settings"], category="system"),
+    "open_microphone_settings": _spec("open_microphone_settings", "Open microphone privacy settings", handler="engine.windows_settings.open_microphone_settings", aliases=("open microphone settings", "microphone settings", "mic settings", "open mic settings"), examples=["open microphone settings"], category="system"),
+    "open_camera_settings": _spec("open_camera_settings", "Open camera privacy settings", handler="engine.windows_settings.open_camera_settings", aliases=("open camera settings", "camera settings", "webcam settings"), examples=["open camera settings"], category="system"),
+    "open_startup_settings": _spec("open_startup_settings", "Open startup apps settings", handler="engine.windows_settings.open_startup_settings", aliases=("open startup apps", "startup apps", "open startup settings", "startup settings"), examples=["open startup apps"], category="system"),
+    "open_windows_update": _spec("open_windows_update", "Open Windows Update", handler="engine.windows_settings.open_windows_update", aliases=("open windows update", "windows update", "check for updates"), examples=["open windows update"], category="system"),
+    "open_settings_page": _spec("open_settings_page", "Open a specific Windows Settings page by name", optional=["page"], handler="engine.windows_settings.open_settings_page", examples=["open the storage settings page"], category="system"),
+    "show_diagnostics": _spec("show_diagnostics", "Show Nexi voice/runtime diagnostics", handler="engine.runtime_awareness.show_diagnostics", aliases=("show diagnostics", "voice diagnostics", "show voice diagnostics", "diagnostics", "run diagnostics", "system diagnostics"), examples=["show diagnostics", "voice diagnostics"], category="system"),
+    "get_monitor_state": _spec("get_monitor_state", "Report what Nexi's background monitor is tracking", handler="engine.runtime_awareness.get_monitor_state", aliases=("monitor state", "monitor status", "what are you monitoring", "show monitor", "world monitor", "dashboard state"), examples=["monitor state", "what are you monitoring"], category="system"),
+    "echo_guard_status": _spec("echo_guard_status", "Report the echo / self-TTS guard cooldown state", handler="engine.runtime_awareness.echo_guard_status", aliases=("echo guard status", "are you in cooldown", "tts cooldown", "echo status", "cooldown status"), examples=["echo guard status", "are you in cooldown"], category="system"),
+    "get_hud_state": _spec("get_hud_state", "Report Nexi's HUD / presence state (mode, focus, goal)", handler="engine.runtime_awareness.get_hud_state", aliases=("show hud", "hud state", "command center", "your current state", "what is your current state", "show your status"), examples=["show hud", "hud state"], category="system"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
     "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
     "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
@@ -509,7 +525,7 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         import datetime
         now = datetime.datetime.now().strftime("%I:%M %p")
         return {"success": True, "message": f"The time is {now}.", "tool": name, "verified": True}
-    if name in {"get_active_window", "what_am_i_working_on", "get_system_state", "why_is_pc_slow"}:
+    if name in {"get_active_window", "what_am_i_working_on", "get_system_state", "why_is_pc_slow", "get_running_apps", "get_idle_time"}:
         from engine import os_awareness
         return getattr(os_awareness, name)(slots)
     if name in {"am_i_online", "get_network_status", "get_ip_address"}:
@@ -518,6 +534,15 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"get_disk_space", "is_disk_full", "get_battery_status"}:
         from engine import storage_awareness
         return getattr(storage_awareness, name)(slots)
+    if name in {"open_settings", "open_wifi_settings", "open_bluetooth_settings",
+                "open_display_settings", "open_sound_settings", "open_microphone_settings",
+                "open_camera_settings", "open_startup_settings", "open_windows_update",
+                "open_settings_page"}:
+        from engine import windows_settings
+        return getattr(windows_settings, name)(slots)
+    if name in {"show_diagnostics", "get_monitor_state", "echo_guard_status", "get_hud_state"}:
+        from engine import runtime_awareness
+        return getattr(runtime_awareness, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":

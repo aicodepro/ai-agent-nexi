@@ -6,6 +6,8 @@ get_active_window      role: PC awareness | risk: LOW | confirm: never | verifie
 what_am_i_working_on   role: PC awareness | risk: LOW | confirm: never | verifier: active window resolved   | memory: never store
 get_system_state       role: PC awareness | risk: LOW | confirm: never | verifier: cpu/mem sampled           | memory: never store
 why_is_pc_slow         role: PC awareness | risk: LOW | confirm: never | verifier: top processes sampled      | memory: never store
+get_running_apps       role: PC awareness | risk: LOW | confirm: never | verifier: process list sampled       | memory: never store
+get_idle_time          role: PC awareness | risk: LOW | confirm: never | verifier: idle ticks read            | memory: never store
 
 All functions are READ-ONLY (never close apps or change settings) and return the
 engine's standard tool-result dict so the verifier passes on observed values.
@@ -121,3 +123,75 @@ def why_is_pc_slow(slots: dict | None = None) -> dict[str, Any]:
            f"Heaviest on CPU: {', '.join(top_cpu) or 'nothing notable'}. "
            f"Heaviest on memory: {', '.join(top_mem) or 'nothing notable'}.")
     return _ok(msg, tool="why_is_pc_slow", cpu=round(cpu), mem=round(mem))
+
+
+# Background/system processes that are not user-facing "apps".
+_NOT_APPS = {
+    "system idle process", "system", "idle", "registry", "memory compression",
+    "svchost", "csrss", "wininit", "winlogon", "services", "lsass", "smss",
+    "fontdrvhost", "dwm", "conhost", "runtimebroker", "dllhost", "sihost",
+    "ctfmon", "searchhost", "searchindexer", "taskhostw", "spoolsv", "wmiprvse",
+    "audiodg", "backgroundtaskhost", "shellexperiencehost", "startmenuexperiencehost",
+}
+
+
+def get_running_apps(slots: dict | None = None) -> dict[str, Any]:
+    """List distinct user-facing applications currently running (read-only)."""
+    import psutil
+    names: set[str] = set()
+    for p in psutil.process_iter(["name"]):
+        try:
+            raw = (p.info.get("name") or "")
+            stem = raw.rsplit(".", 1)[0]
+            if stem and stem.lower() not in _NOT_APPS:
+                names.add(_friendly_app(raw))
+        except Exception:
+            continue
+    apps = sorted(names, key=str.lower)
+    count = len(apps)
+    preview = ", ".join(apps[:8])
+    if count:
+        msg = f"You have {count} apps running" + (f", including {preview}." if preview else ".")
+    else:
+        msg = "I couldn't read the running apps right now."
+    return _ok(msg, tool="get_running_apps", count=count, apps=apps)
+
+
+def _idle_ms() -> int:
+    """Milliseconds since the last keyboard/mouse input (Windows, read-only)."""
+    try:
+        import ctypes
+        import ctypes.wintypes as wt
+
+        class _LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [("cbSize", wt.UINT), ("dwTime", wt.DWORD)]
+
+        info = _LASTINPUTINFO()
+        info.cbSize = ctypes.sizeof(info)
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info)):
+            return 0
+        tick = ctypes.windll.kernel32.GetTickCount()
+        return max(0, int(tick) - int(info.dwTime))
+    except Exception:
+        return 0
+
+
+def _humanize_secs(secs: int) -> str:
+    if secs < 60:
+        return f"{secs} second{'s' if secs != 1 else ''}"
+    mins = secs // 60
+    if mins < 60:
+        return f"{mins} minute{'s' if mins != 1 else ''}"
+    hours, rem = mins // 60, mins % 60
+    return f"{hours}h {rem}m"
+
+
+def get_idle_time(slots: dict | None = None) -> dict[str, Any]:
+    """Report how long since the user last touched the keyboard/mouse (read-only)."""
+    idle_ms = _idle_ms()
+    idle_seconds = round(idle_ms / 1000, 1)
+    if idle_ms <= 0:
+        msg = "You're active right now."
+    else:
+        msg = f"You've been idle for {_humanize_secs(int(idle_seconds))}."
+    return _ok(msg, tool="get_idle_time", idle_seconds=idle_seconds, idle_ms=idle_ms)
