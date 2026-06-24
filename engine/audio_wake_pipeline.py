@@ -1021,6 +1021,13 @@ class AudioWakePipeline:
                 _safe_log("[HOTWORD] detected=true")
             emitted = self.trigger_wake(source, already_arbitrated=True, confidence=float(result.get("score") or 1.0), reason=str(result.get("reason") or "detected"))
             _safe_log(f"[WAKE] source={source} emitted={str(bool(emitted)).lower()}")
+            # Drain mic audio that piled up while the (blocking) wake turn ran,
+            # so detection resumes on FRESH input immediately instead of chewing
+            # through a stale backlog — keeps the hotword responsive right after
+            # a turn finishes / it goes back to sleep.
+            drained = self.flush_wake_tail()
+            if drained:
+                _safe_log(f"[WAKE] post_turn_flush drained={drained} frames — detection re-armed")
 
 
 # ---------------------------------------------------------------------------
