@@ -41,14 +41,15 @@ class SileroVAD:
 
     name = "silero"
 
-    def __init__(self, threshold: float | None = None, frame_size: int = 512):
+    def __init__(self, threshold: float | None = None, frame_size: int = 640):
         self._threshold = (
             float(threshold) if threshold is not None else _env_float("VAD_THRESHOLD", 0.35)
         )
-        # 512 samples = 32 ms @ 16 kHz — Silero's effective window. Smaller
-        # windows (e.g. 320) dilute the speech signal so real speech never
-        # crosses the threshold. The 1280-sample wake frame is padded to a
-        # multiple of 512 before scoring.
+        # 640 samples = 40 ms @ 16 kHz, and 1280 / 640 = 2 — it divides the
+        # wake frame EVENLY so no zero-padding is ever appended. Padding (e.g.
+        # at 512, which leaves a 256-sample remainder) corrupts Silero's
+        # recurrent ONNX state and locks the score high, so the model never
+        # reports end-of-speech silence and capture runs to the max ceiling.
         self._frame_size = int(frame_size)
         self._rms_floor = _env_float("VAD_FALLBACK_RMS", 0.012)
         self._vad = None
@@ -74,19 +75,20 @@ class SileroVAD:
             if samples.size == 0:
                 return False
 
-            # Normalised RMS energy — a robust gate that fires on any
-            # speech-level audio, OR'd with the neural score so a deliberately
-            # spoken command is never dropped if Silero under-reads on a mic.
-            rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2))) / 32768.0
-
             if self._mode == "silero" and self._vad is not None:
+                # Silero scores speech high (~0.7) and ambient noise / silence
+                # low (~0.05 / ~0.025), so it correctly detects end-of-speech
+                # silence and won't record until the max-duration ceiling the
+                # way a raw energy gate does in a noisy room.
                 remainder = samples.size % self._frame_size
                 if remainder:
                     pad = np.zeros(self._frame_size - remainder, dtype=np.int16)
                     samples = np.concatenate([samples, pad])
                 prob = float(self._vad.predict(samples, frame_size=self._frame_size))
-                return prob >= self._threshold or rms >= self._rms_floor
+                return prob >= self._threshold
 
+            # Energy fallback only when the Silero ONNX model is unavailable.
+            rms = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2))) / 32768.0
             return rms >= self._rms_floor
         except Exception as exc:
             _safe_log(f"[VAD] is_speech_failed reason={type(exc).__name__}")
