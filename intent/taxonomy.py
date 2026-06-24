@@ -4,7 +4,7 @@ ROUTES = {
     "local_action", "brain", "workflow", "tool", "system",
     "greeting", "identity", "memory", "training", "output",
     "cancel", "followup", "reject", "clarify", "interrupt",
-    "sleep", "repeat", "unknown",
+    "sleep", "repeat", "unknown", "jarvis",
 }
 
 BRAIN_INTENTS = {
@@ -30,7 +30,13 @@ LOCAL_INTENTS = {
     "start_hand_control", "start_eye_control", "stop_camera",
 }
 
-ALL_INTENTS = BRAIN_INTENTS | OUTPUT_INTENTS | LOCAL_INTENTS | {
+JARVIS_INTENTS: set[str] = {
+    "run_agent", "execute_tool", "train_on_correction",
+    "add_rule", "remove_rule", "agent_status",
+    "reflect", "tool_help", "cancel_agent",
+}
+
+ALL_INTENTS = BRAIN_INTENTS | OUTPUT_INTENTS | LOCAL_INTENTS | JARVIS_INTENTS | {
     "greeting", "identity", "repeat", "sleep", "wake",
     "remember", "forget", "show_notes", "recall",
     "train_rule", "show_rules", "clear_rules", "explain_intent",

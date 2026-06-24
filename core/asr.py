@@ -8,6 +8,10 @@ import struct
 from core.config import cfg
 
 
+def _get_asr_provider() -> str:
+    return cfg.asr_provider or "groq"
+
+
 def _load_asr_prompt() -> str:
     try:
         from pathlib import Path

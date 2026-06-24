@@ -11,8 +11,18 @@ SAFE_DIRS = {
 
 
 def _is_safe_path(path: Path) -> bool:
-    resolved = path.resolve()
-    return any(str(resolved).startswith(str(sd)) for sd in SAFE_DIRS)
+    try:
+        resolved = path.resolve()
+        for sd in SAFE_DIRS:
+            try:
+                resolved_sd = sd.resolve()
+                if resolved_sd in resolved.parents or resolved == resolved_sd:
+                    return True
+            except (OSError, RuntimeError):
+                continue
+        return False
+    except (OSError, RuntimeError):
+        return False
 
 
 def handle_create_folder(entity: str) -> dict:

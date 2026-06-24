@@ -38,9 +38,6 @@
 
   function draw() {
     ctx.clearRect(0, 0, fw, fw);
-    ctx.fillStyle = '#00060a'; ctx.fillRect(0, 0, fw, fw);
-
-    for (var di = 0; di < bgDots.length; di++) { ctx.fillStyle = PRI_GHO; ctx.fillRect(bgDots[di][0], bgDots[di][1], 1, 1); }
 
     var rFace = fw * 0.30;
     var clr = speaking ? MUTED : PRI;
@@ -135,6 +132,14 @@
   function step() {
     tick++;
     var now = Date.now(), since = now - lastT;
+
+    // Throttle to ~30fps when idle, 60fps when speaking
+    var targetFps = speaking ? 60 : 30;
+    var minInterval = 1000 / targetFps;
+    if (since < minInterval) {
+        animId = requestAnimationFrame(step);
+        return;
+    }
 
     if (since > (speaking ? 100 : 450)) {
       if (speaking) { tgtScale = 1.04 + Math.random() * 0.08; tgtHalo = 130 + Math.random() * 70; }

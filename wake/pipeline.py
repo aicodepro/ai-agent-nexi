@@ -34,8 +34,9 @@ def _resolve_device(spec: str):
 
 
 class AudioWakePipeline:
-    def __init__(self, command_queue=None):
+    def __init__(self, command_queue=None, speaking_event=None):
         self._command_queue = command_queue
+        self._speaking_event = speaking_event
         self._running = False
         self._frame_queue = queue.Queue(maxsize=200)
         self._worker_thread = None
@@ -114,37 +115,64 @@ class AudioWakePipeline:
                 self._stream.stop()
                 self._stream.close()
             except Exception:
-                pass
+                print(f"[WAKE] stream_stop_failed", flush=True)
         print("[WAKE] pipeline stopped", flush=True)
 
     def _open_stream(self):
-        try:
-            import sounddevice as sd
-            def _callback(indata, frames, time_info, status):
-                if status:
-                    pass  # ignore overflow
-                self._frame_queue.put_nowait(bytes(indata))
+        import sounddevice as sd
 
-            self._stream = sd.RawInputStream(
-                samplerate=cfg.sample_rate,
-                channels=cfg.channels,
-                dtype="int16",
-                blocksize=FRAME_SAMPLES,
-                device=self._input_device,
-                callback=_callback,
-            )
-            self._stream.start()
-            if self._input_device is not None or self._input_gain != 1.0:
-                print(f"[WAKE] mic device={self._input_device} gain={self._input_gain}x", flush=True)
-        except Exception as e:
-            print(f"[WAKE] mic_failed reason={type(e).__name__}", flush=True)
-            self._stream = None
+        def _callback(indata, frames, time_info, status):
+            if status:
+                print(f"[WAKE] stream_status: {status}", flush=True)
+            try:
+                self._frame_queue.put_nowait(bytes(indata))
+            except queue.Full:
+                pass  # drop oldest frame if buffer full
+
+        candidates = []
+        for dev in (self._input_device, None, 0):
+            if dev not in candidates:
+                candidates.append(dev)
+
+        for dev in candidates:
+            try:
+                stream = sd.RawInputStream(
+                    samplerate=cfg.sample_rate,
+                    channels=cfg.channels,
+                    dtype="int16",
+                    blocksize=FRAME_SAMPLES,
+                    device=dev,
+                    callback=_callback,
+                )
+                stream.start()
+                self._stream = stream
+                self._input_device = dev
+                print(f"[WAKE] mic opened device={dev} gain={self._input_gain}x", flush=True)
+                return
+            except Exception as e:
+                print(f"[WAKE] mic_open_failed device={dev} reason={type(e).__name__}: {str(e)[:80]}", flush=True)
+
+        self._stream = None
+        try:
+            inputs = [f"[{i}] {d['name']}" for i, d in enumerate(sd.query_devices())
+                      if d["max_input_channels"] > 0]
+            print("[WAKE] no usable mic. Available inputs: " + " | ".join(inputs), flush=True)
+        except Exception:
+            print("[WAKE] no usable mic and device list unavailable", flush=True)
+
+    def _suppressed(self) -> bool:
+        """True while NEXI is speaking — ignore the mic to avoid self-wake."""
+        return self._speaking_event is not None and self._speaking_event.is_set()
 
     def _worker_loop(self):
         while self._running:
             try:
                 frame = self._frame_queue.get(timeout=0.5)
             except queue.Empty:
+                continue
+
+            if self._suppressed():
+                self._preroll.clear()
                 continue
 
             self._preroll.append(frame)
@@ -174,11 +202,7 @@ class AudioWakePipeline:
 
     def _trigger_wake(self, source: str):
         """Full wake → capture → ASR → dispatch flow."""
-        # Post wake status
-        from core.bridge import post_wake_detected, post_status, post_command
-        post_wake_detected(self._command_queue, source=source)
-
-        # Flush wake-tail audio
+        # Flush wake-tail audio first
         flush_frames = max(1, int(self._flush_ms / cfg.frame_ms))
         for _ in range(flush_frames):
             try:
@@ -188,6 +212,10 @@ class AudioWakePipeline:
 
         # Post-wake delay
         time.sleep(self._post_wake_delay_ms / 1000.0)
+
+        # Post wake status AFTER audio flush
+        from core.bridge import post_wake_detected, post_status, post_command
+        post_wake_detected(self._command_queue, source=source)
 
         # Post listening status
         post_status(self._command_queue, "listening_started", source=source)
@@ -251,9 +279,9 @@ class AudioWakePipeline:
         return b"".join(frames)
 
 
-def start_pipeline(command_queue=None) -> bool:
+def start_pipeline(command_queue=None, speaking_event=None) -> bool:
     global _pipeline
-    _pipeline = AudioWakePipeline(command_queue=command_queue)
+    _pipeline = AudioWakePipeline(command_queue=command_queue, speaking_event=speaking_event)
     return _pipeline.start()
 
 

@@ -12,25 +12,26 @@ import time
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
 
-def start_ui(command_queue=None, stop_event=None, wake_ready=None):
+def start_ui(command_queue=None, stop_event=None, wake_ready=None, speaking_event=None):
     """Process 1: UI + command engine."""
     print(f"[NEXI] ui_process pid={os.getpid()}", flush=True)
     from main import main
-    main(command_queue=command_queue, stop_event=stop_event, wake_ready=wake_ready)
+    main(command_queue=command_queue, stop_event=stop_event, wake_ready=wake_ready,
+         speaking_event=speaking_event)
 
 
-def start_wake(command_queue=None, stop_event=None, wake_ready=None):
+def start_wake(command_queue=None, stop_event=None, wake_ready=None, speaking_event=None):
     """Process 2: Audio wake pipeline."""
     print(f"[NEXI] wake_process pid={os.getpid()}", flush=True)
     try:
         from wake.pipeline import start_pipeline, is_running
-        start_pipeline(command_queue=command_queue)
+        start_pipeline(command_queue=command_queue, speaking_event=speaking_event)
         if is_running():
             print("[NEXI] wake pipeline running", flush=True)
             # Signal the UI that wake detection is up before it opens the window.
@@ -58,10 +59,11 @@ if __name__ == "__main__":
     command_queue = multiprocessing.Queue()
     stop_event = multiprocessing.Event()
     wake_ready = multiprocessing.Event()
+    speaking_event = multiprocessing.Event()
     print(f"[NEXI] starting pid={os.getpid()}", flush=True)
 
-    p1 = multiprocessing.Process(target=start_ui, args=(command_queue, stop_event, wake_ready))
-    p2 = multiprocessing.Process(target=start_wake, args=(command_queue, stop_event, wake_ready))
+    p1 = multiprocessing.Process(target=start_ui, args=(command_queue, stop_event, wake_ready, speaking_event))
+    p2 = multiprocessing.Process(target=start_wake, args=(command_queue, stop_event, wake_ready, speaking_event))
 
     try:
         # Start the wake process first so its pipeline can come up while the

@@ -19,14 +19,21 @@ def send_email(recipient: str, subject: str, content: str) -> dict:
         msg["To"] = recipient
         msg["Subject"] = subject
         msg.attach(MIMEText(content, "plain"))
+    except Exception as e:
+        return {"handled": False, "message": f"Failed to create email: {e}"}
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
             server.starttls()
             server.login(sender, password)
             server.sendmail(sender, recipient, msg.as_string())
-        return {"handled": True, "message": f"Email sent to {recipient}."}
+    except smtplib.SMTPAuthenticationError:
+        return {"handled": False, "message": "Email authentication failed. Check credentials."}
+    except smtplib.SMTPRecipientsRefused:
+        return {"handled": False, "message": f"Email refused by server for {recipient}."}
     except Exception as e:
         return {"handled": False, "message": f"Email failed: {e}"}
+    return {"handled": True, "message": f"Email sent to {recipient}."}
 
 
 def extract_email(text: str) -> str:

@@ -1,6 +1,7 @@
 """Skill dispatcher — routes intents to skill handlers."""
 
 from skills import apps, web, files, browser, system, communication, games, scheduler, vision_control
+from skills import jarvis as jarvis_skill
 
 SKILL_MAP = {
     # Apps
@@ -60,7 +61,25 @@ SKILL_MAP = {
     "start_hand_control": lambda _: vision_control.start_hand_control(),
     "start_eye_control": lambda _: vision_control.start_eye_control(),
     "stop_camera": lambda _: vision_control.stop_camera(),
+
+    # Jarvis agent skills
+    "run_agent":           lambda e: _jarvis_action(jarvis_skill.run_agent, e),
+    "execute_tool":        lambda e: _jarvis_action(jarvis_skill.execute_tool, e),
+    "train_on_correction": lambda e: _jarvis_action(jarvis_skill.train_on_correction, e),
+    "add_rule":            lambda e: _jarvis_action(jarvis_skill.add_rule, e),
+    "remove_rule":         lambda e: _jarvis_action(jarvis_skill.remove_rule, e),
+    "agent_status":        lambda _: _jarvis_action(jarvis_skill.agent_status),
+    "reflect":             lambda _: _jarvis_action(jarvis_skill.reflect),
+    "tool_help":           lambda e: _jarvis_action(jarvis_skill.tool_help, e),
+    "cancel_agent":        lambda _: _jarvis_action(jarvis_skill.cancel_agent),
 }
+
+
+def _jarvis_action(fn, *args) -> dict:
+    try:
+        return {"handled": True, "message": fn(*args)}
+    except Exception as e:
+        return {"handled": False, "message": f"Jarvis error: {e}"}
 
 
 def _browser_action(fn, message: str) -> dict:

@@ -46,14 +46,14 @@ def submit_user_command(text: str, source: str = "ui_text", mode: str = "text") 
             from memory.context import add_user_turn
             add_user_turn(text, source=source)
         except Exception:
-            pass
+            print(f"[DISPATCH] add_user_turn failed", flush=True)
 
         # Auto-extract memories
         try:
             from memory.manager import maybe_extract_memory
             maybe_extract_memory(text)
         except Exception:
-            pass
+            print(f"[DISPATCH] maybe_extract_memory failed", flush=True)
 
         # Infer user preferences
         try:
@@ -62,7 +62,7 @@ def submit_user_command(text: str, source: str = "ui_text", mode: str = "text") 
             if pref:
                 update_user_model({"type": "preference", "text": text, "value": pref.get("value", "")})
         except Exception:
-            pass
+            print(f"[DISPATCH] infer_user_preference failed", flush=True)
 
         # Set UI state to thinking
         emit_state("thinking", source=source, text=text[:80])
@@ -93,7 +93,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
             if action:
                 return _dispatch(action, source, _depth=1)
         except Exception:
-            pass
+            print(f"[DISPATCH] match_rule failed", flush=True)
 
     # 1. Active workflow
     try:
@@ -102,7 +102,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
         if result:
             return result
     except Exception:
-        pass
+        print(f"[DISPATCH] workflow failed", flush=True)
 
     # 2. Pending clarification
     try:
@@ -112,7 +112,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
             if answer.get("handled"):
                 return _handle_clarification_answer(answer)
     except Exception:
-        pass
+        print(f"[DISPATCH] clarification failed", flush=True)
 
     # 3. Memory commands
     try:
@@ -121,7 +121,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
         if result.get("handled"):
             return result.get("response", "Done.")
     except Exception:
-        pass
+        print(f"[DISPATCH] memory command failed", flush=True)
 
     # 4. Intent routing
     from intent.router import route_intent
@@ -154,7 +154,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
             from workflow.manager import clear_workflow
             clear_workflow()
         except Exception:
-            pass
+            print(f"[DISPATCH] clear_workflow failed", flush=True)
         return "Cancelled."
 
     if route == "output":
@@ -167,8 +167,23 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
         from brain.planner import run_plan
         return run_plan(entity)
 
+    if route == "brain" and intent == "explain_intent":
+        return "I can help explain things. What would you like me to explain?"
+
+    # Handle local_action intents that have no dedicated skill handler
+    if route == "local_action" and intent in ("save_output", "copy_output", "append_output"):
+        return _handle_output_intent(intent)
+
+
     if route == "tool":
         return _handle_tool_intent(intent, entity)
+
+    if route == "jarvis":
+        if not cfg.jarvis.jarvis_enabled:
+            return "Jarvis features are disabled in configuration."
+        from skills.dispatch import handle_skill
+        result = handle_skill(intent, entity)
+        return result.get("message", "Jarvis handler executed. Full implementation coming in later phases.")
 
     # 5. Local action → skill dispatch
     if route == "local_action" and confidence >= 0.7:
@@ -185,7 +200,7 @@ def _dispatch(text: str, source: str, _depth: int = 0) -> str:
             if clar:
                 return clar["question"]
         except Exception:
-            pass
+            print(f"[DISPATCH] ask_clarification failed", flush=True)
 
     # 7. Brain (LLM) fallback
     if route in {"brain", "unknown"} or confidence < 0.5:
@@ -211,12 +226,12 @@ def _store_response(user_text: str, response: str, source: str):
         from memory.context import add_assistant_turn
         add_assistant_turn(response, source=source)
     except Exception:
-        pass
+        print(f"[DISPATCH] store_response add_assistant_turn failed", flush=True)
     try:
         from memory.manager import maybe_extract_memory
         maybe_extract_memory(user_text, response)
     except Exception:
-        pass
+        print(f"[DISPATCH] store_response extract_memory failed", flush=True)
 
 
 def _greeting_response() -> str:
@@ -230,7 +245,7 @@ def _greeting_response() -> str:
 
 
 def _handle_output_intent(intent: str) -> str:
-    if intent == "copy_output":
+    if intent in ("copy_output", "copy"):
         try:
             from memory.context import get_last_assistant_response
             text = get_last_assistant_response()
@@ -241,8 +256,24 @@ def _handle_output_intent(intent: str) -> str:
             return "Nothing to copy."
         except Exception:
             return "Couldn't copy."
+    if intent in ("save_output", "save"):
+        try:
+            from memory.context import get_last_assistant_response
+            text = get_last_assistant_response()
+            if text:
+                from datetime import datetime
+                from pathlib import Path
+                desktop = Path.home() / "Desktop"
+                desktop.mkdir(parents=True, exist_ok=True)
+                fname = desktop / f"nexi_output_{datetime.now():%Y%m%d_%H%M%S}.txt"
+                fname.write_text(text, encoding="utf-8")
+                return f"Saved to {fname.name}"
+            return "Nothing to save."
+        except Exception:
+            return "Couldn't save."
+    if intent in ("append_output",):
+        return "Append not yet supported."
     return "Output action not available."
-
 
 def _handle_training_intent(intent: str, entity: str) -> str:
     if intent == "train_rule":

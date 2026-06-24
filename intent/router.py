@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import time
 from intent.taxonomy import (
     ROUTES, BRAIN_INTENTS, OUTPUT_INTENTS, LOCAL_INTENTS,
     empty_result, validate_route, validate_intent,
@@ -104,9 +105,35 @@ _SLEEP_PATTERNS = {"go to sleep", "sleep", "good night", "bye", "goodbye",
                    "shut up", "stop listening", "see you later"}
 _WAKE_PATTERNS = {"wake up", "i'm back", "im back", "hey nexi", "nexi"}
 
+# === Jarvis deterministic prefixes ===
+_JARVIS_PREFIXES = {
+    "run agent": ("jarvis", "run_agent"),
+    "execute tool": ("jarvis", "execute_tool"),
+    "use tool": ("jarvis", "execute_tool"),
+    "train on that": ("jarvis", "train_on_correction"),
+    "learn from that": ("jarvis", "train_on_correction"),
+    "add rule": ("jarvis", "add_rule"),
+    "remove rule": ("jarvis", "remove_rule"),
+    "agent status": ("jarvis", "agent_status"),
+    "system status": ("jarvis", "agent_status"),
+    "cancel agent": ("jarvis", "cancel_agent"),
+    "stop agent": ("jarvis", "cancel_agent"),
+    "reflect on that": ("jarvis", "reflect"),
+    "reflect": ("jarvis", "reflect"),
+    "tool help": ("jarvis", "tool_help"),
+}
+
+
+def _match_jarvis_prefix(n: str) -> dict | None:
+    for prefix, (route, intent) in _JARVIS_PREFIXES.items():
+        if n.startswith(prefix):
+            entity = n[len(prefix):].strip().strip('."!?')
+            return _result(route, intent, 0.85, entity=entity)
+    return None
+
 
 def _norm(text: str) -> str:
-    return re.sub(r"[^\w\s]", "", text.strip().lower())
+    return re.sub(r"[^a-zA-Z0-9\s]", "", text.strip().lower())
 
 
 def _result(route: str, intent: str, confidence: float, entity: str = "",
@@ -116,6 +143,11 @@ def _result(route: str, intent: str, confidence: float, entity: str = "",
 
 
 def _deterministic(text: str) -> dict:
+    # Math check on raw text (before normalization strips operators)
+    raw_stripped = _MATH_RE.sub("", re.sub(r"\s+", "", text.strip().lower()))
+    if not raw_stripped and len(text.strip()) >= 3:
+        return _result("brain", "math", 0.95, entity=text.strip())
+
     n = _norm(text)
 
     # Sleep/wake
@@ -175,9 +207,10 @@ def _deterministic(text: str) -> dict:
             entity = text.strip()[len(prefix):].strip()
             return _result("local_action", intent, 0.9, entity=entity)
 
-    # Math
-    if _MATH_RE.match(n) and len(n) >= 3:
-        return _result("brain", "math", 0.95, entity=text.strip())
+    # === Jarvis patterns (genuinely new prefixes only — never shadow real features) ===
+    jarvis_match = _match_jarvis_prefix(n)
+    if jarvis_match:
+        return jarvis_match
 
     # Q&A prefixes → brain
     for prefix in _QA_PREFIXES:
@@ -187,19 +220,39 @@ def _deterministic(text: str) -> dict:
     return empty_result()
 
 
+_last_llm_call = 0.0
+
+
+def _llm_rate_limited() -> bool:
+    """Throttle Groq intent calls (ported from JARVIS intent router v2)."""
+    global _last_llm_call
+    try:
+        cooldown = float(os.getenv("GROQ_INTENT_COOLDOWN_SECONDS", "0.5"))
+    except (TypeError, ValueError):
+        cooldown = 0.5
+    now = time.time()
+    if now - _last_llm_call < cooldown:
+        return True
+    _last_llm_call = now
+    return False
+
+
 def _route_with_groq(text: str) -> dict:
-    """LLM-based routing when deterministic fails."""
+    """LLM-based routing when deterministic fails (JARVIS v2 hardening)."""
+    if (os.getenv("GROQ_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
+        return empty_result()
     api_key = os.getenv("GROQ_API_KEY", "")
     if not api_key:
         return empty_result()
+    if _llm_rate_limited():
+        return empty_result()
 
     model = os.getenv("GROQ_INTENT_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
-    prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "intent_router_prompt.txt")
-    system_prompt = ""
     try:
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            system_prompt = f.read().strip()
-    except FileNotFoundError:
+        from intent.feature_registry import build_router_prompt
+        system_prompt = build_router_prompt()
+    except Exception as e:
+        print(f"[INTENT] feature_registry_failed reason={type(e).__name__}", flush=True)
         system_prompt = (
             "Classify the user intent. Return JSON: {\"route\": \"...\", \"intent\": \"...\", "
             "\"confidence\": 0.0-1.0, \"entity\": \"...\"}. "
@@ -221,17 +274,23 @@ def _route_with_groq(text: str) -> dict:
                 "temperature": 0.1,
                 "max_tokens": 150,
             },
-            timeout=8,
+            timeout=float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "8")),
         )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
-        # Extract JSON from response
-        match = re.search(r"\{[^}]+\}", content)
+        # Extract JSON from response (greedy to last brace handles nested objects)
+        match = re.search(r"\{.*\}", content, flags=re.S)
         if match:
             data = json.loads(match.group())
+            intent = validate_intent(data.get("intent", "unknown"))
+            if intent != "unknown":
+                from intent.feature_registry import route_for
+                route = route_for(intent)
+            else:
+                route = validate_route(data.get("route", "unknown"))
             return {
-                "route": validate_route(data.get("route", "unknown")),
-                "intent": validate_intent(data.get("intent", "unknown")),
+                "route": route,
+                "intent": intent,
                 "confidence": min(1.0, max(0.0, float(data.get("confidence", 0.5)))),
                 "entity": str(data.get("entity", "")),
                 "reason": "groq_llm",

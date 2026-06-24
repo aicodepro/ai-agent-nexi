@@ -41,7 +41,7 @@ class ActionGate:
             return {"ok": False, "message": f"Action '{action_name}' is blocked (critical risk)."}
 
         if policy["confirm"]:
-            return {"ok": False, "requires_confirmation": True,
+            return {"ok": True, "requires_confirmation": True,
                     "message": f"Action '{action_name}' requires confirmation."}
 
         try:

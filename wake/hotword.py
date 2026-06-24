@@ -69,7 +69,7 @@ class HotwordDetector:
                 try:
                     available = [k.lower() for k in self._model.models.keys()]
                     if not any(any(p in k for k in available) for p in self._phrases):
-                        fallback = os.getenv("OPENWAKEWORD_FALLBACK_MODEL", "hey_jarvis").lower()
+                        fallback = os.getenv("OPENWAKEWORD_FALLBACK_MODEL", "hey_nexi").lower()
                         chosen = next((k for k in available if fallback in k),
                                       available[0] if available else "")
                         if chosen:

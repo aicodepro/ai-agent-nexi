@@ -12,6 +12,23 @@ _speak_lock = threading.Lock()
 _interrupt_requested = False
 
 
+def _get_tts_provider() -> str:
+    return cfg.tts_provider_order or "groq"
+
+
+_speaking_event = None
+
+
+def set_speaking_event(ev) -> None:
+    """Register a cross-process flag set while NEXI is speaking.
+
+    The wake pipeline checks this so the mic ignores NEXI's own voice
+    (prevents a self-listening feedback loop).
+    """
+    global _speaking_event
+    _speaking_event = ev
+
+
 def is_speaking() -> bool:
     return _speaking
 
@@ -63,10 +80,7 @@ def speak_groq(text: str) -> bool:
         tmp.write(audio_bytes)
         tmp.close()
         try:
-            try:
-                from playsound3 import playsound
-            except ImportError:
-                from playsound import playsound
+            from playsound3 import playsound
             _set_speaking(True)
             playsound(tmp.name)
         finally:
@@ -76,6 +90,10 @@ def speak_groq(text: str) -> bool:
             except OSError:
                 pass
         return True
+    except urllib.error.HTTPError as e:
+        print(f"[TTS] groq_failed http={e.code} (check GROQ_TTS_MODEL terms/rate limits; "
+              f"falling back to pyttsx3)", flush=True)
+        return False
     except Exception as e:
         print(f"[TTS] groq_failed reason={type(e).__name__}", flush=True)
         return False
@@ -126,19 +144,28 @@ def speak(text: str, display: bool = True) -> None:
         except Exception:
             pass
 
-    for provider in cfg.tts_providers:
-        if _should_interrupt():
-            clear_interrupt()
-            return
-        if provider == "groq" and speak_groq(voice_text):
-            break
-        elif provider == "pyttsx3" and speak_pyttsx3(voice_text):
-            break
-    else:
-        print("[TTS] all_providers_failed", flush=True)
+    if _speaking_event is not None:
+        _speaking_event.set()
+    try:
+        for provider in cfg.tts_providers:
+            if _should_interrupt():
+                clear_interrupt()
+                return
+            if provider == "groq" and speak_groq(voice_text):
+                break
+            elif provider == "pyttsx3" and speak_pyttsx3(voice_text):
+                break
+        else:
+            print("[TTS] all_providers_failed", flush=True)
+    finally:
+        if _speaking_event is not None:
+            _speaking_event.clear()
 
     try:
         from core.ui_state import emit_state
-        emit_state("sleep")
+        if cfg.auto_listen_after_question:
+            emit_state("listening")
+        else:
+            emit_state("sleep")
     except Exception:
         pass

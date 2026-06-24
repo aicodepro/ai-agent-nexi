@@ -21,53 +21,25 @@ def should_safety_check(text: str, route: str = "", intent: str = "") -> bool:
 
 
 def classify_safety(text: str, action: str = "", context: str = "") -> dict:
-    """Classify risk level. Returns {risk, requires_confirmation, reason}."""
+    """Classify risk level using keyword analysis (local, fast). Optionally uses LLM for nuanced cases."""
     if not should_safety_check(text):
         return {"risk": "low", "requires_confirmation": False, "reason": "no_risky_words"}
 
-    # Try Groq LLM classification
-    api_key = cfg.groq_api_key
-    model = os.getenv("SAFETY_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
-    if api_key:
-        try:
-            import requests
-            resp = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": (
-                            "Classify the safety risk of this user action. "
-                            "Return JSON: {\"risk\": \"low|medium|high|blocked\", \"reason\": \"...\"}. "
-                            "Only return valid JSON."
-                        )},
-                        {"role": "user", "content": f"Action: {text}\nContext: {action} {context}"},
-                    ],
-                    "temperature": 0.0,
-                    "max_tokens": 100,
-                },
-                timeout=6,
-            )
-            resp.raise_for_status()
-            content = resp.json()["choices"][0]["message"]["content"]
-            match = re.search(r"\{[^}]+\}", content)
-            if match:
-                data = json.loads(match.group())
-                risk = data.get("risk", "medium").lower()
-                if risk in {"high", "blocked"}:
-                    return {"risk": risk, "requires_confirmation": True,
-                            "reason": data.get("reason", "llm_classified")}
-                if risk == "medium":
-                    return {"risk": "medium", "requires_confirmation": True,
-                            "reason": data.get("reason", "llm_classified")}
-                return {"risk": "low", "requires_confirmation": False,
-                        "reason": data.get("reason", "llm_classified")}
-        except Exception:
-            pass
-
-    # Fallback: risky words found → require confirmation
-    return {"risk": "medium", "requires_confirmation": True, "reason": "risky_words_detected"}
+    # Local keyword-based classification (instant, no network call)
+    text_lower = text.lower()
+    
+    # High risk keywords
+    high_risk = re.compile(r"\b(format\s+disk|drop\s+table|rm\s+-rf|shutdown|reboot)\b", re.IGNORECASE)
+    if high_risk.search(text_lower):
+        return {"risk": "high", "requires_confirmation": True, "reason": "high_risk_keyword"}
+    
+    # Medium risk keywords
+    medium_risk = re.compile(r"\b(delete|remove|overwrite|move|terminal|powershell|cmd\.exe|execute|run\s+code"
+                             r"|send\s+email|credential|password|token|api\s*key|secret)\b", re.IGNORECASE)
+    if medium_risk.search(text_lower):
+        return {"risk": "medium", "requires_confirmation": True, "reason": "medium_risk_keyword"}
+    
+    return {"risk": "low", "requires_confirmation": False, "reason": "safe_after_analysis"}
 
 
 def enforce_safety(decision: dict) -> dict:

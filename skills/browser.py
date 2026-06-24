@@ -5,15 +5,13 @@ import time
 
 
 def volume_up():
-    for _ in range(10):
-        pyautogui.press("volumeup")
-        time.sleep(0.1)
+    pyautogui.press("volumeup")
+    time.sleep(0.05)
 
 
 def volume_down():
-    for _ in range(10):
-        pyautogui.press("volumedown")
-        time.sleep(0.1)
+    pyautogui.press("volumedown")
+    time.sleep(0.05)
 
 
 def new_tab():
@@ -73,9 +71,13 @@ def private_window():
 
 
 def minimize():
-    pyautogui.hotkey("alt", "space")
-    time.sleep(0.1)
-    pyautogui.press("n")
+    try:
+        import subprocess
+        subprocess.run(["powershell", "-command", 
+            "(New-Object -ComObject Shell.Application).MinimizeAll()"], 
+            capture_output=True, timeout=5)
+    except Exception:
+        pyautogui.hotkey("win", "m")
 
 
 def search_google(query: str):

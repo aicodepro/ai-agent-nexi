@@ -17,7 +17,7 @@ _SPLIT_RE = re.compile(r"\s*,\s*|\s+(?:do|then|please)\s+", re.IGNORECASE)
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"[^\w\s]", "", text.strip().lower())
+    return re.sub(r"[^\w\s%]", "", text.strip().lower())
 
 
 def _parse(text: str):

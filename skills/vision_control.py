@@ -6,10 +6,27 @@ they never weigh down the main UI process.
 
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 _BASE = Path(__file__).resolve().parent.parent
 _proc = None
+_vision_process = None
+_vision_lock = threading.Lock()
+_vision_healthy = False
+
+
+def _vision_health_check():
+    global _vision_healthy
+    while True:
+        with _vision_lock:
+            if _vision_process is not None:
+                ret = _vision_process.poll()
+                _vision_healthy = ret is None
+            else:
+                _vision_healthy = False
+        time.sleep(2)
 
 
 def _running() -> bool:
@@ -42,3 +59,8 @@ def stop_camera() -> dict:
         _proc = None
         return {"handled": True, "message": "Camera control stopped."}
     return {"handled": True, "message": "Camera control isn't running."}
+
+
+def start_health_check():
+    t = threading.Thread(target=_vision_health_check, daemon=True, name="vision-health")
+    t.start()

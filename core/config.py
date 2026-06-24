@@ -5,9 +5,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+__version__ = "1.0.0"
 
 ASSISTANT_NAME = os.getenv("ASSISTANT_NAME", "Nexi")
 
@@ -35,6 +36,10 @@ def env_float(key: str, default: float) -> float:
 class NexiConfig:
     # Identity
     name: str = ASSISTANT_NAME
+
+    @property
+    def version(self) -> str:
+        return __version__
 
     # Wake
     hotword_enabled: bool = field(default_factory=lambda: env_bool("NEXI_HOTWORD_ENABLED", True))
@@ -101,6 +106,20 @@ class NexiConfig:
     @property
     def tts_providers(self) -> list:
         return [p.strip() for p in self.tts_provider_order.split(",") if p.strip()]
+
+    # Jarvis integration
+    jarvis: "NexiJarvisConfig" = field(default_factory=lambda: NexiJarvisConfig())
+
+
+@dataclass
+class NexiJarvisConfig:
+    jarvis_enabled: bool = field(default_factory=lambda: env_bool("JARVIS_ENABLED", True))
+    jarvis_tool_calling: bool = field(default_factory=lambda: env_bool("JARVIS_TOOL_CALLING", True))
+    jarvis_max_tool_steps: int = field(default_factory=lambda: env_int("JARVIS_MAX_TOOL_STEPS", 10))
+    jarvis_memory_type: str = field(default_factory=lambda: os.getenv("JARVIS_MEMORY_TYPE", "unified").strip())
+    jarvis_training_enabled: bool = field(default_factory=lambda: env_bool("JARVIS_TRAINING_ENABLED", False))
+    jarvis_brain_provider: str = field(default_factory=lambda: os.getenv("JARVIS_BRAIN_PROVIDER", "gemini").strip())
+    jarvis_brain_api_key: str = field(default_factory=lambda: (os.getenv("JARVIS_BRAIN_API_KEY") or "").strip())
 
 
 cfg = NexiConfig()

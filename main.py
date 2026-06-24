@@ -7,7 +7,7 @@ import eel
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
@@ -80,6 +80,7 @@ def ui_get_suggestions():
 
 @eel.expose
 def submitUserCommand(text):
+    """DEPRECATED: Use ui_submit_text instead."""
     from core.dispatcher import submit_user_command
     submit_user_command(text, source="ui_text")
 
@@ -115,10 +116,16 @@ def getMemorySummary():
 
 # --- Startup ---
 
-def _start_server(command_queue=None, stop_event=None, wake_ready=None):
+def _start_server(command_queue=None, stop_event=None, wake_ready=None, speaking_event=None):
     init_eel(eel)
 
-    # Register control actions
+    try:
+        from core.tts import set_speaking_event
+        set_speaking_event(speaking_event)
+    except Exception as e:
+        print(f"[NEXI] set_speaking_event_failed: {e}", flush=True)
+
+    # DEPRECATED: control/ module is legacy. Skills are in skills/ package.
     try:
         from control.registry import register_defaults
         register_defaults()
@@ -166,9 +173,10 @@ def _start_server(command_queue=None, stop_event=None, wake_ready=None):
     eel.start("index.html", mode=None, host="localhost", port=8000, block=True)
 
 
-def main(command_queue=None, stop_event=None, wake_ready=None):
+def main(command_queue=None, stop_event=None, wake_ready=None, speaking_event=None):
     print(f"[NEXI] main pid={os.getpid()}", flush=True)
-    _start_server(command_queue=command_queue, stop_event=stop_event, wake_ready=wake_ready)
+    _start_server(command_queue=command_queue, stop_event=stop_event, wake_ready=wake_ready,
+                  speaking_event=speaking_event)
 
 
 if __name__ == "__main__":

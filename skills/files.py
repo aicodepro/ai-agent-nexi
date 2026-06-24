@@ -2,6 +2,7 @@
 
 import os
 import re
+import subprocess
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -78,9 +79,9 @@ def create_project(name: str, location: str = "desktop",
             created.append(str(fpath))
         # Try to open in VS Code
         try:
-            os.system(f'code "{project_dir}"')
-        except Exception:
-            pass
+            subprocess.Popen(["code", str(project_dir)], shell=False)
+        except Exception as e:
+            print(f"[FILES] vs_code_open_failed: {e}", flush=True)
         return {"handled": True, "message": f"Created project: {project_dir}",
                 "files": created}
     except Exception as e:

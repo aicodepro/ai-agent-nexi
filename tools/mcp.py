@@ -17,6 +17,8 @@ from pathlib import Path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "mcp.json"
 _PROTOCOL = "2024-11-05"
+_CACHE = {}  # server_name -> (tools_list, timestamp)
+_CACHE_TTL = 60  # seconds
 
 
 def _load_servers() -> dict:
@@ -76,13 +78,27 @@ def _query(cfg: dict, method: str, params: dict):
 
 
 def list_tools() -> dict:
-    """Return {server_name: [tool names]} across all configured servers."""
+    """Return {server_name: [tool names]} across all configured servers. Results cached for 60s."""
+    import time
+    now = time.time()
+    
+    # Check cache first
+    if _CACHE:
+        out = {}
+        for name, (tools, ts) in list(_CACHE.items()):
+            if now - ts < _CACHE_TTL:
+                out[name] = tools
+        if out:
+            return out
+    
     out = {}
-    for name, cfg in _load_servers().items():
+    for name, srv_cfg in _load_servers().items():
         try:
-            result = _query(cfg, "tools/list", {})
+            result = _query(srv_cfg, "tools/list", {})
             tools = (result or {}).get("tools", [])
-            out[name] = [t.get("name", "?") for t in tools]
+            tool_names = [t.get("name", "?") for t in tools]
+            out[name] = tool_names
+            _CACHE[name] = (tool_names, now)
         except Exception:
             out[name] = []
     return out

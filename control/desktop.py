@@ -18,12 +18,12 @@ def handle_open_app(entity: str) -> dict:
     exe = KNOWN_APPS.get(lower)
     if exe:
         try:
-            subprocess.Popen(exe, shell=True)
+            subprocess.Popen(exe, shell=False)
             return {"ok": True, "message": f"Opening {entity}."}
         except Exception as e:
             return {"ok": False, "message": f"Failed: {e}"}
     try:
-        os.system(f"start {entity}")
+        subprocess.Popen(["cmd", "/c", "start", "", entity], shell=False)
         return {"ok": True, "message": f"Opening {entity}."}
     except Exception:
         return {"ok": False, "message": f"Don't know how to open {entity}."}
@@ -33,7 +33,7 @@ def handle_close_app(entity: str) -> dict:
     lower = entity.lower().strip()
     exe = KNOWN_APPS.get(lower, f"{lower}.exe")
     try:
-        os.system(f"taskkill /f /im {exe} 2>nul")
+        subprocess.run(["taskkill", "/f", "/im", exe], capture_output=True, timeout=10)
         return {"ok": True, "message": f"Closed {entity}."}
     except Exception:
         return {"ok": False, "message": f"Couldn't close {entity}."}

@@ -14,7 +14,7 @@ class ClapDetector:
         self._rms_threshold = env_float("NEXI_DSP_CLAP_RMS_THRESHOLD", 0.045)
         self._peak_threshold = env_float("NEXI_DSP_CLAP_PEAK_THRESHOLD", 0.14)
         self._peak_ratio_threshold = env_float("NEXI_DSP_CLAP_PEAK_RATIO_THRESHOLD", 5.2)
-        self._hf_ratio_threshold = env_float("NEXI_DSP_CLAP_HF_RATIO_THRESHOLD", 0.43)
+        self._hf_ratio_threshold = env_float("NEXI_DSP_CLAP_HF_RATIO_THRESHOLD", 0.30)
         self._event_cooldown_ms = env_int("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", 120)
         self._speech_reject_ms = env_int("NEXI_DSP_CLAP_SPEECH_REJECT_MS", 280)
 
@@ -58,23 +58,22 @@ class ClapDetector:
             if ratio < self._peak_ratio_threshold:
                 return False
 
-        # High-frequency energy ratio (claps have high HF)
-        hf_cutoff = 3000
-        fft_size = n_samples
-        try:
-            import cmath
-            # Simple DFT for HF ratio (no numpy needed)
-            total_energy = sum(s * s for s in float_samples)
-            if total_energy == 0:
-                return False
-            hf_bin_start = int(hf_cutoff * fft_size / self._sample_rate)
-            # Approximate: compute energy in upper half
-            hf_energy = sum(s * s for s in float_samples[n_samples // 2:])
-            hf_ratio = hf_energy / total_energy
-            if hf_ratio < self._hf_ratio_threshold:
-                return False
-        except Exception:
-            pass
+        # High-frequency content via first-difference (a cheap high-pass).
+        # Impulsive claps are broadband with strong HF energy; thuds, knocks
+        # and low hums are not. Replaces a former heuristic that wrongly used
+        # the second half of the time window as a stand-in for "high frequency".
+        total_energy = sum(s * s for s in float_samples)
+        if total_energy == 0:
+            return False
+        diff_energy = 0.0
+        prev = float_samples[0]
+        for s in float_samples[1:]:
+            d = s - prev
+            diff_energy += d * d
+            prev = s
+        hf_ratio = diff_energy / (4.0 * total_energy)
+        if hf_ratio < self._hf_ratio_threshold:
+            return False
 
         # Duration check (reject sustained sounds)
         duration_ms = n_samples / self._sample_rate * 1000

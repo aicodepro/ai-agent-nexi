@@ -14,7 +14,10 @@ def _now() -> str:
 
 
 def _clean(text: str, limit: int = 500) -> str:
-    return redact_sensitive(text)[:limit].strip()
+    result = redact_sensitive(text)[:limit].strip()
+    if len(text) > limit:
+        print(f"[MEMORY] context truncated from {len(text)} to {limit} chars", flush=True)
+    return result
 
 
 def add_turn(role: str, text: str, source: str = "", intent: str = "",
@@ -73,3 +76,4 @@ def clear() -> None:
     global _last_assistant_response
     _turns.clear()
     _last_assistant_response = ""
+

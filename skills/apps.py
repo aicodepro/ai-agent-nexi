@@ -3,7 +3,6 @@
 import os
 import re
 import subprocess
-import webbrowser
 
 APP_MAP = {
     "chrome": "chrome", "google chrome": "chrome",
@@ -24,14 +23,14 @@ def open_app(name: str) -> dict:
     cmd = APP_MAP.get(lower)
     if cmd:
         try:
-            subprocess.Popen(cmd, shell=True)
+            subprocess.Popen(cmd, shell=False)
             return {"handled": True, "message": f"Opening {name}."}
         except Exception as e:
             return {"handled": False, "message": f"Couldn't open {name}: {e}"}
 
     # Try os.system as fallback
     try:
-        os.system(f"start {name}")
+        subprocess.Popen(["cmd", "/c", "start", "", name], shell=False)
         return {"handled": True, "message": f"Opening {name}."}
     except Exception:
         return {"handled": False, "message": f"I don't know how to open {name}."}
@@ -41,7 +40,7 @@ def close_app(name: str) -> dict:
     lower = name.lower().strip()
     cmd = APP_MAP.get(lower, lower)
     try:
-        os.system(f"taskkill /f /im {cmd}.exe 2>nul")
+        subprocess.run(["taskkill", "/f", "/im", f"{cmd}.exe"], capture_output=True, timeout=10)
         return {"handled": True, "message": f"Closed {name}."}
     except Exception:
         return {"handled": False, "message": f"Couldn't close {name}."}

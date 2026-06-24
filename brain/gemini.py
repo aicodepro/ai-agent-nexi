@@ -17,6 +17,28 @@ def is_configured() -> bool:
     return bool(cfg.gemini_api_key)
 
 
+def _get_brain_config() -> dict:
+    provider = cfg.jarvis.jarvis_brain_provider
+    if provider == "claude":
+        return {
+            "api_base": "https://api.anthropic.com/v1",
+            "model": "claude-opus-4-8",
+            "api_key": os.getenv("ANTHROPIC_API_KEY", ""),
+            "max_tokens": 4096,
+        }
+    if provider == "deepseek":
+        return {
+            "api_base": "https://api.deepseek.com/v1",
+            "model": "deepseek-v4-pro",
+            "api_key": cfg.jarvis.jarvis_brain_api_key,
+        }
+    return {
+        "api_base": "https://generativelanguage.googleapis.com/v1beta",
+        "model": cfg.gemini_model_chain[0] if cfg.gemini_model_chain else "gemini-2.5-flash",
+        "api_key": cfg.gemini_api_key,
+    }
+
+
 def _load_system_prompt() -> str:
     paths = [
         Path(__file__).resolve().parent.parent / "prompts" / "nexi_system_prompt.txt",
@@ -73,6 +95,20 @@ def _build_context() -> str:
     except Exception:
         pass
 
+    # MCP available tools
+    try:
+        from tools.mcp import list_tools
+        mcp = list_tools()
+        if mcp:
+            tool_lines = []
+            for server, tools in mcp.items():
+                if tools:
+                    tool_lines.append(f"  {server}: {', '.join(tools)}")
+            if tool_lines:
+                sections.append(f"[Available Tools]\n" + "\n".join(tool_lines))
+    except Exception:
+        pass
+
     return "\n\n".join(sections)
 
 
@@ -109,7 +145,7 @@ def ask_gemini(query: str, context: str = "") -> str:
         try:
             url = (
                 f"https://generativelanguage.googleapis.com/v1beta/models/"
-                f"{model}:generateContent?key={api_key}"
+                f"{model}:generateContent"
             )
             body = {
                 "contents": [{"parts": [{"text": full_prompt}]}],
@@ -118,7 +154,8 @@ def ask_gemini(query: str, context: str = "") -> str:
                     "maxOutputTokens": cfg.gemini_max_tokens,
                 },
             }
-            resp = requests.post(url, json=body, timeout=15)
+            headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+            resp = requests.post(url, json=body, headers=headers, timeout=15)
             resp.raise_for_status()
             text = _extract_text(resp.json())
             if text:
