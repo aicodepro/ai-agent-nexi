@@ -51,7 +51,7 @@ STATUS_TO_UI_STATE = {
     "listening": "listening",
     EVENT_WAITING_FOR_SPEECH: "waiting_for_speech",
     "waiting_for_speech": "waiting_for_speech",
-    EVENT_SPEECH_STARTED: "recognising",
+    EVENT_SPEECH_STARTED: "listening",
     EVENT_SPEECH_ENDED: "recognising",
     EVENT_ASR_STARTED: "recognising",
     EVENT_ASR_RESULT: "thinking",
