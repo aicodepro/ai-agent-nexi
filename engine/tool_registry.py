@@ -124,6 +124,14 @@ _TOOLS: dict[str, ToolSpec] = {
     "read_current_page": _spec("read_current_page", "Read the current browser page (title, URL, text)", handler="engine.browser_intelligence.read_current_page", aliases=("read this page", "read the page", "read current page", "summarize this page", "summarize the page", "whats on this page", "what is on this page", "read my browser"), examples=["read this page", "summarize this page"], category="web"),
     "list_browser_tabs": _spec("list_browser_tabs", "List the open browser tabs", handler="engine.browser_intelligence.list_browser_tabs", aliases=("list my tabs", "what tabs are open", "show my tabs", "list browser tabs", "what tabs do i have", "how many tabs"), examples=["list my tabs", "what tabs are open"], category="web"),
     "read_browser_console": _spec("read_browser_console", "Read the browser console messages/errors", handler="engine.browser_intelligence.read_browser_console", aliases=("read the console", "check console errors", "browser console", "console errors", "check the console", "any console errors"), examples=["check console errors", "read the console"], category="web"),
+    "pending_approvals": _spec("pending_approvals", "List actions waiting for your approval", handler="engine.approval_queue.pending_approvals", aliases=("pending approvals", "show approvals", "show pending approvals", "what needs approval", "pending actions", "approval queue"), examples=["pending approvals", "what needs approval"], category="system"),
+    "approve_action": _spec("approve_action", "Approve the pending action", optional=["id"], handler="engine.approval_queue.approve_action", aliases=("approve", "approve action", "approve that", "approve it", "yes approve", "approve the action"), examples=["approve", "approve action"], category="system"),
+    "reject_action": _spec("reject_action", "Reject the pending action", optional=["id"], handler="engine.approval_queue.reject_action", aliases=("reject", "reject action", "reject that", "reject it", "deny action", "cancel the action"), examples=["reject", "reject action"], category="system"),
+    "screen_read": _spec("screen_read", "Read visible text/UI on the screen", handler="engine.computer_use.screen_read", aliases=("read my screen", "read the screen", "read screen", "whats on my screen", "what is on my screen", "what is on the screen"), examples=["read my screen", "what's on my screen"], category="desktop"),
+    "click_ui_element": _spec("click_ui_element", "Click a UI element by name (needs approval)", optional=["target"], safety="high", handler="engine.computer_use.click_ui_element", examples=["click the submit button"], category="desktop"),
+    "type_text": _spec("type_text", "Type text into the focused field (needs approval)", optional=["text"], safety="high", handler="engine.computer_use.type_text", examples=["type out hello world"], category="desktop"),
+    "browser_click": _spec("browser_click", "Click an element in the browser page (needs approval)", optional=["target"], safety="high", handler="engine.browser_intelligence.browser_click", examples=["click the login link"], category="web"),
+    "browser_fill": _spec("browser_fill", "Fill a field in the browser page (needs approval)", optional=["field", "value"], safety="high", handler="engine.browser_intelligence.browser_fill", examples=["fill the search field with python"], category="web"),
     "resolve_app_for_task": _spec("resolve_app_for_task", "Pick the best app for a task (e.g. coding, presentation) with confidence", optional=["task"], handler="engine.app_intelligence.resolve_app_for_task", examples=["what's the best app for coding", "which app for presentation"], category="desktop"),
     "open_app_for_task": _spec("open_app_for_task", "Open the best app for a task", optional=["task"], handler="engine.app_intelligence.open_app_for_task", examples=["open the best app for coding"], category="desktop"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
@@ -557,9 +565,15 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"list_skills", "describe_skill"}:
         from engine import skill_library
         return getattr(skill_library, name)(slots)
-    if name in {"read_current_page", "list_browser_tabs", "read_browser_console"}:
+    if name in {"read_current_page", "list_browser_tabs", "read_browser_console", "browser_click", "browser_fill"}:
         from engine import browser_intelligence
         return getattr(browser_intelligence, name)(slots)
+    if name in {"pending_approvals", "approve_action", "reject_action"}:
+        from engine import approval_queue
+        return getattr(approval_queue, name)(slots)
+    if name in {"screen_read", "click_ui_element", "type_text"}:
+        from engine import computer_use
+        return getattr(computer_use, name)(slots)
     if name == "tell_joke":
         return {"success": True, "message": "Why don't scientists trust atoms? Because they make up everything!", "tool": name, "verified": True}
     if name == "weather_lookup":

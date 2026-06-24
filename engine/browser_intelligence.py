@@ -28,6 +28,11 @@ def _ok(message: str, **extra: Any) -> dict[str, Any]:
             "tool": extra.pop("tool", "browser_intelligence"), "message": message, **extra}
 
 
+def _fail(message: str, tool: str, **extra: Any) -> dict[str, Any]:
+    return {"handled": True, "ok": False, "success": False, "verified": False,
+            "tool": tool, "message": message, **extra}
+
+
 def _cdp_base() -> str:
     return os.getenv("BROWSER_CDP_URL", "http://localhost:9222").rstrip("/")
 
@@ -131,3 +136,83 @@ def read_browser_console(slots: dict | None = None) -> dict[str, Any]:
     else:
         msg = "No console messages captured in the listen window."
     return _ok(msg, tool="read_browser_console", available=True, errors=errors)
+
+
+# ── Write-path (Roadmap #9, approval-gated via #10) ──────────────────────────
+def _perform_browser_click(target: str) -> bool:
+    """Click an element by visible text via Playwright/CDP. False if unavailable."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        return False
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.connect_over_cdp(_cdp_base())
+            try:
+                pages = [pg for ctx in browser.contexts for pg in ctx.pages]
+                if not pages:
+                    return False
+                pages[0].get_by_text(target, exact=False).first.click(timeout=4000)
+                return True
+            finally:
+                browser.close()
+    except Exception:
+        return False
+
+
+def _perform_browser_fill(field: str, value: str) -> bool:
+    """Fill a labelled/placeholder field via Playwright/CDP. False if unavailable."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        return False
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.connect_over_cdp(_cdp_base())
+            try:
+                pages = [pg for ctx in browser.contexts for pg in ctx.pages]
+                if not pages:
+                    return False
+                page = pages[0]
+                for locator in (page.get_by_label(field, exact=False),
+                                page.get_by_placeholder(field)):
+                    try:
+                        locator.first.fill(value, timeout=2000)
+                        return True
+                    except Exception:
+                        continue
+                return False
+            finally:
+                browser.close()
+    except Exception:
+        return False
+
+
+def browser_click(slots: dict | None = None) -> dict[str, Any]:
+    target = str((slots or {}).get("target") or (slots or {}).get("text") or "").strip()
+    if not target:
+        return _fail("What should I click on the page?", "browser_click", expects_user_reply=True, missing_slot="target")
+    from engine import approval_queue
+    gated = approval_queue.gate("browser_click", slots, "high", f"click '{target}' in the browser")
+    if gated:
+        return gated
+    if _perform_browser_click(target):
+        return _ok(f"Clicked '{target}' in the browser.", tool="browser_click", target=target, performed=True)
+    return _fail(f"I couldn't click '{target}'. (Needs Playwright + a debug browser.)",
+                 "browser_click", target=target, performed=False)
+
+
+def browser_fill(slots: dict | None = None) -> dict[str, Any]:
+    field = str((slots or {}).get("field") or "").strip()
+    value = str((slots or {}).get("value") or "").strip()
+    if not field or not value:
+        return _fail("Tell me the field and the value to fill.", "browser_fill",
+                     expects_user_reply=True, missing_slot="field" if not field else "value")
+    from engine import approval_queue
+    gated = approval_queue.gate("browser_fill", slots, "high", f"fill '{field}' with '{value[:30]}'")
+    if gated:
+        return gated
+    if _perform_browser_fill(field, value):
+        return _ok(f"Filled '{field}'.", tool="browser_fill", field=field, performed=True)
+    return _fail(f"I couldn't fill '{field}'. (Needs Playwright + a debug browser.)",
+                 "browser_fill", field=field, performed=False)

@@ -98,6 +98,10 @@ _SIMPLE_ALIAS_TOOLS = {
     "read_current_page": ("web", ("read this page", "read the page", "read current page", "summarize this page", "summarize the page", "whats on this page", "what is on this page", "read my browser", "read the browser")),
     "list_browser_tabs": ("web", ("list my tabs", "what tabs are open", "show my tabs", "list browser tabs", "what tabs do i have", "how many tabs", "what tabs do i have open")),
     "read_browser_console": ("web", ("read the console", "check console errors", "browser console", "console errors", "check the console", "any console errors", "read browser console")),
+    "pending_approvals": ("system", ("pending approvals", "show approvals", "show pending approvals", "what needs approval", "pending actions", "approval queue", "whats pending")),
+    "approve_action": ("system", ("approve", "approve action", "approve that", "approve it", "approve the action")),
+    "reject_action": ("system", ("reject", "reject action", "reject that", "reject it", "deny action", "cancel the action")),
+    "screen_read": ("desktop", ("read my screen", "read the screen", "read screen", "whats on my screen", "what is on my screen", "what is on the screen", "whats on the screen")),
     "media_pause": ("desktop", ("pause the video", "pause video", "pause music", "pause media", "stop playing")),
     "media_resume": ("desktop", ("resume the video", "resume video", "play again", "resume media", "continue playing")),
     "media_mute": ("desktop", ("mute the video", "mute sound", "mute media")),
@@ -165,6 +169,38 @@ _SETTINGS_ROUTES = {
     "open_windows_update": ("open windows update", "windows update", "check for updates"),
     "open_settings": ("open windows settings", "open settings", "windows settings"),
 }
+
+
+_CLICK_RE = re.compile(r"^click(?: on| the)?\s+(.+?)(?:\s+button)?$")
+_TYPE_RE = re.compile(r"^type(?: out| the text)?\s+(.+)$")
+
+
+_BROWSER_FILL_RE = re.compile(r"^fill(?: in)?(?: the)?\s+(.+?)\s+(?:field\s+)?with\s+(.+)$")
+_BROWSER_CLICK_LINK_RE = re.compile(r"^(?:browser click|click)(?: the| on)?\s+(.+?)\s+link$")
+_BROWSER_CLICK_PAGE_RE = re.compile(r"^click(?: the| on)?\s+(.+?)\s+on the page$")
+
+
+def _browser_write_match(q: str) -> dict[str, Any] | None:
+    """Route browser-specific write actions (fill/click link) to the (gated) browser tools."""
+    m = _BROWSER_FILL_RE.match(q)
+    if m and m.group(1).strip() and m.group(2).strip():
+        return exact_schema(empty_result(route="tool", intent="browser_fill", domain="web", confidence=0.88, reason="browser_fill") | {"slots": {"field": m.group(1).strip(), "value": m.group(2).strip(" .?!")}})
+    for rx in (_BROWSER_CLICK_LINK_RE, _BROWSER_CLICK_PAGE_RE):
+        m = rx.match(q)
+        if m and m.group(1).strip():
+            return exact_schema(empty_result(route="tool", intent="browser_click", domain="web", confidence=0.88, reason="browser_click") | {"slots": {"target": m.group(1).strip(" .?!")}})
+    return None
+
+
+def _computer_use_match(q: str) -> dict[str, Any] | None:
+    """Route 'click <x>' / 'type <x>' to the (approval-gated) computer-use tools."""
+    m = _CLICK_RE.match(q)
+    if m and m.group(1).strip():
+        return exact_schema(empty_result(route="tool", intent="click_ui_element", domain="desktop", confidence=0.88, reason="click_ui") | {"slots": {"target": m.group(1).strip(" .?!")}})
+    m = _TYPE_RE.match(q)
+    if m and m.group(1).strip():
+        return exact_schema(empty_result(route="tool", intent="type_text", domain="desktop", confidence=0.85, reason="type_text") | {"slots": {"text": m.group(1).strip()}})
+    return None
 
 
 _TASK_APP_RE = re.compile(
@@ -245,7 +281,13 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
 
-    # ── Task->app, skill-help and Windows Settings must beat the generic open handler ─
+    # ── Browser write, computer-use, task->app, skill-help and Settings beat the generic open handler ─
+    _bw = _browser_write_match(q)
+    if _bw:
+        return _bw
+    _cu = _computer_use_match(q)
+    if _cu:
+        return _cu
     _skill_help = _skill_help_match(q)
     if _skill_help:
         return _skill_help
