@@ -932,12 +932,33 @@ class AudioWakePipeline:
         import sounddevice as sd  # lazy
         import numpy as np
 
-        # Resolve input device from env.
+        # Resolve input device. AUDIO_INPUT_DEVICE="auto" => smart selection
+        # (enumerate, test-open at this rate, prefer a headset mic); a numeric
+        # index or name pins a specific device; empty/"default" uses the OS one.
         device = None
-        if AUDIO_INPUT_DEVICE:
-            device = int(AUDIO_INPUT_DEVICE) if AUDIO_INPUT_DEVICE.isdigit() else AUDIO_INPUT_DEVICE
-        dev_info = sd.query_devices(device, "input") if device is not None else sd.query_devices(kind="input")
-        dev_name = dev_info.get("name", device or "default")
+        spec = (AUDIO_INPUT_DEVICE or "").strip()
+        if spec and spec.lower() not in {"auto", "default"}:
+            device = int(spec) if spec.isdigit() else spec
+        elif spec.lower() == "auto":
+            try:
+                from engine.mic_selector import select_best_mic
+                best, ranked = select_best_mic(SAMPLE_RATE, CHANNELS)
+                if best is not None:
+                    device = best["index"]
+                    _safe_log(f"[MIC] auto_selected device={best['name']} index={device} score={best['score']}")
+                    runner = next((r for r in ranked if r["openable"] and r["index"] != device), None)
+                    if runner:
+                        _safe_log(f"[MIC] fallback_candidate device={runner['name']} index={runner['index']}")
+                else:
+                    _safe_log("[MIC] auto_select found no openable device — using OS default")
+            except Exception as e:
+                _safe_log(f"[MIC] auto_select_failed reason={type(e).__name__} — using OS default")
+
+        try:
+            dev_info = sd.query_devices(device, "input") if device is not None else sd.query_devices(kind="input")
+            dev_name = dev_info.get("name", device or "default")
+        except Exception:
+            dev_name = str(device if device is not None else "default")
         _safe_log(f"[WAKE] audio stream starting device={dev_name} index={device if device is not None else 'default'} rate={SAMPLE_RATE} frame={FRAME_SAMPLES}")
 
         def _callback(indata, frames, time_info, status):
@@ -964,8 +985,16 @@ class AudioWakePipeline:
         if device is not None:
             kwargs["device"] = device
 
-        self._stream = sd.InputStream(**kwargs)
-        self._stream.start()
+        try:
+            self._stream = sd.InputStream(**kwargs)
+            self._stream.start()
+        except Exception as e:
+            _safe_log(f"[WAKE] device open failed index={device} reason={type(e).__name__} — falling back to OS default")
+            kwargs.pop("device", None)
+            device = None
+            dev_name = "default"
+            self._stream = sd.InputStream(**kwargs)
+            self._stream.start()
         _safe_log(f"[WAKE] audio stream started device={dev_name}/{device if device is not None else 'default'}")
 
     # ---- worker loop ----
