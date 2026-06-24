@@ -174,11 +174,29 @@ def _find_msedge() -> str | None:
     return None
 
 
-def _launch_edge_in_thread(url: str, delay_ms: int = 1500) -> None:
-    """Launch Edge in app mode after a delay so Eel server is ready."""
+def _launch_edge_in_thread(url: str, host: str = "localhost", port: int = 8000,
+                           timeout_s: float = 30.0) -> None:
+    """Open the UI window ONLY after the Eel server is actually accepting
+    connections. Combined with run.py (which starts the audio/hotword process
+    first and waits until it is fully loaded before starting this UI process),
+    this guarantees the visible window appears last — after every process and
+    the hotword pipeline are ready, never before."""
+    def _wait_server_ready() -> bool:
+        import socket, time
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            try:
+                with socket.create_connection((host, port), timeout=0.5):
+                    return True
+            except OSError:
+                time.sleep(0.2)
+        return False
+
     def _launch():
-        import time
-        time.sleep(delay_ms / 1000.0)
+        if _wait_server_ready():
+            print("[UI] eel server ready — opening window (stack fully up)", flush=True)
+        else:
+            print(f"[UI] server not ready after {timeout_s}s — opening window anyway", flush=True)
         edge_path = _find_msedge()
         if edge_path is None:
             print(f"[UI] msedge not found — trying webbrowser fallback url={url}", flush=True)
@@ -240,7 +258,7 @@ def start_nexi(command_queue=None, stop_event=None):
         major("SLEEPING")
     except Exception:
         pass
-    _launch_edge_in_thread(url, delay_ms=1500)
+    _launch_edge_in_thread(url, host=host, port=selected_port)
     eel.start('index.html', mode=None, host=host, port=selected_port, block=True)
 
 def greet_user():
