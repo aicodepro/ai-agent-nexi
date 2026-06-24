@@ -52,7 +52,7 @@ class TestWwwMarkLayoutStructure:
 
     def test_html_has_nexi_logo_section(self):
         text = _read(WWW_MARK / "index.html")
-        assert 'J.A.R.V.I.S' in text
+        assert 'N.E.X.I' in text
 
     def test_css_has_grid_layout(self):
         text = _read(WWW_MARK / "style.css")

@@ -6,7 +6,7 @@ def Alert(Text):
     icon_path = r"C:\Users\marke\Documents\nexi-main\file (3).png"
 
     toast = Notification(
-        app_id="J.A.R.V.I.S.",
+        app_id="N.E.X.I.",
         title=Text,
         duration="long",
         icon=icon_path

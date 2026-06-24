@@ -196,7 +196,7 @@
       ctx.font = 'bold ' + Math.floor(logoSize * 0.28) + 'px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('J.A.R.V.I.S', cx, cy - 4);
+      ctx.fillText('N.E.X.I', cx, cy - 4);
       ctx.fillStyle = PRI_DIM;
       ctx.font = Math.floor(logoSize * 0.14) + 'px monospace';
       ctx.fillText('ONLINE', cx, cy + logoSize * 0.3);

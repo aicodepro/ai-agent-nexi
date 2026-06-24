@@ -42,7 +42,7 @@ class TestHudOrbNoInnerBlob:
 
     def test_orb_js_has_logo_text(self):
         text = _read(WWW_MARK / "hud_orb.js")
-        assert "J.A.R.V.I.S" in text
+        assert "N.E.X.I" in text
 
     def test_logo_svg_exists(self):
         assert (WWW_MARK / "assets" / "nexi-logo.svg").exists()
