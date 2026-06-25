@@ -403,10 +403,13 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
         intent = "essay_request" if q.startswith("write ") and "essay" in q else "general_qa"
         return empty_result(route="brain", intent=intent, domain="conversation", confidence=0.86, reason="qa_prefix")
 
-    # Sentence-like input that matched no command is a brain query, not a clarify
-    # ("explain why X", "the intent system is broken, help me plan the fix", etc.).
-    if len(q.split()) >= 6:
-        return empty_result(route="brain", intent="general_qa", domain="conversation", confidence=0.7, reason="conversational_sentence")
+    # NO FEATURE MATCHED -> hand off to the brain (Gemini), never a dead-end "I didn't
+    # understand". The brain handles chat, planning ("let's plan something"), explanation,
+    # and can ask its own clarifying question for vague actions ("close this"). A lone
+    # unmatched token is treated as ASR noise and still clarifies (1-word meaningful inputs
+    # like bye/thanks/stop are handled explicitly earlier). Bare open/search/empty clarify too.
+    if len(q.split()) >= 2:
+        return empty_result(route="brain", intent="general_qa", domain="conversation", confidence=0.7, reason="no_feature_fallback")
     return empty_result(route="clarify", intent="unknown", domain="unknown", confidence=0.6, reason="unknown_input")
 
 

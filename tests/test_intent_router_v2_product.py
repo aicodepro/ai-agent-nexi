@@ -128,16 +128,16 @@ def test_ronaldo_after_search_routes_to_web_search():
     assert result["should_call_gemini"] is False
 
 
-def test_unknown_input_clarifies(monkeypatch):
+def test_unknown_input_falls_back_to_brain(monkeypatch):
+    # Policy change: when no feature matches, hand off to the brain (Gemini) instead of
+    # dead-ending on "I didn't understand". (Bare missing-slot cases still clarify.)
     from engine.groq_intent_router_v2 import route_intent_v2
 
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
 
     result = route_intent_v2("flibbertigibbet plover", source="typed", context=_context())
-    assert result["route"] == "clarify"
-    assert result["intent"] == "unknown"
-    assert result["expects_user_reply"] is True
-    assert result["should_call_gemini"] is False
+    assert result["route"] == "brain"
+    assert result["should_call_gemini"] is True
     assert result["should_call_tool"] is False
 
 

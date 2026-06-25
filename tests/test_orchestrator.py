@@ -31,9 +31,21 @@ def test_long_sentence_routes_to_brain_not_clarify():
     assert r["route"] == "brain" and r["intent"] == "general_qa", f"-> {r}"
 
 
-def test_short_unknown_still_clarifies():
-    r = _route("blorp")
-    assert r["route"] == "clarify"
+def test_no_feature_falls_back_to_brain():
+    # Multi-word input with no feature -> brain (never a dead-end "I didn't understand").
+    for p in ("close this", "do that thing", "lets plan something", "i have an idea"):
+        assert _route(p)["route"] == "brain", f"{p!r} should fall back to brain"
+
+
+def test_lone_token_noise_still_clarifies():
+    # A single unmatched token is treated as ASR noise -> clarify (not a brain call).
+    assert _route("blorp")["route"] == "clarify"
+
+
+def test_explicit_missing_slot_still_clarifies():
+    # A matched feature with a missing slot still clarifies (not brain).
+    assert _route("open")["route"] == "clarify"
+    assert _route("search")["route"] == "clarify"
 
 
 def test_social_intents_whitelisted():

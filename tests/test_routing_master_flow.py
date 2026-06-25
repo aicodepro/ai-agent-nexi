@@ -80,10 +80,14 @@ DATASET = [
     ("build a tool that watches my downloads", "tool", "request_feature"),
     ("create a github issue monitor", "tool", "request_feature"),
     ("i need an automation that backs up my files", "tool", "request_feature"),
-    # ambiguous / noise -> clarify
-    ("close this", "clarify", "unknown"),
-    ("do that thing", "clarify", "unknown"),
+    # no feature matched -> brain (handles chat/planning, asks its own clarifying question)
+    ("close this", "brain", "general_qa"),
+    ("do that thing", "brain", "general_qa"),
+    ("lets plan something", "brain", "general_qa"),
+    # lone unmatched token = ASR noise -> clarify; explicit missing-slot -> clarify
     ("blorp", "clarify", "unknown"),
+    ("open", "clarify", "open_app"),
+    ("search", "clarify", "web_search"),
 ]
 
 FEATURE_PHRASES = [p for p, r, i in DATASET if r in ("tool", "workflow")]
