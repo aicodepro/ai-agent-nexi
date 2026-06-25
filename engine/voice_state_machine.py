@@ -203,6 +203,8 @@ class VoiceStateMachine:
             (VoiceState.RECORDING_UTTERANCE, "speech_ended"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, BARGE_IN_COMMAND_FINALIZED): VoiceState.RECOGNIZING,
+            # Duplicate asr_started while already recognizing is a no-op, not an error.
+            (VoiceState.RECOGNIZING, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.RECOGNIZING, "asr_result"): VoiceState.THINKING,
             (VoiceState.RECOGNIZING, "intent_routed"): VoiceState.THINKING,
             (VoiceState.RECOGNIZING, "command_started"): VoiceState.THINKING,

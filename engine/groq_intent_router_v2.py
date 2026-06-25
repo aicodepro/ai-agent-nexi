@@ -102,6 +102,7 @@ _SIMPLE_ALIAS_TOOLS = {
     "approve_action": ("system", ("approve", "approve action", "approve that", "approve it", "approve the action")),
     "reject_action": ("system", ("reject", "reject action", "reject that", "reject it", "deny action", "cancel the action")),
     "screen_read": ("desktop", ("read my screen", "read the screen", "read screen", "whats on my screen", "what is on my screen", "what is on the screen", "whats on the screen")),
+    "list_feature_requests": ("system", ("list feature requests", "show feature requests", "pending features", "what features did i request", "feature requests")),
     "media_pause": ("desktop", ("pause the video", "pause video", "pause music", "pause media", "stop playing")),
     "media_resume": ("desktop", ("resume the video", "resume video", "play again", "resume media", "continue playing")),
     "media_mute": ("desktop", ("mute the video", "mute sound", "mute media")),
@@ -169,6 +170,28 @@ _SETTINGS_ROUTES = {
     "open_windows_update": ("open windows update", "windows update", "check for updates"),
     "open_settings": ("open windows settings", "open settings", "windows settings"),
 }
+
+
+_FEATURE_NOUN = r"(?:feature|tool|workflow|integration|automation|bot|monitor|agent|skill)"
+_FEATURE_GAP_RES = [
+    re.compile(r"^(?:can you |please )?(?:create|build|make|add|set up|develop)(?: me)?(?: a| an)?\s+(?:new\s+)?(.*\b" + _FEATURE_NOUN + r"\b.*)$"),
+    re.compile(r"^(?:i want|i need|i would like|i'd like)(?: a| an)?\s+(?:new\s+)?(.*\b" + _FEATURE_NOUN + r"\b.*)$"),
+    re.compile(r"^feature request:?\s+(.+)$"),
+]
+
+
+def _feature_gap_match(q: str, text: str) -> dict[str, Any] | None:
+    """Route 'build a <tool/monitor/automation> that …' to the feature-request logger.
+
+    Routed via the request_feature tool so it works end-to-end today (the feature_gap
+    route type also exists in the taxonomy for the LLM router / future handler).
+    """
+    for rx in _FEATURE_GAP_RES:
+        m = rx.match(q)
+        if m and m.group(1).strip():
+            cap = m.group(1).strip(" .?!")
+            return exact_schema(empty_result(route="tool", intent="request_feature", domain="system", confidence=0.9, reason="feature_gap") | {"slots": {"capability": cap, "user_input": str(text or "")}})
+    return None
 
 
 _CLICK_RE = re.compile(r"^click(?: on| the)?\s+(.+?)(?:\s+button)?$")
@@ -267,6 +290,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
 
     if q in {"hello", "hi", "hey", "hello there", "hi there"}:
         return empty_result(route="system", intent="greeting", domain="conversation", confidence=1.0, reason="greeting")
+    if q in {"bye", "goodbye", "good bye", "see you", "see ya", "see you later", "farewell", "good night", "goodnight"}:
+        return empty_result(route="brain", intent="social_close", domain="conversation", confidence=0.97, reason="conversational")
+    if q in {"thanks", "thank you", "thank you so much", "thanks a lot", "thankyou", "appreciate it"}:
+        return empty_result(route="brain", intent="social_reply", domain="conversation", confidence=0.97, reason="conversational")
     if q in {"who are you", "what is your name", "what's your name", "introduce yourself"}:
         return empty_result(route="system", intent="identity", domain="conversation", confidence=1.0, reason="identity")
     if q in {"repeat", "repeat that", "say that again", "can you repeat that"}:
@@ -281,7 +308,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
 
-    # ── Browser write, computer-use, task->app, skill-help and Settings beat the generic open handler ─
+    # ── Feature-gap, browser write, computer-use, task->app, skill-help and Settings beat the generic open handler ─
+    _fg = _feature_gap_match(q, str(text or ""))
+    if _fg:
+        return _fg
     _bw = _browser_write_match(q)
     if _bw:
         return _bw
@@ -373,6 +403,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
         intent = "essay_request" if q.startswith("write ") and "essay" in q else "general_qa"
         return empty_result(route="brain", intent=intent, domain="conversation", confidence=0.86, reason="qa_prefix")
 
+    # Sentence-like input that matched no command is a brain query, not a clarify
+    # ("explain why X", "the intent system is broken, help me plan the fix", etc.).
+    if len(q.split()) >= 6:
+        return empty_result(route="brain", intent="general_qa", domain="conversation", confidence=0.7, reason="conversational_sentence")
     return empty_result(route="clarify", intent="unknown", domain="unknown", confidence=0.6, reason="unknown_input")
 
 

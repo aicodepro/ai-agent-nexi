@@ -132,6 +132,8 @@ _TOOLS: dict[str, ToolSpec] = {
     "type_text": _spec("type_text", "Type text into the focused field (needs approval)", optional=["text"], safety="high", handler="engine.computer_use.type_text", examples=["type out hello world"], category="desktop"),
     "browser_click": _spec("browser_click", "Click an element in the browser page (needs approval)", optional=["target"], safety="high", handler="engine.browser_intelligence.browser_click", examples=["click the login link"], category="web"),
     "browser_fill": _spec("browser_fill", "Fill a field in the browser page (needs approval)", optional=["field", "value"], safety="high", handler="engine.browser_intelligence.browser_fill", examples=["fill the search field with python"], category="web"),
+    "request_feature": _spec("request_feature", "Log a request for a capability Nexi does not have yet", optional=["capability"], handler="engine.feature_requests.request_feature", examples=["build a tool that watches my downloads"], category="system"),
+    "list_feature_requests": _spec("list_feature_requests", "List logged feature requests", handler="engine.feature_requests.list_feature_requests", aliases=("list feature requests", "show feature requests", "pending features", "what features did i request"), examples=["list feature requests"], category="system"),
     "resolve_app_for_task": _spec("resolve_app_for_task", "Pick the best app for a task (e.g. coding, presentation) with confidence", optional=["task"], handler="engine.app_intelligence.resolve_app_for_task", examples=["what's the best app for coding", "which app for presentation"], category="desktop"),
     "open_app_for_task": _spec("open_app_for_task", "Open the best app for a task", optional=["task"], handler="engine.app_intelligence.open_app_for_task", examples=["open the best app for coding"], category="desktop"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
@@ -571,6 +573,9 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"pending_approvals", "approve_action", "reject_action"}:
         from engine import approval_queue
         return getattr(approval_queue, name)(slots)
+    if name in {"request_feature", "list_feature_requests"}:
+        from engine import feature_requests
+        return getattr(feature_requests, name)(slots)
     if name in {"screen_read", "click_ui_element", "type_text"}:
         from engine import computer_use
         return getattr(computer_use, name)(slots)

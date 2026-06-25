@@ -38,6 +38,7 @@ ALLOWED_ROUTES = {
     "system",
     "reject",
     "cancel",
+    "feature_gap",
 }
 
 ALLOWED_DOMAINS = {
@@ -64,6 +65,8 @@ ALLOWED_INTENTS = {
     "wake",
     "greeting",
     "identity",
+    "social_close",
+    "social_reply",
     "repeat_last",
     "system_status",
     "confirmation",
@@ -151,6 +154,8 @@ ALLOWED_INTENTS = {
     "type_text",
     "browser_click",
     "browser_fill",
+    "request_feature",
+    "list_feature_requests",
     "media_pause",
     "media_resume",
     "media_mute",
@@ -268,6 +273,8 @@ TOOL_INTENTS = {
     "type_text",
     "browser_click",
     "browser_fill",
+    "request_feature",
+    "list_feature_requests",
     "media_pause",
     "media_resume",
     "media_mute",
@@ -294,7 +301,7 @@ OUTPUT_INTENTS = {
     "regenerate_latest_output",
 }
 
-BRAIN_INTENTS = {"general_qa", "essay_request", "summarize", "explain", "continue_response"}
+BRAIN_INTENTS = {"general_qa", "essay_request", "summarize", "explain", "continue_response", "social_close", "social_reply"}
 
 
 def clamp_confidence(value: Any) -> float:
