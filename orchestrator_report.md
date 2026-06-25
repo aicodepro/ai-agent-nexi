@@ -53,3 +53,27 @@ Regression: routing/registry/voice cluster **114 passed**; full suite — see en
 - **Runtime self-coding feature builder** — intentionally NOT built (unsafe). FeatureRequests are
   proposals requiring human approval + dev-mode implementation.
 - **Cognitive→router weighting** — not needed (cognitive is already advisory; router is authoritative).
+
+## 5. Acceptance dataset (Phase 2 — proves the master flow)
+
+`tests/test_routing_master_flow.py` — a curated 45-command dataset across all 8 canonical
+categories (chat/goodbye, planning, read-only feature, write/approval feature, settings/app,
+workflow, feature_gap, ambiguous/noise) plus interrupt and approval checks. **59 assertions
+pass.** Verified invariants (your acceptance targets):
+
+- Routing accuracy **100%** (target ≥95%).
+- **0** feature commands leak to `brain`.
+- **0** brain queries go to `clarify`.
+- Every critical action (`click_ui_element`, `type_text`, `browser_click`, `browser_fill`)
+  **requires approval** at execution (queues, never acts).
+- Every unsupported capability → `request_feature` (FeatureRequest), never "I can't".
+- Interrupts (`stop`/`sleep`/`cancel`/`wake`) handled by `intent_pre_router`.
+
+No routing bugs surfaced — the master flow already holds after the §2 fixes. This dataset now
+guards against regressions.
+
+## 6. Still deferred (your sequence, Phase 3)
+
+Collapse `allCommands()` into a thin entrypoint that calls the orchestrator as the sole
+authority — **only after the `src/orin→engine` refactor is committed/stashed** (it modifies
+`command.py`/`diagnostics.py`). Ready to do in one isolated commit on your signal.
