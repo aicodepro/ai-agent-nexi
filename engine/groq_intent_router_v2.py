@@ -413,7 +413,7 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     return empty_result(route="clarify", intent="unknown", domain="unknown", confidence=0.6, reason="unknown_input")
 
 
-# ── LLM router (provider-abstracted: xAI Grok or Groq) ───────────────────────
+# ── LLM router (Groq by default; optional xAI Grok) ──────────────────────────
 def _route_with_llm(text: str, context: dict) -> dict[str, Any] | None:
     if (os.getenv("GROQ_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
         return None
@@ -599,7 +599,7 @@ def route_intent_v2(text: str, *, source: str = "ui", context: dict | None = Non
     if _deterministic_is_confident(deterministic):
         return _finalize(deterministic, text)
 
-    # LLM router (xAI Grok or Groq) for fuzzy / ambiguous language.
+    # LLM router (Groq by default; optional xAI Grok) for fuzzy / ambiguous language.
     llm_raw = _route_with_groq(text, ctx)
     if llm_raw is not None and llm_raw.get("route") not in {"clarify", "unknown"} and llm_raw.get("intent") not in {"unknown", "clarify"}:
         return _finalize(llm_raw, text)
