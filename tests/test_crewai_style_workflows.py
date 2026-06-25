@@ -97,14 +97,15 @@ def test_routing():
     assert _route("cancel workflow") == "crewai_cancel_workflow"
 
 
-# ── optional web server (skips if fastapi missing) ───────────────────────────
-def test_web_server_health():
-    from engine.integrations.crewai_style import web_server
-    if not web_server._AVAILABLE:
-        pytest.skip("fastapi not installed")
-    from fastapi.testclient import TestClient
-    client = TestClient(web_server.create_app())
-    assert client.get("/health").json()["ok"] is True
-    created = client.post("/workflows", json={"workflow_type": "router_audit", "input": "audit"}).json()
-    assert created["status"] == "completed"
-    assert client.get(f"/workflows/{created['run_id']}/logs").json()["logs"]
+# ── web server route() — stdlib, no dependency, no port binding ───────────────
+def test_web_server_routes():
+    from engine.integrations.crewai_style import web_server as ws
+    assert ws.route("GET", "/health")[1]["ok"] is True
+    status, created = ws.route("POST", "/workflows", {"workflow_type": "router_audit", "input": "audit"})
+    assert status == 200 and created["status"] == "completed"
+    rid = created["run_id"]
+    assert ws.route("GET", f"/workflows/{rid}/logs")[1]["logs"]
+    assert ws.route("GET", f"/workflows/{rid}/artifacts")[1]["artifacts"]
+    assert ws.route("GET", f"/workflows/{rid}")[1]["status"] == "completed"
+    assert ws.route("POST", "/workflows", {"workflow_type": "bogus"})[0] == 400
+    assert ws.route("GET", "/workflows/nope")[0] == 404

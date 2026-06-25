@@ -16,7 +16,7 @@ agent tool use is forced through a safety proxy → Nexi's approval gate.
 | `engine/integrations/__init__.py`, `engine/integrations/crewai_style/__init__.py` | package + the 7 Nexi tool fns |
 | `engine/integrations/crewai_style/workflow_engine.py` | models + state + run-local memory + events + runner + agent passes (stdlib) |
 | `engine/integrations/crewai_style/nexi_tool_proxy.py` | safety boundary (low→execute+verify, risky→approval gate, unknown→refuse) |
-| `engine/integrations/crewai_style/web_server.py` | optional FastAPI API (import-guarded, 127.0.0.1:8127, never auto-starts) |
+| `engine/integrations/crewai_style/web_server.py` | optional stdlib `http.server` API (127.0.0.1:8127, never auto-starts, no dependency) |
 | `tests/test_crewai_style_workflows.py` | engine, proxy, tools, routing, server-health |
 
 **ponytail collapse:** the spec's 12 files → 5. `models.py / workflow_state.py /
@@ -40,12 +40,13 @@ handler needed). Example: "run an agent audit of the router" → `crewai_run_rou
 ## Web server endpoints (optional)
 `GET /health · GET/POST /workflows · GET /workflows/{id} · /events · /logs · /artifacts ·
 POST /workflows/{id}/continue · /cancel`. Run: `.venv\Scripts\python -m engine.integrations.crewai_style.web_server`.
-Requires `pip install fastapi uvicorn` (not installed; engine + voice tools work without it).
+Stdlib `http.server` — **no dependency, runs out of the box.** Verified live (bind on 8127,
+`/health` + `POST /workflows` return correct JSON). Routing is the pure `route()` fn (port-free tests).
 
 ## Tests
-`pytest tests/test_crewai_style_workflows.py -q` → **10 passed, 1 skipped** (server test skips
-without fastapi). Routing/registry regression → 144 passed. Engine + proxy have `__main__`
-self-checks. No temp/scratch files created.
+`pytest tests/test_crewai_style_workflows.py -q` → **11 passed** (incl. stdlib server routes,
+no skips). Routing/registry regression → 144 passed. Engine + proxy have `__main__`
+self-checks; web server verified with a live bind smoke. No temp/scratch files created.
 
 ## Safety
 - Agents never touch the PC. `nexi_tool_proxy.request_tool` is the only path to tools:
@@ -58,4 +59,3 @@ self-checks. No temp/scratch files created.
   (signature already `(run, ctx)`).
 - Runs are synchronous (passes are instant) + in-memory only — move to a thread + persistence
   when a pass does real IO. `ponytail:` comments mark both upgrade paths.
-- Web server needs `fastapi`/`uvicorn` installed to run.
