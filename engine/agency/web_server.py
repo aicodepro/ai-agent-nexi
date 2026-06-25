@@ -1,9 +1,9 @@
-"""Optional local control API for CrewAI-style workflows (127.0.0.1:8127).
+"""Optional local control API for the Nexi Agency Engine (127.0.0.1:8127).
 
 Stdlib http.server only — NO third-party dependency (ponytail: stdlib over a new dep, so it
 runs out of the box). Thin layer over workflow_engine (single source of truth). Never started
 automatically by run.py. Run explicitly with:
-    .venv\\Scripts\\python -m engine.integrations.crewai_style.web_server
+    .venv\\Scripts\\python -m engine.agency.web_server
 
 Routing logic is the pure `route()` function so it's testable without binding a port.
 """
@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from engine.integrations.crewai_style import workflow_engine as we
+from engine.agency import workflow_engine as we
 
 HOST = "127.0.0.1"
 PORT = 8127
@@ -26,7 +26,7 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, object
     parts = [p for p in path.strip("/").split("/") if p]
 
     if method == "GET" and path == "/health":
-        return 200, {"ok": True, "service": "nexi-crewai-style-workflow-server"}
+        return 200, {"ok": True, "service": "nexi-agency-workflow-server"}
     if method == "GET" and parts == ["workflows"]:
         return 200, [r.to_dict() for r in we.list_runs()]
     if method == "POST" and parts == ["workflows"]:
@@ -82,7 +82,7 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def serve(host: str = HOST, port: int = PORT) -> None:
-    print(f"[CREWAI] workflow server on http://{host}:{port}", flush=True)
+    print(f"[NEXI_AGENCY] workflow server on http://{host}:{port}", flush=True)
     HTTPServer((host, port), _Handler).serve_forever()
 
 
