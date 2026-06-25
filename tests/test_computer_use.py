@@ -64,11 +64,21 @@ def test_click_executes_after_approval(monkeypatch):
     assert clicked == ["Submit"]
 
 
-def test_click_direct_with_approved_flag(monkeypatch):
+def test_click_direct_with_internal_token(monkeypatch):
     monkeypatch.setattr(cu, "_perform_click", lambda target: True)
-    r = execute_tool("click_ui_element", {"target": "OK", "approved": True})
+    r = execute_tool("click_ui_element", {"target": "OK", aq._APPROVAL_TOKEN_KEY: aq._INTERNAL_APPROVAL})
     assert r["success"] is True and r["verified"] is True
     assert r.get("performed") is True
+
+
+def test_external_approved_flag_does_not_bypass(monkeypatch):
+    # Security: a plain "approved" slot (as a router/LLM could emit) must NOT execute.
+    called = []
+    monkeypatch.setattr(cu, "_perform_click", lambda target: called.append(target) or True)
+    r = execute_tool("click_ui_element", {"target": "Pay", "approved": True})
+    assert r.get("requires_approval") is True
+    assert r.get("verified") is not True
+    assert called == []
 
 
 def test_click_no_target_asks():

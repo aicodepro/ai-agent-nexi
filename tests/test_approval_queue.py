@@ -40,7 +40,15 @@ def test_risk_policy():
 
 def test_gate_lets_low_risk_through():
     assert aq.gate("x", {}, "low", "do x") is None
-    assert aq.gate("x", {"approved": True}, "critical", "do x") is None  # already approved
+    # already approved via the internal token (what approve() injects)
+    assert aq.gate("x", {aq._APPROVAL_TOKEN_KEY: aq._INTERNAL_APPROVAL}, "critical", "do x") is None
+
+
+def test_external_approved_flag_cannot_bypass_gate():
+    # A user/router-supplied plain "approved" must NOT bypass the gate.
+    g = aq.gate("danger", {"approved": True}, "critical", "click pay")
+    assert g is not None and g.get("requires_approval") is True
+    assert len(aq.list_pending()) == 1
 
 
 def test_gate_queues_high_risk():

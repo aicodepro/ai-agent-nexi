@@ -23,6 +23,11 @@ from typing import Any
 _RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 _APPROVAL_FLOOR = _RISK_ORDER["high"]
 
+# Internal marker injected ONLY by approve(); a plain user/router-supplied "approved"
+# slot can never bypass the gate (the intent router cannot emit this key/value).
+_APPROVAL_TOKEN_KEY = "_approval_token"
+_INTERNAL_APPROVAL = "__nexi_internal_approved__"
+
 _counter = itertools.count(1)
 _pending: dict[str, dict[str, Any]] = {}
 
@@ -71,7 +76,7 @@ def approve(aid: str) -> dict[str, Any]:
         return {"success": False, "verified": False, "tool": "approve_action", "message": f"Action {aid} is already {action['status']}."}
     action["status"] = "approved"
     from engine.tool_registry import execute_tool
-    result = execute_tool(action["tool"], {**action["slots"], "approved": True})
+    result = execute_tool(action["tool"], {**action["slots"], _APPROVAL_TOKEN_KEY: _INTERNAL_APPROVAL})
     action["status"] = "executed" if result.get("success") else "failed"
     print(f"[APPROVAL] {action['status']} id={aid} tool={action['tool']}", flush=True)
     return result
@@ -83,8 +88,8 @@ def clear() -> None:
 
 def gate(tool: str, slots: dict | None, risk: str, description: str) -> dict[str, Any] | None:
     """Return a requires-approval result if this action must be approved first, else None to proceed."""
-    if (slots or {}).get("approved"):
-        return None
+    if (slots or {}).get(_APPROVAL_TOKEN_KEY) == _INTERNAL_APPROVAL:
+        return None  # already approved via approve() — proceed
     if not requires_approval(risk):
         return None
     aid = submit(tool, slots, risk, description)

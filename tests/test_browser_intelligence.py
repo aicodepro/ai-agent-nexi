@@ -90,6 +90,22 @@ def test_read_browser_console_no_browser(no_browser):
     assert r.get("available") is False
 
 
+class _FakePage:
+    def __init__(self, url):
+        self.url = url
+
+
+def test_select_page_matches_target_url():
+    pages = [_FakePage("https://a.com"), _FakePage("https://b.com")]
+    assert bi._select_page(pages, "https://b.com").url == "https://b.com"
+
+
+def test_select_page_falls_back_to_first():
+    pages = [_FakePage("https://a.com"), _FakePage("https://b.com")]
+    assert bi._select_page(pages, "https://gone.com").url == "https://a.com"
+    assert bi._select_page([], "https://x.com") is None
+
+
 def test_safe_targets_never_raises(monkeypatch):
     def boom():
         raise OSError("connection refused")

@@ -74,6 +74,21 @@ def _page_text(target: dict[str, Any]) -> str:
     return ""
 
 
+def _select_page(pages: list, target_url: str):
+    """Pick the page whose URL matches target_url, falling back to the first page.
+
+    CDP /json/list ordering is not guaranteed to match Playwright's contexts/pages
+    ordering, so we must match by URL rather than assuming pages[0] is the target.
+    """
+    if not pages:
+        return None
+    if target_url:
+        for page in pages:
+            if getattr(page, "url", None) == target_url:
+                return page
+    return pages[0]
+
+
 def _capture_console(target: dict[str, Any], window_ms: int = 1200) -> list[str]:
     """Best-effort console capture over a short listen window via Playwright."""
     try:
@@ -86,8 +101,8 @@ def _capture_console(target: dict[str, Any], window_ms: int = 1200) -> list[str]
             browser = p.chromium.connect_over_cdp(_cdp_base())
             try:
                 pages = [pg for ctx in browser.contexts for pg in ctx.pages]
-                if pages:
-                    page = pages[0]
+                page = _select_page(pages, (target or {}).get("url", ""))
+                if page is not None:
                     page.on("console", lambda m: messages.append(f"{m.type}: {m.text}"[:200]))
                     page.wait_for_timeout(window_ms)
             finally:
