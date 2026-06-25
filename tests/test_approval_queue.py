@@ -59,6 +59,14 @@ def test_gate_queues_high_risk():
     assert len(aq.list_pending()) == 1
 
 
+def test_gate_prompt_is_a_question_and_expects_reply():
+    # So the assistant's auto-listen path re-arms the mic for approve/reject.
+    g = aq.gate("danger", {"target": "Submit"}, "critical", "click Submit")
+    assert g.get("expects_user_reply") is True
+    assert str(g.get("message", "")).strip().endswith("?")
+    assert g.get("clarification_question")
+
+
 def test_approve_executes_stored_action():
     # Use a benign tool so approval actually runs something verifiable.
     aid = aq.submit("get_idle_time", {}, "high", "idle check")

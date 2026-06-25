@@ -93,9 +93,13 @@ def gate(tool: str, slots: dict | None, risk: str, description: str) -> dict[str
     if not requires_approval(risk):
         return None
     aid = submit(tool, slots, risk, description)
+    # Phrase as a question (ends with '?') and flag expects_user_reply so the assistant's
+    # auto-listen path re-arms the mic for the approve/reject answer instead of going idle.
+    question = f"\"{description}\" needs your approval — risk {risk}. Approve or reject?"
     return {"handled": True, "ok": False, "success": False, "verified": False, "tool": tool,
             "requires_approval": True, "approval_id": aid, "risk": risk,
-            "message": f"\"{description}\" needs approval (risk: {risk}). Say 'approve' to proceed or 'reject' to cancel."}
+            "expects_user_reply": True, "clarification_question": question,
+            "message": question}
 
 
 # ── Voice tools ──────────────────────────────────────────────────────────────
