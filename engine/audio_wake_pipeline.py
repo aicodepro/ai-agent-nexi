@@ -89,13 +89,29 @@ OWW_PRETRAINED = _normalise_oww_list(
         OWW_DEFAULT_MODEL,
     )
 )
-OWW_THRESHOLD = _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.25)
-OWW_CONSECUTIVE = _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 1)
+# Anti-false-wake defaults for the custom hey_nexi model. 0.25/1 fired on a
+# single noisy frame ("wake from nowhere" in conversation). 0.35 matches the
+# recommended starting point for a custom model, and requiring 2 consecutive
+# hits is a debounce a real "hey nexi" easily clears while single-frame noise
+# spikes do not. Tune via .env: lower if it misses your wake word, raise if it
+# still self-triggers. Watch the per-frame `[HOTWORD] score=... hits=...` logs.
+OWW_THRESHOLD = _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.35)
+OWW_CONSECUTIVE = _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 2)
 WAKE_COOLDOWN_SECONDS = _env_float("WAKE_COOLDOWN_SECONDS", _env_int("NEXI_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1500)) / 1000.0)
 HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.003)
 HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02)
-AUDIO_INPUT_DEVICE = _env("AUDIO_INPUT_DEVICE", "")
+AUDIO_INPUT_DEVICE = _env("AUDIO_INPUT_DEVICE", "auto")
 WAKE_DEBUG = _env_bool("WAKE_DEBUG", False) or _env_bool("NEXI_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)
+
+# Adaptive noise calibration
+# The floor multiplier is intentionally conservative (1.5x) to keep quiet/whispered
+# speech detectable. The ceiling caps the floor so it never blocks the quietest
+# intentional utterance (RMS ~0.005-0.008). Real ambient noise calibration happens
+# in calibrate_noise_floor().
+NOISE_CALIBRATION_SECONDS = _env_float("NEXI_NOISE_CALIBRATION_SECONDS", 2.0)
+NOISE_CALIBRATION_MULTIPLIER = _env_float("NEXI_NOISE_CALIBRATION_MULTIPLIER", 1.5)
+NOISE_CALIBRATION_MIN_RMS = _env_float("NEXI_NOISE_CALIBRATION_MIN_RMS", 0.003)
+NOISE_CALIBRATION_MAX_RMS = _env_float("NEXI_NOISE_CALIBRATION_MAX_RMS", 0.015)
 
 VAD_BACKEND = _env("VAD_BACKEND", "silero")
 VAD_MIN_SPEECH_MS = _env_int("VAD_MIN_SPEECH_MS", _env_int("NEXI_COMMAND_MIN_SPEECH_MS", 400))
@@ -434,13 +450,6 @@ class AudioWakePipeline:
                     self._prev_hotword_score = score
                     score = 0.0
                 elif score >= OWW_THRESHOLD:
-                    rising_edge = (score - self._prev_hotword_score) >= HOTWORD_RISING_EDGE_DELTA or self._prev_hotword_score == 0.0
-                    self._prev_hotword_score = score
-                    if not rising_edge:
-                        result["reason"] = "no_rising_edge"
-                        self._consecutive_hits = 0
-                        score = 0.0
-                else:
                     self._prev_hotword_score = score
             if score >= OWW_THRESHOLD:
                 if get_session_manager().is_post_session_suppressed(now):
@@ -837,6 +846,52 @@ class AudioWakePipeline:
                 if self._wake_orch is not None:
                     self._wake_orch.mark_listening_finished()
 
+    # ---- adaptive noise calibration ----
+
+    def calibrate_noise_floor(self) -> dict:
+        """Sample ambient noise to calibrate HOTWORD_MIN_RMS and VAD thresholds.
+
+        Collects NOISE_CALIBRATION_SECONDS of audio after opening the stream,
+        computes RMS statistics (mean, std, p95), then sets a per-environment
+        noise floor. This prevents false wake/VAD triggers in noisy rooms
+        AND ensures detection works in quiet environments.
+
+        Returns calibration stats dict (always returns, even on failure).
+        """
+        duration = max(0.5, NOISE_CALIBRATION_SECONDS)
+        n_frames = int((duration * 1000.0) / ((FRAME_SAMPLES / SAMPLE_RATE) * 1000.0))
+        rms_samples: list[float] = []
+        _safe_log(f"[NOISE_CAL] calibrating for {duration:.1f}s ({n_frames} frames) ...")
+        for _ in range(n_frames):
+            try:
+                frame = self._frame_queue.get(timeout=0.3)
+                rms, _peak = _calc_rms_peak(frame)
+                if rms > 0.0:
+                    rms_samples.append(rms)
+            except queue.Empty:
+                continue
+        if len(rms_samples) < 3:
+            _safe_log(f"[NOISE_CAL] too few samples ({len(rms_samples)}), using defaults")
+            return {"calibrated": False, "rms_mean": 0.0, "rms_std": 0.0, "noise_floor": 0.0, "samples": len(rms_samples)}
+
+        import statistics
+        rms_mean = statistics.mean(rms_samples)
+        rms_std = statistics.stdev(rms_samples) if len(rms_samples) > 1 else 0.0
+        rms_p95 = sorted(rms_samples)[int(len(rms_samples) * 0.95)] if rms_samples else rms_mean
+        noise_floor = max(rms_mean + NOISE_CALIBRATION_MULTIPLIER * rms_std, NOISE_CALIBRATION_MIN_RMS)
+        noise_floor = min(noise_floor, NOISE_CALIBRATION_MAX_RMS)
+
+        _safe_log(f"[NOISE_CAL] mean={rms_mean:.5f} std={rms_std:.5f} p95={rms_p95:.5f} floor={noise_floor:.5f} max={NOISE_CALIBRATION_MAX_RMS:.5f}")
+        _safe_log(f"[NOISE_CAL] {len(rms_samples)} ambient samples collected")
+        return {
+            "calibrated": True,
+            "rms_mean": rms_mean,
+            "rms_std": rms_std,
+            "rms_p95": rms_p95,
+            "noise_floor": noise_floor,
+            "samples": len(rms_samples),
+        }
+
     def flush_wake_tail(self) -> int:
         """Drain wake-phrase tail frames before command capture starts."""
         flush_frames = max(0, int((WAKE_FLUSH_AUDIO_MS / 1000.0) * SAMPLE_RATE / FRAME_SAMPLES))
@@ -906,6 +961,25 @@ class AudioWakePipeline:
             self._last_start_error = f"mic_{type(e).__name__}"
             _safe_log(f"[WAKE] mic_unavailable reason={type(e).__name__}")
             return
+
+        # Adaptive noise calibration — samples ambient audio, adjusts thresholds
+        # so the hotword and VAD work reliably in the current environment.
+        cal = self.calibrate_noise_floor()
+        if cal.get("calibrated"):
+            import engine.audio_wake_pipeline as _mod
+            old_min_rms = _mod.HOTWORD_MIN_RMS
+            new_min_rms = cal["noise_floor"]
+            _mod.HOTWORD_MIN_RMS = new_min_rms
+            _safe_log(f"[NOISE_CAL] HOTWORD_MIN_RMS {old_min_rms:.5f} -> {new_min_rms:.5f}")
+            # Also tune energy VAD threshold if we're using it.
+            if hasattr(self._vad, "_rms_threshold"):
+                old_vad = self._vad._rms_threshold
+                new_vad = max(new_min_rms * 0.8, old_vad)
+                if new_vad != old_vad:
+                    self._vad._rms_threshold = new_vad
+                    _safe_log(f"[NOISE_CAL] VAD RMS {old_vad:.5f} -> {new_vad:.5f}")
+        else:
+            _safe_log(f"[NOISE_CAL] ambient={cal.get('samples', 0)} samples — using env defaults")
 
         _safe_log(f"[WAKE] backend=openwakeword enabled=True")
         _safe_log(f"[CLAP] enabled={str(self.is_clap_enabled()).lower()}")
@@ -1000,8 +1074,9 @@ class AudioWakePipeline:
     # ---- worker loop ----
 
     def _worker_loop(self) -> None:
-        _debug_interval = 1.0  # seconds between debug prints
+        _hotword_log_interval = 5.0  # seconds between periodic hotword score logs
         _last_debug = 0.0
+        _last_hw_log = 0.0
         _frame_count = 0
         while not self._stop_event.is_set():
             try:
@@ -1018,10 +1093,18 @@ class AudioWakePipeline:
                 _safe_log(f"[WAKE] process_frame failed reason={type(e).__name__}")
                 continue
 
+            # Periodic logging of hotword scores (always on — needs no WAKE_DEBUG)
+            now_hw = time.time()
+            if now_hw - _last_hw_log >= _hotword_log_interval:
+                _rms_hw, _peak_hw = _calc_rms_peak(frame)
+                hw_score = result.get("score", 0.0)
+                _safe_log(f"[HOTWORD] score={hw_score:.4f} rms={_rms_hw:.5f} hits={self._consecutive_hits}/{OWW_CONSECUTIVE} threshold={OWW_THRESHOLD} min_rms={HOTWORD_MIN_RMS:.5f} reason={result.get('reason', 'none')}")
+                _last_hw_log = now_hw
+
             # Periodic debug line so user sees the pipeline is alive.
             if WAKE_DEBUG:
                 now_dbg = time.time()
-                if now_dbg - _last_debug >= _debug_interval:
+                if now_dbg - _last_debug >= 1.0:
                     _rms, _peak = _calc_rms_peak(frame)
                     scorer_name = getattr(self._wake_scorer, "model_name", getattr(self._wake_scorer, "name", "none"))
                     clap_state = f"enabled={str(self.is_clap_enabled()).lower()}"
