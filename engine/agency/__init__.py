@@ -2,7 +2,8 @@
 
 Live fast-path commands stay in the normal router; these handle big jobs (audit/research/
 test-plan/integration). Runs go through the planner->research->tool->verify->reflect->report
-loop. Tool use by agents goes through nexi_tool_proxy -> approval gate. No external agent framework.
+loop. Tool use by agents goes through nexi_tool_proxy -> approval gate. Clean-room core with
+no framework baked in; an optional CrewAI backend can be enabled via NEXI_AGENCY_BACKEND=crewai.
 """
 
 from __future__ import annotations
@@ -11,6 +12,13 @@ from typing import Any
 
 from engine.agency import workflow_engine as _we
 from engine.agency.nexi_tool_proxy import request_tool  # re-export
+
+# Plug in the optional CrewAI backend hook (dormant unless enabled + installed).
+try:
+    from engine.agency import crewai_adapter as _crewai_adapter
+    _crewai_adapter.register()
+except Exception:
+    pass
 
 __all__ = ["request_tool", "workflow_engine"]
 workflow_engine = _we

@@ -11,6 +11,11 @@ try:
     install_clean_console_filter()
 except Exception:
     pass
+try:
+    from engine.no_window import install as _install_no_window
+    _install_no_window()  # suppress console/PowerShell window flashes (Windows)
+except Exception:
+    pass
 
 try:
     from engine.demo_mode import DemoMode
@@ -31,6 +36,98 @@ alarm_file = BASE_DIR / "Alarm_data.txt"
 def _env_bool(key: str, default: bool = False) -> bool:
     value = (os.getenv(key, "true" if default else "false") or "").strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def _face_auth_gate() -> bool:
+    """Block until the authorised user's face is recognised.
+
+    Opens the camera and runs LBPH face recognition in an **infinite loop**
+    until the user's face matches (confidence below threshold). Press **q**
+    to abort.  Nexi will NOT start without a recognised face.
+
+    Returns:
+        ``True`` if the user was authenticated.
+        ``False`` if auth failed (camera error, missing model, or user
+        pressed q) — the caller MUST exit when this returns ``False``.
+    """
+    if not _env_bool("FACE_RECOGNITION_ON_STARTUP", True):
+        print("[FACE] disabled by env — skipping auth gate")
+        return True
+    auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "true").lower() == "true"
+    if not auth_gate:
+        print("[FACE] auth_gate disabled — skipping")
+        return True
+    threshold = int(os.getenv("FACE_RECOGNITION_CONFIDENCE_THRESHOLD", "60"))
+    user_name = os.getenv("FACE_RECOGNITION_USER_NAME", "User")
+    print(f"[FACE] auth_gate enabled — face rec starting (threshold={threshold}) ...")
+    try:
+        import cv2
+        import FaceRecognition as fr
+
+        face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        model = None
+        for p in ("trainingData.yml", os.path.join(BASE_DIR, "trainingData.yml"),
+                  r"E:\jarvis-main\trainingData.yml"):
+            if os.path.exists(p):
+                model = p
+                break
+        if model is None:
+            print("[FACE] trainingData.yml not found — cannot authenticate", flush=True)
+            return False
+        face_recognizer.read(model)
+        name = {0: user_name}
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("[FACE] camera_open_failed — cannot authenticate", flush=True)
+            return False
+
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        frame_count = 0
+
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    time.sleep(0.1)
+                    continue
+
+                faces_detected, gray_img = fr.faceDetection(frame)
+                for face in faces_detected:
+                    x, y, w, h = face
+                    fr.draw_rect(frame, face)
+                    roi_gray = gray_img[y:y + w, x:x + h]
+                    if roi_gray.size == 0:
+                        continue
+                    try:
+                        label, confidence = face_recognizer.predict(roi_gray)
+                    except Exception:
+                        continue
+                    predicted_name = name.get(label, "Unknown")
+                    print(f"[FACE] label={label} confidence={confidence:.0f} name={predicted_name} threshold={threshold}", flush=True)
+                    if confidence < threshold:
+                        print(f"[FACE] authenticated — proceeding (confidence={confidence:.0f} < threshold={threshold})", flush=True)
+                        cap.release()
+                        cv2.destroyAllWindows()
+                        return True
+
+                cv2.putText(frame, "Look at the camera — face auth required", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                    (0, 255, 255), 2)
+                cv2.imshow("Face Recognition - Press Q to quit", frame)
+                frame_count += 1
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    print("[FACE] user cancelled — q pressed", flush=True)
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return False
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+    except Exception as e:
+        print(f"[FACE] gate_error reason={type(e).__name__} message={e} — cannot authenticate", flush=True)
+    return False
 
 
 def _fatal_pipeline_failure(reason: str, stop_event=None):
@@ -106,6 +203,11 @@ def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
 import threading
 
 if __name__ == '__main__':
+    if not _face_auth_gate():
+        print("[FATAL] Face authentication required — exiting", flush=True)
+        sys.exit(1)
+    os.environ["FACE_RECOGNITION_ON_STARTUP"] = "false"
+
     command_queue = multiprocessing.Queue()
     stop_event = multiprocessing.Event()
     audio_ready = multiprocessing.Event()

@@ -124,10 +124,28 @@ def _load(limit: int = 50) -> None:
 
 
 # ── Model hook (real behind flag, stub by default) ───────────────────────────
+# Optional backend hook. Core stays backend-agnostic (clean-room, no framework
+# knowledge here); a plugin may register an override via set_model_override().
+_model_override = None
+
+
+def set_model_override(fn):
+    """Register an optional model backend: fn(role, prompt) -> str ('' to skip)."""
+    global _model_override
+    _model_override = fn
+
+
 def _model(role: str, prompt: str) -> str:
     if not autonomy_enabled():
         return ""
-    try:  # best-effort Gemini brain; any failure -> stub
+    if _model_override is not None:
+        try:
+            out = _model_override(role, prompt)
+            if out:
+                return out
+        except Exception:
+            pass
+    try:  # default: best-effort Gemini brain; any failure -> stub
         from engine.gemini_brain import ask_gemini  # type: ignore
         return str(ask_gemini(f"You are Nexi's {role}. {prompt}") or "")
     except Exception:

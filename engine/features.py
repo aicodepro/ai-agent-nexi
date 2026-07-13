@@ -405,12 +405,15 @@ def closeappweb(query):
         pyautogui.hotkey("ctrl", "w")
         speak("Tabs closed")
     else:
+        # Route every close through kill_process so the browser-protection guard
+        # applies here too (never force-kill Chrome and lose the user's tabs).
+        from engine.control.process_controller import kill_process
         dictapp = {"commandprompt":"cmd", "paint":"paint", "word":"winword", "excel":"excel", "chrome":"chrome", "vscode":"code", "powerpoint":"powerpnt"}
         keys = list(dictapp.keys())
         for app in keys:
             if app in query:
-                os.system(f"taskkill /f /im {dictapp[app]}.exe")
-                speak(f"Closed {app}")
+                result = kill_process(app)
+                speak(getattr(result, "message", None) or f"Closed {app}")
 
 
 # --- Brain provider chain --------------------------------------------------
