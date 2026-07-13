@@ -76,17 +76,41 @@ def _face_auth_gate() -> bool:
             return False
         face_recognizer.read(model)
         name = {0: user_name}
-        cap = cv2.VideoCapture(0)
+
+        # Calibration knobs (all backward-compatible defaults):
+        cam_index = int(os.getenv("FACE_RECOGNITION_CAMERA_INDEX", "0"))
+        warmup = max(0, int(os.getenv("FACE_RECOGNITION_WARMUP_FRAMES", "5")))
+        timeout_s = float(os.getenv("FACE_RECOGNITION_TIMEOUT_S", "0"))  # 0 = wait forever
+        required = max(1, int(os.getenv("FACE_RECOGNITION_REQUIRED_MATCHES", "1")))
+
+        # DirectShow opens far faster than the default backend on Windows.
+        cap = None
+        if sys.platform == "win32" and _env_bool("FACE_RECOGNITION_DSHOW", True):
+            cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                cap.release()
+                cap = None
+        if cap is None:
+            cap = cv2.VideoCapture(cam_index)
         if not cap.isOpened():
             print("[FACE] camera_open_failed — cannot authenticate", flush=True)
             return False
 
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        for _ in range(warmup):  # discard exposure-settling frames -> reliable first read
+            cap.read()
         frame_count = 0
+        consecutive = 0
+        _auth_start = time.time()
 
         try:
             while True:
+                if timeout_s > 0 and (time.time() - _auth_start) > timeout_s:
+                    print(f"[FACE] auth timed out after {timeout_s:.0f}s — cannot authenticate", flush=True)
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return False
                 ret, frame = cap.read()
                 if not ret:
                     time.sleep(0.1)
@@ -106,10 +130,14 @@ def _face_auth_gate() -> bool:
                     predicted_name = name.get(label, "Unknown")
                     print(f"[FACE] label={label} confidence={confidence:.0f} name={predicted_name} threshold={threshold}", flush=True)
                     if confidence < threshold:
-                        print(f"[FACE] authenticated — proceeding (confidence={confidence:.0f} < threshold={threshold})", flush=True)
-                        cap.release()
-                        cv2.destroyAllWindows()
-                        return True
+                        consecutive += 1
+                        if consecutive >= required:
+                            print(f"[FACE] authenticated — proceeding (confidence={confidence:.0f} < threshold={threshold}, matches={consecutive})", flush=True)
+                            cap.release()
+                            cv2.destroyAllWindows()
+                            return True
+                    else:
+                        consecutive = 0  # a detected non-match breaks the streak
 
                 cv2.putText(frame, "Look at the camera — face auth required", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6,
