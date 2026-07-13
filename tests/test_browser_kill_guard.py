@@ -39,3 +39,31 @@ def test_override_env_allows_browser_kill(monkeypatch):
     result = pc.kill_process("chrome")
     assert result.ok is True
     assert len(calls) == 1
+
+
+# --- command-injection hardening ---------------------------------------------
+
+def test_start_process_rejects_shell_metacharacters(monkeypatch):
+    calls = []
+    monkeypatch.setattr(pc.os, "system", lambda cmd: calls.append(cmd))
+    result = pc.start_process("calc & del /q x")
+    assert result.ok is False
+    assert result.error["code"] == "UNSAFE_APP_NAME"
+    assert calls == []  # shell never reached
+
+
+def test_start_process_allows_safe_name(monkeypatch):
+    calls = []
+    monkeypatch.setattr(pc.os, "system", lambda cmd: calls.append(cmd))
+    result = pc.start_process("spotify")
+    assert result.ok is True
+    assert len(calls) == 1 and "&" not in calls[0]
+
+
+def test_kill_process_uses_argv_not_shell(monkeypatch):
+    monkeypatch.delenv("NEXI_ALLOW_BROWSER_KILL", raising=False)
+    captured = {}
+    monkeypatch.setattr(pc.subprocess, "run", lambda *a, **k: captured.update(args=a, kwargs=k))
+    pc.kill_process("notepad")
+    assert isinstance(captured["args"][0], list)      # argv list, not a shell string
+    assert captured["kwargs"].get("shell") is False

@@ -1,7 +1,13 @@
+import re
 import subprocess
 import os
 
 from engine.control.base import ControlResult
+
+# App names arrive from voice/intent input and can flow into a shell ('start').
+# Allow only safe, filename-ish characters so nothing can inject shell
+# metacharacters (& | ; > < ^ ( ) " ' % ` etc.).
+_SAFE_APP_NAME = re.compile(r"^[A-Za-z0-9 _.+\-]+$")
 
 
 # ponytail: force-killing a browser nukes every window/tab (data loss) — a real
@@ -45,9 +51,12 @@ KNOWN_APPS = {
 
 
 def start_process(app_name):
+    # 'start' is a cmd.exe builtin (no start.exe), so it needs a shell. Injection is
+    # prevented by only interpolating hardcoded KNOWN_APPS constants below, or an
+    # app_name that passed the _SAFE_APP_NAME allowlist (see the fallback path).
     app_name = app_name.lower().strip()
     if app_name in KNOWN_APPS:
-        info = KNOWN_APPS[app_name]
+        info = KNOWN_APPS[app_name]  # hardcoded, not user input
         try:
             if info["path"]:
                 if info["path"].startswith("start "):
@@ -63,8 +72,13 @@ def start_process(app_name):
                 code="START_FAILED",
                 error_message=str(e)
             )
+    if not _SAFE_APP_NAME.match(app_name):
+        return ControlResult.failure(
+            message=f"I can't open '{app_name}' — that name has characters I won't run.",
+            code="UNSAFE_APP_NAME",
+        )
     try:
-        os.system(f'start {app_name}')
+        os.system(f'start "" {app_name}')  # name is validated safe; "" is the window title
         return ControlResult.success(message=f"Started {app_name.title()}")
     except Exception as e:
         return ControlResult.failure(
@@ -87,9 +101,11 @@ def kill_process(app_name):
             code="BROWSER_KILL_BLOCKED",
         )
     try:
+        # argv list + shell=False: exe_name is one argument, never shell-parsed,
+        # so no command injection is possible even for arbitrary input.
         subprocess.run(
-            f"taskkill /f /im {exe_name}.exe",
-            shell=True, capture_output=True, text=True, timeout=10
+            ["taskkill", "/f", "/im", f"{exe_name}.exe"],
+            shell=False, capture_output=True, text=True, timeout=10
         )
         return ControlResult.success(message=f"Closed {app_name.title()}")
     except subprocess.TimeoutExpired:
