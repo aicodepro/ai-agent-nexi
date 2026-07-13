@@ -37,6 +37,14 @@ def init_eel_ui(eel_module) -> str:
     dir_name = "www_mark" if get_ui_mode() == "mark" and _mark_ui_exists() else "www"
     eel_module.init(dir_name)
     print(f"[UI_LOADER] mode={get_ui_mode()} dir={dir_name}", flush=True)
+    # Wire the Claude Code terminal bridge (only when the feature is opted in).
+    try:
+        from engine.claude_code import is_enabled, register_eel
+        if is_enabled():
+            register_eel(eel_module)
+            print("[UI_LOADER] claude_code bridge registered", flush=True)
+    except Exception as exc:
+        print(f"[UI_LOADER] claude_code bridge skipped reason={type(exc).__name__}", flush=True)
     return dir_name
 
 
