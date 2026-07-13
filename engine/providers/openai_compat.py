@@ -8,6 +8,7 @@ because requirements.txt pins openai<1 (modern SDK not available yet).
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from typing import Any
@@ -68,11 +69,19 @@ def chat_completion(
     for attempt in range(max_retries + 1):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=timeout)
-            if response.status_code == 429 and attempt < max_retries:
-                backoff = 2 ** attempt
-                print(f"[{provider_name.upper()}] rate_limited retry_in={backoff}s attempt={attempt + 1}/{max_retries}", flush=True)
-                time.sleep(backoff)
-                continue
+            if response.status_code == 429:
+                # Rate-limited. For real-time intent routing, retrying within
+                # seconds rarely clears a per-minute limit and just burns more
+                # quota + adds latency — fail fast so the caller falls back to the
+                # deterministic router instantly. Opt back in with GROQ_INTENT_RETRY_ON_429=1.
+                retry_429 = os.getenv("GROQ_INTENT_RETRY_ON_429", "").strip().lower() in ("1", "true", "yes")
+                if retry_429 and attempt < max_retries:
+                    backoff = 2 ** attempt
+                    print(f"[{provider_name.upper()}] rate_limited retry_in={backoff}s attempt={attempt + 1}/{max_retries}", flush=True)
+                    time.sleep(backoff)
+                    continue
+                print(f"[{provider_name.upper()}] rate_limited status=429 fast_fallback", flush=True)
+                return ProviderResult.failure("http_429", provider=provider_name, model=model)
             if response.status_code >= 400:
                 print(f"[{provider_name.upper()}] http_failed status={response.status_code}", flush=True)
                 return ProviderResult.failure(f"http_{response.status_code}", provider=provider_name, model=model)
