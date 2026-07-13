@@ -3,7 +3,6 @@ import hugchat
 import os
 import re
 import requests
-import openai
 from PIL import Image
 import sqlite3
 import struct
@@ -73,7 +72,8 @@ from time import sleep
 import eel
 con = sqlite3.connect("nexi.db")
 cursor = con.cursor()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai is imported lazily inside generateImageFromPrompt — importing it at module
+# top costs ~16s on openai>=1.x (pydantic type tree) and it's used in one place.
 HUGCHAT_COOKIE_PATH = os.path.join(os.path.dirname(__file__), "cookies.json")
 dictapp = {"commandprompt":"cmd","paint":"paint","word":"winword","excel":"excel","chrome":"chrome","vscode":"code","powerpoint":"powerpnt"}
 
@@ -339,6 +339,8 @@ def chatWithGPT(prompt):
 def generateImageFromPrompt(prompt):
     """Generate an image from a prompt using OpenAI's API."""
     try:
+        import openai  # lazy: heavy import, only needed here
+        openai.api_key = os.getenv("OPENAI_API_KEY")
         speak("Generating image, please wait...")
         # Using the available DALL-E model (e.g., dall-e-3)
         response = openai.Image.create(
