@@ -37,16 +37,10 @@ class OpenWakeWordScorer:
         except ImportError as e:
             raise ImportError(f"openwakeword unavailable: {type(e).__name__}") from e
 
-        # One-time best-effort download of the bundled feature/wake models.
-        try:
-            from openwakeword.utils import download_models as _dl
-            _dl()
-        except Exception:
-            _safe_log("[OWW] openwakeword utils download skipped; continuing...")
-
         self._model = None
         self.model_name = "unloaded"
         self._load_error = ""
+        memory_exhausted = False
 
         # 1) Explicit custom model file wins.
         if model_path and os.path.exists(model_path):
@@ -57,10 +51,11 @@ class OpenWakeWordScorer:
             except Exception as e:
                 self._load_error = f"{type(e).__name__}: {e}"
                 _safe_log(f"[OWW] custom model load failed ({self._load_error})")
+                memory_exhausted = isinstance(e, MemoryError)
 
         # 2) Otherwise load the pretrained model(s) by name. openWakeWord accepts
         #    short names like 'hey_nexi' and resolves them to the bundled ONNX.
-        if self._model is None:
+        if self._model is None and not memory_exhausted:
             names = [_normalise_model_name(n) for n in (pretrained or "hey_nexi").split(",")]
             names = [n for n in names if n] or ["hey_nexi"]
             try:
@@ -70,15 +65,26 @@ class OpenWakeWordScorer:
             except Exception as e:
                 # 3) Last resort: resolve the bundled .onnx path directly.
                 self._load_error = f"{type(e).__name__}: {e}"
-                try:
-                    resolved = self._resolve_bundled_path(names[0])
-                    self._model = _OWWModel(wakeword_models=[resolved], inference_framework="onnx")
-                    self.model_name = ",".join(self._model.models.keys()) or os.path.basename(resolved)
-                    _safe_log(f"[OWW] model loaded from bundled path={resolved}")
-                except Exception as e2:
-                    self._load_error = f"{type(e2).__name__}: {e2}"
-                    _safe_log(f"[OWW] model load FAILED ({self._load_error}); scorer will report 0.0")
-                    self._model = None
+                if not isinstance(e, MemoryError):
+                    try:
+                        resolved = self._resolve_bundled_path(names[0])
+                        self._model = _OWWModel(wakeword_models=[resolved], inference_framework="onnx")
+                        self.model_name = ",".join(self._model.models.keys()) or os.path.basename(resolved)
+                        _safe_log(f"[OWW] model loaded from bundled path={resolved}")
+                    except Exception as e2:
+                        self._load_error = f"{type(e2).__name__}: {e2}"
+                        allow_download = (os.getenv("NEXI_OPENWAKEWORD_ALLOW_DOWNLOAD", "false") or "false").strip().lower() in {"1", "true", "yes", "on"}
+                        if allow_download and not isinstance(e2, MemoryError):
+                            try:
+                                from openwakeword.utils import download_models
+                                download_models()
+                                self._model = _OWWModel(wakeword_models=names, inference_framework="onnx")
+                                self.model_name = ",".join(self._model.models.keys()) or names[0]
+                            except Exception as e3:
+                                self._load_error = f"{type(e3).__name__}: {e3}"
+                                self._model = None
+                        if self._model is None:
+                            _safe_log(f"[OWW] model load FAILED ({self._load_error}); scorer will report 0.0")
 
         self._last_prediction_keys: list[str] = []
         self._last_prediction_key: str = ""
@@ -134,6 +140,11 @@ class OpenWakeWordScorer:
                 self._last_prediction_key = selected_key
                 return float(cleaned.get(selected_key, 0.0))
             return float(preds)
+        except MemoryError as e:
+            self._load_error = f"MemoryError: {e}"
+            self._model = None
+            _safe_log("[OWW] score disabled reason=MemoryError")
+            return 0.0
         except Exception as e:
             _safe_log(f"[OWW] score failed: {type(e).__name__}: {e}")
             return 0.0

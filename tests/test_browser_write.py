@@ -1,3 +1,4 @@
+import pytest
 import sys
 import os
 
@@ -8,6 +9,16 @@ from engine.groq_intent_router_v2 import _deterministic_router
 from engine import intent_taxonomy as tax
 from engine import browser_intelligence as bi
 from engine import approval_queue as aq
+
+
+@pytest.fixture(autouse=True)
+def _disable_llm_safety_gate(monkeypatch):
+    """browser_click/browser_fill are safety=high, so the LLM safety gate blocks them
+    offline (no GROQ_API_KEY) before the approval queue these tests check is reached.
+    Disabled locally, not suite-wide: a blocked tool is the safe default for a test run."""
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "false")
+
+
 
 
 WRITE_TOOLS = ["browser_click", "browser_fill"]

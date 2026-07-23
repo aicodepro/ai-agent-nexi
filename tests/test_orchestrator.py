@@ -32,9 +32,18 @@ def test_long_sentence_routes_to_brain_not_clarify():
 
 
 def test_no_feature_falls_back_to_brain():
-    # Multi-word input with no feature -> brain (never a dead-end "I didn't understand").
-    for p in ("close this", "do that thing", "lets plan something", "i have an idea"):
+    # Multi-word input with no feature AND a conversational signal (plan/idea/etc.)
+    # -> brain. "close this" / "do that thing" are action-like with no signal word,
+    # so they clarify instead (see the "no_feature_fallback" comment in
+    # groq_intent_router_v2._deterministic_router) -- the brain must never be let
+    # answer an unmatched action request as though it had performed it.
+    for p in ("lets plan something", "i have an idea"):
         assert _route(p)["route"] == "brain", f"{p!r} should fall back to brain"
+
+
+def test_unmatched_action_like_input_clarifies_not_brain():
+    for p in ("close this", "do that thing"):
+        assert _route(p)["route"] == "clarify", f"{p!r} should clarify, not guess via brain"
 
 
 def test_lone_token_noise_still_clarifies():

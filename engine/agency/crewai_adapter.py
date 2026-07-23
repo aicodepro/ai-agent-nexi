@@ -10,7 +10,11 @@ proxy, persistence, and events. The clean-room engine stays the default: no
 shadowing, no forced dependency, fully reversible (this reverses the earlier
 "de-brand CrewAI" decision ONLY when explicitly enabled).
 """
+import logging
 import os
+
+
+_LOG = logging.getLogger(__name__)
 
 
 def backend_enabled():
@@ -40,6 +44,7 @@ def run_role(role: str, prompt: str) -> str:
         crew = Crew(agents=[agent], tasks=[task], verbose=False)
         return str(crew.kickoff() or "")
     except Exception:
+        _LOG.exception("CrewAI role %s failed", role)
         return ""
 
 

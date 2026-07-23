@@ -152,6 +152,13 @@ class WakeSessionManager:
                 )
             except Exception:
                 pass
+            try:  # abandon any pending question on sleep so a stale clarification
+                from engine.clarification_manager import clear_clarification
+                from engine.followup_manager import clear_followup
+                clear_clarification(f"sleep:{reason}")
+                clear_followup(f"sleep:{reason}")
+            except Exception:
+                pass
             print(f"[SESSION] finish id={sid} reason={reason}", flush=True)
             print(f"[SLEEP] entering_sleep hotword_rearmed=true reason={reason}", flush=True)
             print(f"[SESSION] detectors_resumed=true", flush=True)
@@ -218,6 +225,13 @@ class WakeSessionManager:
                 try:
                     from engine.memory.session_memory import clear_session_memory
                     clear_session_memory()
+                except Exception:
+                    pass
+                try:  # abandon any pending question so it can't resurrect listening
+                    from engine.clarification_manager import clear_clarification
+                    from engine.followup_manager import clear_followup
+                    clear_clarification("sleep:idle_timeout")
+                    clear_followup("sleep:idle_timeout")
                 except Exception:
                     pass
                 print(f"[SESSION] auto_timeout_finish id={sid} idle_seconds={idle:.1f} spoke={str(spoke).lower()}", flush=True)

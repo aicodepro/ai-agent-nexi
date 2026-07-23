@@ -29,11 +29,20 @@ def mark_assistant_speaking(text: str = "") -> None:
 
 
 def mark_assistant_done(text: str = "") -> None:
-    global _state
+    global _state, _last_question, _reason, _workflow_id, _auto_listen_requested
+    global _interrupted, _interrupt_source, _interrupt_reason
     with _lock:
-        if _state == "speaking":
+        if _state != "waiting_for_user_answer":
             _state = "idle"
-    print("[TURN] state=idle", flush=True)
+            _last_question = ""
+            _reason = ""
+            _workflow_id = ""
+            _auto_listen_requested = False
+            _interrupted = False
+            _interrupt_source = ""
+            _interrupt_reason = ""
+        state = _state
+    print(f"[TURN] state={state}", flush=True)
 
 
 def mark_waiting_for_user(question: str, reason: str = "", workflow_id: str | None = None) -> None:
@@ -81,8 +90,15 @@ def is_interrupted() -> bool:
 
 
 def clear_interrupt() -> None:
+    global _state, _last_question, _reason, _workflow_id, _auto_listen_requested
     global _interrupted, _interrupt_source, _interrupt_reason
     with _lock:
+        if _state == "interrupted":
+            _state = "idle"
+            _last_question = ""
+            _reason = ""
+            _workflow_id = ""
+            _auto_listen_requested = False
         _interrupted = False
         _interrupt_source = ""
         _interrupt_reason = ""

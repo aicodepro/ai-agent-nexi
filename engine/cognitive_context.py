@@ -25,36 +25,59 @@ def get_last_reflection() -> dict[str, Any]:
     return dict(_last_reflection)
 
 
+def _actual_decision() -> dict[str, Any]:
+    """What the live router ACTUALLY dispatched. Truth beats the hypothesis."""
+    try:
+        from engine.intent_explainer import get_last_decision
+        return get_last_decision()
+    except Exception:
+        return {}
+
+
 def describe_last_understanding() -> str:
+    """Report the route Nexi ACTUALLY took.
+
+    The realtime_cognitive_engine strategy is a PARALLEL hypothesis — it is
+    computed independently of engine.groq_intent_router_v2, which is what really
+    dispatches. Reporting the strategy meant Nexi confidently described decisions
+    she never made (e.g. ran get_battery_status but said "general_qa via brain").
+    So: route/intent/confidence come from the real decision; the strategy only
+    supplies the original text and extra colour when the two agree.
+    """
+    actual = _actual_decision()
     strategy = get_last_strategy()
-    if not strategy:
+    if not actual and not strategy:
         return "I do not have a recent command to summarize yet."
     text = strategy.get("normalized_text") or strategy.get("user_text") or "that command"
-    intent = strategy.get("chosen_intent") or "unknown"
-    route = strategy.get("chosen_route") or "clarify"
-    confidence = strategy.get("confidence", 0.0)
-    reason = strategy.get("reason") or "I selected the safest available route."
-    rules = strategy.get("learned_rules_used") or []
-    if strategy.get("need_profile_used"):
+    intent = actual.get("intent") or strategy.get("chosen_intent") or "unknown"
+    route = actual.get("route") or strategy.get("chosen_route") or "clarify"
+    confidence = float(actual.get("confidence", strategy.get("confidence", 0.0)) or 0.0)
+    reason = actual.get("reason") or strategy.get("reason") or "I selected the safest available route."
+    agrees = bool(actual) and actual.get("route") == strategy.get("chosen_route") and actual.get("intent") == strategy.get("chosen_intent")
+
+    if agrees and strategy.get("need_profile_used"):
         need = strategy.get("detected_need") or "that"
         return f"I understood '{text}' as {intent} via {route} using your {need} training profile."
-    if rules:
+    if actual.get("selected_rule") or (agrees and strategy.get("learned_rules_used")):
         return f"I understood '{text}' as {intent} via {route} because a learned rule matched."
     return f"I understood '{text}' as {intent} via {route} with confidence {confidence:.2f}. {reason}"
 
 
 def explain_last_route() -> str:
+    """Explain the route Nexi ACTUALLY took (see describe_last_understanding)."""
+    actual = _actual_decision()
     strategy = get_last_strategy()
-    if not strategy:
+    if not actual and not strategy:
         return "I do not have a recent route decision to explain yet."
-    intent = strategy.get("chosen_intent") or "unknown"
-    route = strategy.get("chosen_route") or "clarify"
-    reason = strategy.get("reason") or "that was the highest-confidence safe route."
-    rules = strategy.get("learned_rules_used") or []
-    if strategy.get("need_profile_used"):
+    intent = actual.get("intent") or strategy.get("chosen_intent") or "unknown"
+    route = actual.get("route") or strategy.get("chosen_route") or "clarify"
+    reason = actual.get("reason") or strategy.get("reason") or "that was the highest-confidence safe route."
+    agrees = bool(actual) and actual.get("route") == strategy.get("chosen_route") and actual.get("intent") == strategy.get("chosen_intent")
+
+    if agrees and strategy.get("need_profile_used"):
         from engine.training_explainer import explain_strategy
         return explain_strategy(strategy)
-    if rules:
+    if actual.get("selected_rule") or (agrees and strategy.get("learned_rules_used")):
         return f"I routed it as {intent} through {route} because your learned rule matched this command."
     return f"I routed it as {intent} through {route} because {reason}"
 

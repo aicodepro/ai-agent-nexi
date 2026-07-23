@@ -73,6 +73,8 @@ def _route_pending_answer(followup_type: str, value: str) -> tuple[str, str]:
         return f"search {value}", "local_skill"
     if followup_type == "essay_topic":
         return f"write an essay about {value}", "brain_continuation"
+    if followup_type == "nexi_start_studio_build":
+        return f"let's build {value}", "workflow"
     return value, "workflow"
 
 

@@ -74,7 +74,15 @@
       var cls = level === 'err' ? 'err' : level === 'you' ? 'you' :
                 level === 'ai' ? 'ai' : level === 'file' ? 'file' :
                 level === 'tool' ? 'tool' : level === 'wake' ? 'wake' : 'sys';
-      body.innerHTML += '<div class="log-msg ' + cls + '">' + esc(msg) + '</div>';
+      // appendChild, NOT innerHTML +=. The += form serialises every existing child
+      // back to a string, destroys all of them, and re-parses the whole log on every
+      // single line — O(n) per message with up to 200 children, on a panel that logs
+      // during speech. Same DOM-thrash family as the waveform rebuild in hud_orb.js.
+      // textContent also means the text can never be parsed as markup.
+      var line = document.createElement('div');
+      line.className = 'log-msg ' + cls;
+      line.textContent = String(msg == null ? '' : msg);
+      body.appendChild(line);
       body.scrollTop = body.scrollHeight;
       if (body.children.length > 200) {
         while (body.children.length > 100) body.removeChild(body.firstChild);
@@ -83,7 +91,14 @@
     var db = document.getElementById('debug-log-body');
     if (db) {
       var lvlCls = { info: 'info', warn: 'warn', error: 'error', route: 'route', tool: 'tool', voice: 'voice' }[level] || 'info';
-      db.innerHTML += '<div class="log-entry ' + lvlCls + ' hidden"><span class="ts">' + ts() + '</span>' + esc(msg) + '</div>';
+      var entry = document.createElement('div');
+      entry.className = 'log-entry ' + lvlCls + ' hidden';
+      var stamp = document.createElement('span');
+      stamp.className = 'ts';
+      stamp.textContent = ts();
+      entry.appendChild(stamp);
+      entry.appendChild(document.createTextNode(String(msg == null ? '' : msg)));
+      db.appendChild(entry);
       if (db.children.length > 300) db.removeChild(db.firstChild);
       renderDebugLog();
     }
@@ -243,7 +258,9 @@
     }).join('');
   }
 
-  function refreshDashboard() {
+  function refreshDashboard(force) {
+    var panel = document.getElementById('diagnostics-dashboard');
+    if (force !== true && (document.hidden || (panel && panel.classList.contains('collapsed')))) return;
     try {
       if (typeof eel !== 'undefined' && eel.getDashboardState) {
         eel.getDashboardState()(function (payload) { renderDashboard(payload); });
@@ -338,7 +355,10 @@
   window.refreshDashboard = refreshDashboard;
   window.toggleDiagnostics = function () {
     var panel = document.getElementById('diagnostics-dashboard');
-    if (panel) panel.classList.toggle('collapsed');
+    if (panel) {
+      panel.classList.toggle('collapsed');
+      if (!panel.classList.contains('collapsed')) refreshDashboard(true);
+    }
   };
 
   window.updateSpeechCapsule = function () {};
@@ -355,7 +375,27 @@
   };
   window.displayControlResult = function (m) { addLog('tool', 'Control: ' + m); };
   window.showEmergencyStop = function (r) { addLog('err', 'EMERGENCY: ' + r); };
-  window.showOutputWorkspace = function () {};
+  window.showOutputWorkspace = function (payload) {
+    // The draggable workspace panel from the old www/ UI is gone, but engine/command.py
+    // still routes long output here AND shortens what it speaks and displays on the
+    // assumption this renders the full text (the show_workspace branch replaces
+    // display_text with main_ui_text and voice_text with spoken_text). While this was a
+    // no-op, that content was silently discarded — the user heard a summary and never saw
+    // the body. Render it into the activity log so nothing is lost.
+    payload = parsePayload(payload);
+    var content = String(payload.workspace_content || '');
+    if (!content) return;
+    var body = document.getElementById('nexi-log') || document.getElementById('activity-log');
+    if (!body) return;
+    var block = document.createElement('div');
+    block.className = 'log-msg file nexi-output-block';
+    block.style.whiteSpace = 'pre-wrap';  // the content is multi-line
+    // appendChild + textContent, never innerHTML += — same DOM-thrash and markup-parsing
+    // reasons documented on addLog above.
+    block.textContent = String(payload.workspace_title || 'Nexi Output') + '\n' + content;
+    body.appendChild(block);
+    body.scrollTop = body.scrollHeight;
+  };
   window.closeOutputWorkspace = function () {};
   window.minimizeOutputWorkspace = function () {};
   window.pinOutputWorkspace = function () {};
@@ -391,11 +431,11 @@
   }
 
   var refreshBtn = document.getElementById('dashboard-refresh');
-  if (refreshBtn) refreshBtn.addEventListener('click', refreshDashboard);
+  if (refreshBtn) refreshBtn.addEventListener('click', function () { refreshDashboard(true); });
   var toggleBtn = document.getElementById('dashboard-toggle');
   if (toggleBtn) toggleBtn.addEventListener('click', window.toggleDiagnostics);
-  window.setTimeout(refreshDashboard, 600);
-  window.setInterval(refreshDashboard, 2000);
+  window.setTimeout(function () { refreshDashboard(false); }, 600);
+  window.setInterval(function () { refreshDashboard(false); }, 2000);
 
   console.log('[MarkUI] controller.js loaded');
 })();

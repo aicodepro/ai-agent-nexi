@@ -29,24 +29,24 @@
 
 ## Architecture Constraints
 
-- `src/` and `src/orin/` are PEP 420 namespace packages; there is intentionally no `src/__init__.py`. Keep imports rooted at repo root, e.g. `from src.orin...` and `from engine...`.
+- `src/` and `engine/` are PEP 420 namespace packages; there is intentionally no `src/__init__.py`. Keep imports rooted at repo root, e.g. `from engine...` and `from engine...`.
 - `engine/` is the legacy runtime. `engine/command.py::allCommands` is the Eel-exposed entry for mic/text commands. Treat it as sensitive and preserve `except ImportError:` fallbacks.
 - Current `allCommands` routing order matters: command-bus reentry guard -> stop/emergency/wake/sleep/cognitive/clarification/workflow/memory/output/tool/local-skill/repeat handlers -> `Phase3CommandBridge.try_handle()` -> `route_intent()` -> greeting/identity/brain or `dispatch_intent()` -> `chatBot()` fallback.
-- `src/orin/` contains newer subsystems: `brain/`, `control/`, `memory/`, `vision/`, `voice/`, `diagnostics/`. The bridge into legacy flow is `src/orin/app/phase3_command_bridge.py`.
+- `engine/` contains newer subsystems: `brain/`, `control/`, `memory/`, `vision/`, `voice/`, `diagnostics/`. The bridge into legacy flow is `engine/app/phase3_command_bridge.py`.
 - `engine/features.py` opens `jarvis.db` at import and owns app/contact lookup plus `chatBot()`. Do not delete or replace `jarvis.db`; it is ignored but runtime-critical.
 
 ## Env, Models, And Secrets
 
 - `.env`, `engine/cookies.json`, `config/providers.local.json`, and `data/memory/*.json*` are ignored local state/secrets. Do not read or expose them unless the user explicitly asks and it is necessary.
 - `engine.features.chatBot()` defaults to Gemini via `GEMINI_API_KEY` or `GOOGLE_API_KEY`. HugChat and Lightning are legacy opt-in providers gated by `JARVIS_ENABLE_LEGACY_BRAIN_PROVIDERS=true`; HugChat uses ignored `engine/cookies.json`.
-- `src/orin/brain/provider_registry.py` has separate defaults for DeepSeek/GLM/Qwen/Kimi/MiniMax and can load `config/providers.local.json`, but that file is not auto-wired into `engine.features.chatBot()` startup.
+- `engine/brain/provider_registry.py` has separate defaults for DeepSeek/GLM/Qwen/Kimi/MiniMax and can load `config/providers.local.json`, but that file is not auto-wired into `engine.features.chatBot()` startup.
 - Wake pipeline is selected by `VOICE_WAKE_BACKEND` (`openwakeword` in `.env.example`). If `DISABLE_LEGACY_HOTWORD_FALLBACK=true`, failed openWakeWord startup stays fatal instead of falling back to SpeechRecognition.
 
 ## UI And Safety Boundaries
 
 - Do not make visual UI changes unless explicitly requested. Avoid `www/index.html` and `www/style.css`; edit JS only for minimal Python/Eel bridge fixes.
 - Eel JS bridge functions are mainly in `www/controller.js` and command submission is in `www/main.js`; keep Python `safe_eel_call()` names synchronized with exposed JS names.
-- Runtime PC-control actions are guarded by `src/orin/control/safety.py` (`EmergencyStop`, `SandboxPolicy`). Never bypass these guards for deletes, installs, settings changes, or other critical actions.
+- Runtime PC-control actions are guarded by `engine/control/safety.py` (`EmergencyStop`, `SandboxPolicy`). Never bypass these guards for deletes, installs, settings changes, or other critical actions.
 - Keep changes small and verified. For task-specific rules, prefer the relevant repo skill under `.opencode/skills/`, especially `jarvis-safe-coding`, `jarvis-test-runner`, and feature-specific Jarvis skills.
 
 ## OpenCode Config

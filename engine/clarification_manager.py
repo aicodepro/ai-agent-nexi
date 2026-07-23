@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import threading
+
 from engine.assistant_response import make_response
 
 
 _pending: dict = {}
+_lock = threading.RLock()
 
 _SLOT_BY_FOLLOWUP_TYPE = {
     "open_app": "app_name",
@@ -52,8 +55,9 @@ def clarification_for_text(text: str, reason: str = "clarify") -> dict:
 def ask_clarification(text: str, reason: str = "clarify") -> dict:
     response = clarification_for_text(text, reason=reason)
     question = response["followup_question"]
-    _pending.clear()
-    _pending.update({"pending": True, "question": question, "reason": reason, "followup_type": response["followup_type"]})
+    with _lock:
+        _pending.clear()
+        _pending.update({"pending": True, "question": question, "reason": reason, "followup_type": response["followup_type"]})
     print(f'[CLARIFY] question="{question}"', flush=True)
     print(f"[CLARIFY] pending=true reason={reason}", flush=True)
     try:
@@ -80,8 +84,9 @@ def ask_custom_clarification(question: str, followup_type: str = "generic", reas
         source="clarify",
         metadata={"reason": reason},
     )
-    _pending.clear()
-    _pending.update({"pending": True, "question": prompt, "reason": reason, "followup_type": ftype})
+    with _lock:
+        _pending.clear()
+        _pending.update({"pending": True, "question": prompt, "reason": reason, "followup_type": ftype})
     print(f'[CLARIFY] question="{prompt}"', flush=True)
     print(f"[CLARIFY] pending=true reason={reason}", flush=True)
     try:
@@ -98,13 +103,16 @@ def ask_custom_clarification(question: str, followup_type: str = "generic", reas
 
 
 def has_pending_clarification() -> bool:
-    return bool(_pending.get("pending"))
+    with _lock:
+        return bool(_pending.get("pending"))
 
 
 def clear_clarification(reason: str = "") -> None:
-    if _pending:
+    with _lock:
+        had_pending = bool(_pending)
+        _pending.clear()
+    if had_pending:
         print(f"[CLARIFY] cleared reason={(reason or '').strip()}", flush=True)
-    _pending.clear()
 
 
 def slot_for_followup_type(followup_type: str) -> str:
@@ -113,12 +121,13 @@ def slot_for_followup_type(followup_type: str) -> str:
 
 def receive_answer(text: str, followup_type: str | None = None) -> dict:
     preview = (text or "").strip()[:80]
-    pending = dict(_pending)
+    with _lock:
+        pending = dict(_pending)
+        _pending.clear()
     ftype = followup_type or pending.get("followup_type", "")
     slot = slot_for_followup_type(ftype)
     if slot:
         print(f"[CLARIFY] answer_received slot={slot} value={preview}", flush=True)
     else:
         print(f"[CLARIFY] answer_received text={preview}", flush=True)
-    _pending.clear()
     return {"handled": bool(pending), "answer": text, "pending": pending}

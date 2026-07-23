@@ -27,6 +27,7 @@ class WorldMonitorDashboard:
             self._memory_panel(),
             self._active_panel(),
             self._tools_panel(),
+            self._capabilities_panel(),
             self._commands_panel(),
             self._routes_panel(),
             self._brain_panel(),
@@ -93,6 +94,32 @@ class WorldMonitorDashboard:
         except Exception as exc:
             data = {"error": type(exc).__name__}
         return DashboardPanel("tools", "Tools", data, priority=70)
+
+    def _capabilities_panel(self) -> DashboardPanel:
+        try:
+            from engine.diagnostic_capabilities import check_diagnostic_capabilities
+
+            items = check_diagnostic_capabilities()
+            data = {
+                "total": len(items),
+                "ready": sum(1 for item in items if item.get("ok")),
+                "items": [
+                    {
+                        "id": item.get("feature_id"),
+                        "key": item.get("key"),
+                        "name": item.get("name"),
+                        "status": item.get("status"),
+                        "role": item.get("role"),
+                        "safety_policy": item.get("safety_policy"),
+                        "verifier": item.get("verifier"),
+                        "memory_rule": item.get("memory_rule"),
+                    }
+                    for item in items
+                ],
+            }
+        except Exception as exc:
+            data = {"error": type(exc).__name__}
+        return DashboardPanel("capabilities", "Capabilities", data, priority=65)
 
     def _commands_panel(self) -> DashboardPanel:
         try:

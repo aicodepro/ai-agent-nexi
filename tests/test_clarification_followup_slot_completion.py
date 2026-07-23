@@ -28,7 +28,9 @@ def _clear_pending_state():
 def test_open_then_chrome_executes_open_app(capsys):
     from engine.command_bus import submit_user_command
 
-    with patch("engine.command.speak"), patch("engine.command.safe_eel_call"), patch("engine.local_skills.subprocess.Popen") as mock_popen:
+    with patch("engine.command.speak"), patch("engine.command.safe_eel_call"), \
+         patch("engine.tool_result_verifier._app_process_running", return_value=True), \
+         patch("engine.local_skills.subprocess.Popen") as mock_popen:
         submit_user_command("open", source="typed", mode="typed")
         submit_user_command("chrome", source="typed", mode="typed")
 

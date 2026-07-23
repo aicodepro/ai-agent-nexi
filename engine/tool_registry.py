@@ -42,7 +42,7 @@ class ToolSpec:
 
 
 def _spec(name: str, description: str, required: list[str] | None = None, safety: str = "low", confirm: bool = False, handler: str = "", aliases: tuple[str, ...] = (), examples: list[str] | None = None, optional: list[str] | None = None, category: str = "general", enabled: bool = True) -> ToolSpec:
-    return ToolSpec(name, description, examples or [], required or [], optional or [], safety, confirm, handler, aliases, category, enabled)
+    return ToolSpec(name, description, examples or [], required or [], optional or [], safety, confirm or safety in {"high", "critical"}, handler, aliases, category, enabled)
 
 
 _TOOLS: dict[str, ToolSpec] = {
@@ -51,12 +51,12 @@ _TOOLS: dict[str, ToolSpec] = {
     "web_search": _spec("web_search", "Search the web", ["query"], handler="engine.local_skills.web_search"),
     "create_folder": _spec("create_folder", "Create a folder", ["folder_name"], safety="medium"),
     "create_project_folder": _spec("create_project_folder", "Create a project folder", ["folder_name"], safety="medium"),
-    "create_file": _spec("create_file", "Create a file", ["file_name"], safety="medium"),
+    "create_file": _spec("create_file", "Create a file", ["file_name"], optional=["content"], safety="medium"),
     "take_screenshot": _spec("take_screenshot", "Take a screenshot"),
     "take_note": _spec("take_note", "Take a note", ["text"]),
     "show_notes": _spec("show_notes", "Show saved notes"),
     "remember": _spec("remember", "Remember a fact", ["text"]),
-    "recall_memory": _spec("recall_memory", "Recall memory"),
+    "recall_memory": _spec("recall_memory", "Recall memory", optional=["query"]),
     "forget_memory": _spec("forget_memory", "Forget memory", ["text"], safety="medium", confirm=True),
     "open_output_workspace": _spec("open_output_workspace", "Open Nexi Output Workspace"),
     "close_output_workspace": _spec("close_output_workspace", "Close Nexi Output Workspace"),
@@ -85,9 +85,18 @@ _TOOLS: dict[str, ToolSpec] = {
     "gesture_click_mode": _spec("gesture_click_mode", "Enable gesture click mode", safety="high", confirm=True),
     "gesture_scroll_mode": _spec("gesture_scroll_mode", "Enable gesture scroll mode", safety="medium"),
     "eye_mouse_calibrate": _spec("eye_mouse_calibrate", "Calibrate eye mouse", handler="engine.camera_control.calibrate_eye_mouse"),
+    "face_recognition": _spec("face_recognition", "Start or check face recognition status", optional=["mode"], handler="engine.camera_control.start_face_recognition"),
+    "face_register": _spec("face_register", "Register a new face for recognition", ["name"], safety="medium", handler="engine.camera_control.register_face"),
     # ── Browser / web / media features migrated from legacy dispatch_intent ──
     "search_youtube": _spec("search_youtube", "Search or play a video on YouTube", ["query"], handler="engine.features.PlayYoutube", aliases=("search youtube", "youtube search", "play on youtube", "play youtube", "youtube pe search karo", "youtube pe dhoondo"), examples=["play lofi on yt", "search youtube for python tutorial", "youtube pe search karo cats"], category="web"),
     "play_youtube": _spec("play_youtube", "Play media on YouTube", ["query"], handler="engine.features.PlayYoutube", aliases=("play youtube", "youtube play"), examples=["play despacito on youtube"], category="web"),
+    # safety="high" (not medium): this generates and installs executable code. medium
+    # never reaches approval_queue, so a single unconfirmed utterance could forge a tool.
+    # Removing a forged tool already required confirm; creating one must too.
+    "nexi_forge_tool": _spec("nexi_forge_tool", "Build Nexi a brand new tool for a capability she does not have yet", ["spec"], safety="high", handler="engine.forge.forge_engine.nexi_forge_tool", aliases=("build yourself a tool", "forge a tool", "make yourself a tool", "write yourself a tool", "create a new tool for yourself", "you dont have that tool build it"), examples=["build yourself a tool that converts celsius to fahrenheit", "forge a tool that counts words in a string"], category="system"),
+    "nexi_list_forged_tools": _spec("nexi_list_forged_tools", "List the tools Nexi has built for herself", handler="engine.forge.forge_engine.nexi_list_forged_tools", aliases=("what tools have you built", "list your forged tools", "what tools did you make yourself", "show your forged tools"), examples=["what tools have you built for yourself"], category="system"),
+    "nexi_remove_tool": _spec("nexi_remove_tool", "Remove a tool Nexi previously built for herself", ["name"], safety="medium", confirm=True, handler="engine.forge.forge_engine.nexi_remove_tool", aliases=("remove the forged tool", "delete the tool you built", "uninstall your tool"), examples=["remove the forged tool called add_numbers"], category="system"),
+    "which_model": _spec("which_model", "Report which AI model Nexi picked for each task and why", optional=["live"], handler="engine.model_registry.which_model", aliases=("which model are you using", "what model do you use", "which ai model", "what models can you use", "research the models", "research the ai models", "what model are you using for that"), examples=["which model are you using", "what models can you use", "research the ai models"], category="system"),
     "tell_time": _spec("tell_time", "Tell the current time", aliases=("what time is it", "current time", "time now", "tell me the time"), examples=["what time is it", "tell me the time"], category="system"),
     "tell_joke": _spec("tell_joke", "Tell a joke", aliases=("tell a joke", "make me laugh", "crack a joke"), examples=["tell me a joke", "make me laugh"], category="conversation"),
     "weather_lookup": _spec("weather_lookup", "Look up the weather", optional=["location"], aliases=("weather", "whats the weather", "weather today", "temperature"), examples=["what's the weather", "weather in london"], category="web"),
@@ -144,6 +153,11 @@ _TOOLS: dict[str, ToolSpec] = {
     "nexi_workflow_artifacts": _spec("nexi_workflow_artifacts", "Show the latest agent report/artifacts", optional=["run_id"], handler="engine.agency.nexi_workflow_artifacts", aliases=("show the agent report", "latest agent report", "show latest agent report", "agent reports", "workflow artifacts", "workflow report"), examples=["show the latest agent report"], category="workflow"),
     "nexi_cancel_workflow": _spec("nexi_cancel_workflow", "Cancel the current/last agent workflow", optional=["run_id"], handler="engine.agency.nexi_cancel_workflow", aliases=("cancel workflow", "cancel the workflow", "cancel agent workflow", "stop the agent workflow"), examples=["cancel workflow"], category="workflow"),
     "nexi_continue_workflow": _spec("nexi_continue_workflow", "Resume a paused agent workflow", optional=["input", "run_id"], handler="engine.agency.nexi_continue_workflow", aliases=("continue workflow", "continue the agent workflow", "resume workflow", "resume the agent workflow"), examples=["continue the agent workflow"], category="workflow"),
+    "nexi_start_studio_build": _spec("nexi_start_studio_build", "Start the opt-in Nexi Studio product team for an explicitly authorized build", ["command"], safety="high", optional=["goal", "project_dir"], handler="engine.agency.nexi_start_studio_build", aliases=("let's build", "lets build", "studio mode", "exotic mode"), examples=["let's build a coffee brand landing page", "studio mode: build a personal finance app"], category="workflow", enabled=False),
+    "nexi_studio_status": _spec("nexi_studio_status", "Report the current or latest Nexi Studio build status", optional=["run_id"], handler="engine.agency.nexi_studio_status", aliases=("studio status", "studio build status"), examples=["studio status"], category="workflow"),
+    "nexi_cancel_studio_build": _spec("nexi_cancel_studio_build", "Cancel the current Nexi Studio build", optional=["run_id"], handler="engine.agency.nexi_cancel_studio_build", aliases=("cancel studio", "stop studio build"), examples=["cancel studio"], category="workflow"),
+    "nexi_continue_studio_build": _spec("nexi_continue_studio_build", "Answer the one blocking question and resume Nexi Studio", ["answer"], optional=["run_id"], handler="engine.agency.nexi_continue_studio_build", aliases=("continue studio", "resume studio build"), examples=["studio continue: use Stripe"], category="workflow", enabled=False),
+    "nexi_agent_runtime_status": _spec("nexi_agent_runtime_status", "Report configured agent runtimes and connection capabilities", optional=["provider"], handler="engine.agent_runtime.tools.runtime_status_tool", aliases=("agent runtime status", "ai agent status", "which coding agent are you using", "show agent providers"), examples=["agent runtime status", "show agent providers"], category="workflow"),
     "resolve_app_for_task": _spec("resolve_app_for_task", "Pick the best app for a task (e.g. coding, presentation) with confidence", optional=["task"], handler="engine.app_intelligence.resolve_app_for_task", examples=["what's the best app for coding", "which app for presentation"], category="desktop"),
     "open_app_for_task": _spec("open_app_for_task", "Open the best app for a task", optional=["task"], handler="engine.app_intelligence.open_app_for_task", examples=["open the best app for coding"], category="desktop"),
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
@@ -159,16 +173,34 @@ _TOOLS: dict[str, ToolSpec] = {
 }
 
 
+# These tools remain registered for exact deterministic human-command routing,
+# but no model may discover or invoke them through a generated tool call.
+MODEL_FORBIDDEN_TOOLS = frozenset({
+    "approve_action",
+    "reject_action",
+    "nexi_start_studio_build",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+    "nexi_cancel_workflow",
+    "nexi_continue_workflow",
+})
+
+
 def list_tools() -> list[dict[str, Any]]:
     return [asdict(tool) for tool in _TOOLS.values()]
 
 
-def tools_openai_schema() -> list[dict[str, Any]]:
-    return [tool.to_openai_schema() for tool in _TOOLS.values()]
-
-
 def enabled_tools() -> list[ToolSpec]:
     return [tool for tool in _TOOLS.values() if tool.enabled]
+
+
+def model_visible_tools() -> list[ToolSpec]:
+    """Enabled tools safe to disclose at any model-facing boundary."""
+    return [tool for tool in enabled_tools() if tool.name not in MODEL_FORBIDDEN_TOOLS]
+
+
+def tools_openai_schema() -> list[dict[str, Any]]:
+    return [tool.to_openai_schema() for tool in model_visible_tools()]
 
 
 def router_tool_manifest() -> list[dict[str, Any]]:
@@ -178,7 +210,7 @@ def router_tool_manifest() -> list[dict[str, Any]]:
     can never be blind to a registered feature.
     """
     cards: list[dict[str, Any]] = []
-    for tool in enabled_tools():
+    for tool in model_visible_tools():
         cards.append({
             "name": tool.name,
             "description": tool.description,
@@ -194,8 +226,8 @@ def router_tool_manifest() -> list[dict[str, Any]]:
 
 
 def xai_tools_schema() -> list[dict[str, Any]]:
-    """JSON-schema function tools for provider-native function calling (enabled only)."""
-    return [tool.to_openai_schema() for tool in enabled_tools()]
+    """Provider-native schemas with human-only trust-boundary tools removed."""
+    return [tool.to_openai_schema() for tool in model_visible_tools()]
 
 
 def alias_index() -> dict[str, str]:
@@ -235,7 +267,7 @@ def clarification_for_missing_slot(tool_name: str, slot: str) -> str:
     if slot == "file_name":
         return "What should I name the file?"
     if slot == "folder_name":
-        return "What should I name it?"
+        return "What should I name the folder?"
     if slot == "text":
         return "What should I write in the note?"
     if slot == "mode" and tool_name in {"hand_gesture_control", "eye_mouse_control"}:
@@ -306,20 +338,82 @@ def select_tool(text: str) -> dict[str, Any]:
     return {"handled": True, "name": intent, "slots": slots, "tool": get_tool(intent), "confidence": 0.90}
 
 
+# Tools whose "preview" mode is read-only by design: they open a viewer and never move the
+# mouse or click. Only their "control" mode needs confirmation.
+PREVIEW_SAFE_TOOLS = {"hand_gesture_control", "eye_mouse_control", "camera_preview"}
+
+# Studio tools carry their own, stronger gate: an authorization token minted only by the
+# owner's explicit confirming turn (see engine/studio/commands.issue_authorization). A
+# model cannot mint one. The generic "say confirm" prompt must not intercept them, or the
+# authorized build can never start.
+STUDIO_AUTH_TOOLS = {
+    "nexi_start_studio_build",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+}
+
+
 def execute_tool(name: str, slots: dict[str, Any] | None = None, *, confirmed: bool = False) -> dict[str, Any]:
     values = dict(slots or {})
-    if confirmed:
-        values["confirmed"] = True
     tool = _TOOLS.get(name)
     if not tool:
-        return {"handled": False, "ok": False, "success": False, "verified": False, "tool": name, "message": "Unknown tool."}
+        return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "error_code": "UNKNOWN_TOOL", "expects_user_reply": False, "message": "That tool is not available."}
+    declared_values = {slot: values[slot] for slot in tool.required_slots + tool.optional_slots if slot in values}
+    studio_auth = values.get("_studio_auth") if name in STUDIO_AUTH_TOOLS else None
+    # approval_queue.approve() (the ONLY legitimate approval path for gated computer-use
+    # tools) re-invokes execute_tool with a private, unguessable sentinel under
+    # _approval_token — never a value a model/router could produce. Capture it before
+    # stripping so a genuinely-approved action still proceeds; any other value (or the
+    # key from any other caller) is stripped below exactly as before.
+    internal_approval_key = None
+    internal_approval_value = None
+    try:
+        from engine.approval_queue import _APPROVAL_TOKEN_KEY, _INTERNAL_APPROVAL
+        if values.get(_APPROVAL_TOKEN_KEY) == _INTERNAL_APPROVAL:
+            internal_approval_key, internal_approval_value = _APPROVAL_TOKEN_KEY, _INTERNAL_APPROVAL
+    except Exception:
+        pass
+    # Strip model-supplied authorization/approval/confirmation claims BEFORE anything
+    # reads them. The ReAct planner already does this, but the direct dispatch path
+    # (command.py -> execute_tool) did not, so a model could bypass approval_queue.gate
+    # by emitting _approval_token / _studio_auth / confirmed. Approval is granted only
+    # by the explicit `confirmed=` kwarg (set by Nexi from a real user confirmation),
+    # never by a slot the model wrote. Applied first so the kwarg still works.
+    try:
+        from engine.react_planner import _strip_reserved_arguments
+        values = dict(_strip_reserved_arguments(values))
+    except Exception:
+        for _k in ("_approval_token", "_studio_auth", "approval_token", "authorization", "confirmed"):
+            values.pop(_k, None)
+    values.update(declared_values)
+    if isinstance(studio_auth, str) and studio_auth:
+        values["_studio_auth"] = studio_auth
+    if internal_approval_key:
+        values[internal_approval_key] = internal_approval_value
+    if confirmed:
+        values["confirmed"] = True
     missing = missing_slots(name, values)
     if missing:
         slot = missing[0]
         print(f"[TOOL] missing_slot name={slot}", flush=True)
         return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "expects_user_reply": True, "message": clarification_for_missing_slot(name, slot), "missing_slot": slot}
-    if tool.requires_confirmation and tool.safety == "high" and values.get("mode") == "control" and not values.get("confirmed"):
-        return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "requires_confirmation": True, "message": "Control mode can move the mouse. Say confirm to continue, or preview for safe mode."}
+    # The blanket confirm gate exists because most confirm=True tools have no `mode` slot,
+    # so the narrower control-mode check further down never fired for them and they ran
+    # unconfirmed. It must not also block `preview`, which is the deliberately SAFE branch
+    # of the camera tools — it opens a viewer and never moves the mouse or clicks, and the
+    # router already marks it risk_level=low / requires_confirmation=false. Demanding
+    # confirmation for preview both contradicts that and trains the user to confirm
+    # reflexively, which is how the real control-mode prompt stops being read.
+    safe_preview = name in PREVIEW_SAFE_TOOLS and values.get("mode") == "preview"
+    # Tools that gate through approval_queue are exempt — that queue is their confirmation
+    # step. See approval_queue.QUEUE_GATED_HANDLER_PREFIXES for why.
+    try:
+        from engine.approval_queue import is_queue_gated
+        queue_gated = is_queue_gated(tool.handler)
+    except Exception:
+        queue_gated = False
+    if tool.requires_confirmation and not (confirmed or internal_approval_key) and not safe_preview and not queue_gated and name not in STUDIO_AUTH_TOOLS:
+        return {"handled": True, "ok": False, "success": False, "verified": False, "tool": name, "requires_confirmation": True, "expects_user_reply": True, "message": "This action requires confirmation. Say confirm to continue."}
     try:
         from engine.safety_gate import execution_is_safe
         safety = execution_is_safe(name, values, user_text=name)
@@ -333,8 +427,17 @@ def execute_tool(name: str, slots: dict[str, Any] | None = None, *, confirmed: b
                 "requires_confirmation": bool(safety.get("requires_confirmation")),
                 "message": str(safety.get("reason") or "This action is blocked by the safety gate."),
             }
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[SAFETY] fail_closed tool={name} reason={type(exc).__name__}", flush=True)
+        return {
+            "handled": True,
+            "ok": False,
+            "success": False,
+            "verified": False,
+            "tool": name,
+            "error_code": "SAFETY_GATE_ERROR",
+            "message": "I couldn't verify that this action is safe, so I did not run it.",
+        }
     print(f"[TOOL] executing name={name}", flush=True)
     try:
         result = _execute_handler(name, values, confirmed=confirmed)
@@ -350,6 +453,13 @@ def execute_tool(name: str, slots: dict[str, Any] | None = None, *, confirmed: b
             record_tool_result(name, values, final)
         except Exception:
             pass
+        try:
+            # Tool name only, never `values` — slots carry file paths and query text,
+            # and the world block is injected into prompts.
+            from engine.world_model import update_world
+            update_world(last_action=name, last_result="verified" if success else "unverified")
+        except Exception:
+            pass
         return final
     except Exception as e:
         print(f"[TOOL] failed name={name} reason={type(e).__name__}", flush=True)
@@ -357,6 +467,11 @@ def execute_tool(name: str, slots: dict[str, Any] | None = None, *, confirmed: b
         try:
             from engine.tool_usage_intelligence import record_tool_result
             record_tool_result(name, values, final)
+        except Exception:
+            pass
+        try:
+            from engine.world_model import update_world
+            update_world(last_action=name, last_result="failed")
         except Exception:
             pass
         return final
@@ -376,9 +491,38 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         from engine.memory_store import remember_fact
         return {"success": True, "message": remember_fact(str(slots.get("text") or "")), "tool": name, "verified": True}
     if name == "recall_memory":
+        # Recall must read every store Nexi actually WRITES to. command.py writes
+        # learned facts to memory.semantic_memory and past turns to
+        # memory.episodic_memory, but this tool used to read only the legacy
+        # nexi_memory.json — so "what do you remember about X" never saw anything
+        # Nexi had learned. Each store is optional and degrades independently.
         from engine.memory_store import recall_summary
         query = str(slots.get("query") or slots.get("text") or "")
-        return {"success": True, "message": recall_summary(query), "tool": name, "verified": True}
+        parts: list[str] = []
+
+        explicit = str(recall_summary(query) or "").strip()
+        if explicit and "nothing" not in explicit.lower():
+            parts.append(explicit)
+
+        try:
+            from engine.memory.semantic_memory import recall as recall_semantic
+            facts = [f"{f.subject} {f.predicate} {f.object}".strip()
+                     for f in recall_semantic(query, limit=5) if str(f.object or "").strip()]
+            if facts:
+                parts.append("I've learned: " + "; ".join(facts[:5]) + ".")
+        except Exception:
+            pass
+
+        try:
+            from engine.memory.episodic_memory import recall_similar
+            episodes = [e.user_input for e in recall_similar(query, n=3) if str(e.user_input or "").strip()]
+            if episodes:
+                parts.append("You previously asked: " + "; ".join(f'"{e}"' for e in episodes[:3]) + ".")
+        except Exception:
+            pass
+
+        message = " ".join(parts) if parts else (explicit or "I don't have anything about that yet.")
+        return {"success": True, "message": message, "tool": name, "verified": True}
     if name == "forget_memory":
         from engine.memory_store import forget
         return {"success": True, "message": forget(str(slots.get("text") or "")), "tool": name, "verified": True}
@@ -397,14 +541,14 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         return {"success": ok, "message": "Camera preview started." if ok else "Camera preview did not start.", "tool": name, "verified": ok}
     if name == "hand_gesture_control":
         from engine.camera_control import start_hand_gesture_control
-        mode = str(slots.get("mode") or "preview")
-        ok = bool(start_hand_gesture_control(mode=mode, explicit=confirmed or mode == "preview"))
-        return {"success": ok, "message": "Hand gesture preview started." if ok else "Hand gesture control requires explicit confirmation.", "tool": name, "verified": ok}
+        mode = str(slots.get("mode") or "control")
+        ok = bool(start_hand_gesture_control(mode=mode, explicit=True))
+        return {"success": ok, "message": "Hand gesture control started." if ok else "Hand gesture control did not start.", "tool": name, "verified": ok}
     if name == "eye_mouse_control":
         from engine.camera_control import start_eye_mouse_control
         mode = str(slots.get("mode") or "preview")
-        ok = bool(start_eye_mouse_control(mode=mode, explicit=confirmed or mode == "preview"))
-        return {"success": ok, "message": "Eye mouse preview started." if ok else "Eye mouse control requires calibration and confirmation.", "tool": name, "verified": ok}
+        ok = bool(start_eye_mouse_control(mode=mode, explicit=True))
+        return {"success": ok, "message": "Eye mouse control started." if ok else "Eye mouse control requires calibration.", "tool": name, "verified": ok}
     if name == "eye_mouse_calibrate":
         from engine.camera_control import calibrate_eye_mouse
         ok = bool(calibrate_eye_mouse())
@@ -413,24 +557,52 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         from engine.camera_control import stop_all_controls
         stop_all_controls()
         return {"success": True, "message": "Camera controls stopped.", "tool": name, "verified": True}
+    if name == "face_recognition":
+        from engine.camera_control import start_face_recognition, is_face_recognition_running
+        mode = str(slots.get("mode") or "start")
+        if mode == "stop":
+            from engine.camera_control import stop_face_recognition
+            ok = bool(stop_face_recognition())
+            return {"success": ok, "message": "Face recognition stopped." if ok else "Face recognition was not running.", "tool": name, "verified": ok}
+        if is_face_recognition_running():
+            return {"success": True, "message": "Face recognition is already running.", "tool": name, "verified": True}
+        ok = bool(start_face_recognition())
+        return {"success": ok, "message": "Face recognition started." if ok else "Face recognition did not start.", "tool": name, "verified": ok}
+    if name == "face_register":
+        from engine.camera_control import register_face
+        person = str(slots.get("name") or "User")
+        duration = int(slots.get("duration_s", 10))
+        ok = bool(register_face(name=person, duration_s=duration))
+        return {"success": ok, "message": f"Face registered for '{person}'." if ok else "Face registration failed.", "tool": name, "verified": ok}
     if name == "create_folder" or name == "create_project_folder":
         from pathlib import Path
         folder = str(slots.get("folder_name") or slots.get("name") or "")
         if not folder:
             return {"success": False, "message": "What should I name the folder?", "tool": name, "expects_user_reply": True}
-        target = (Path.home() / "Desktop" / folder) if not os.path.sep in folder else Path(folder)
+        safe_root = (Path.home() / "Desktop").resolve()
+        target = (safe_root / folder).resolve()
+        try:
+            target.relative_to(safe_root)
+        except ValueError:
+            return {"success": False, "error_code": "PATH_OUTSIDE_SAFE_ROOT", "message": "I can only create folders inside your Desktop.", "tool": name}
         target.mkdir(parents=True, exist_ok=True)
-        return {"success": True, "message": f"Folder created: {target.name}", "tool": name, "verified": True}
+        return {"success": True, "message": f"Folder created: {target.name}", "path": str(target), "tool": name}
     if name == "create_file":
         filename = str(slots.get("file_name") or slots.get("name") or "")
         if not filename:
             return {"success": False, "message": "What should I name the file?", "tool": name, "expects_user_reply": True}
         from pathlib import Path
-        target = (Path.home() / "Desktop" / filename) if not os.path.sep in filename else Path(filename)
+        safe_root = (Path.home() / "Desktop").resolve()
+        target = (safe_root / filename).resolve()
+        try:
+            target.relative_to(safe_root)
+        except ValueError:
+            return {"success": False, "error_code": "PATH_OUTSIDE_SAFE_ROOT", "message": "I can only create files inside your Desktop.", "tool": name}
         if not target.suffix:
             target = target.with_suffix(".txt")
-        target.write_text("", encoding="utf-8")
-        return {"success": True, "message": f"File created: {target.name}", "tool": name, "verified": True}
+        content = slots.get("content")
+        target.write_text("" if content is None else str(content), encoding="utf-8")
+        return {"success": True, "message": f"File created: {target.name}", "path": str(target), "tool": name}
     if name == "take_screenshot":
         try:
             import pyautogui
@@ -586,6 +758,9 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
     if name in {"request_feature", "list_feature_requests"}:
         from engine import feature_requests
         return getattr(feature_requests, name)(slots)
+    if name == "nexi_agent_runtime_status":
+        from engine.agent_runtime.tools import runtime_status_tool
+        return runtime_status_tool(slots)
     if name.startswith("nexi_") and name not in {"nexi"}:
         from engine import agency
         if hasattr(agency, name):
@@ -631,4 +806,25 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
             return {"success": True, "message": f"Done: {label}.", "tool": name, "verified": True}
         except Exception:
             return {"success": False, "message": "That control requires pyautogui which is not available.", "tool": name}
+    if name in {"nexi_forge_tool", "nexi_list_forged_tools", "nexi_remove_tool"}:
+        # Nexi writing her own tools. The forge wrappers take real arguments and
+        # return {ok,...}, so adapt slots -> args and ok -> the tool contract.
+        # Safety lives in forge_engine: anything touching fs/network/subprocess is
+        # gated to needs_approval and is never executed or installed.
+        from engine.forge import forge_engine
+        data = slots or {}
+        if name == "nexi_forge_tool":
+            out = forge_engine.nexi_forge_tool(spec=str(data.get("spec") or data.get("capability") or ""))
+        elif name == "nexi_remove_tool":
+            out = forge_engine.nexi_remove_tool(name=str(data.get("name") or ""))
+        else:
+            out = forge_engine.nexi_list_forged_tools()
+        ok = bool(out.get("ok"))
+        result = {"success": ok, "verified": ok, "tool": name, "message": str(out.get("message") or "")}
+        if out.get("status") == "needs_approval":
+            result["requires_approval"] = True
+        return result
+    if name == "which_model":
+        from engine.model_registry import which_model
+        return which_model(slots)
     return {"success": False, "message": "That tool is registered but not available yet.", "tool": name, "verified": False}

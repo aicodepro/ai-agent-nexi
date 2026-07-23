@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import queue
 import struct
@@ -99,6 +100,15 @@ OWW_THRESHOLD = _env_float("OPENWAKEWORD_SCORE_THRESHOLD", 0.35)
 OWW_CONSECUTIVE = _env_int("OPENWAKEWORD_CONSECUTIVE_HITS", 2)
 WAKE_COOLDOWN_SECONDS = _env_float("WAKE_COOLDOWN_SECONDS", _env_int("NEXI_WAKE_COOLDOWN_MS", _env_int("OPENWAKEWORD_COOLDOWN_MS", 1500)) / 1000.0)
 HOTWORD_MIN_RMS = _env_float("NEXI_HOTWORD_MIN_RMS", 0.003)
+# Wake noise-rejection: require Silero-detected VOICE (not just energy) to wake,
+# so office noise that trips the energy gate still cannot wake NEXI. The wake
+# scorer effectively fires on any energy, so this voice gate is the real filter.
+WAKE_REQUIRE_VOICE = (os.getenv("NEXI_WAKE_REQUIRE_VOICE", "0") or "0").strip().lower() not in {"0", "false", "no", "off"}
+# Wake energy bar: require the hotword frame to have enough energy. 0.015
+# catches whisper-level speech close to the mic while rejecting fan/ambient.
+# Raise (e.g. 0.03) in very noisy rooms to avoid false energy wakes.
+WAKE_MIN_RMS = _env_float("NEXI_WAKE_MIN_RMS", 0.015)
+_WAKE_RMS_FLOOR = max(HOTWORD_MIN_RMS, WAKE_MIN_RMS)
 HOTWORD_RISING_EDGE_DELTA = _env_float("NEXI_HOTWORD_RISING_EDGE_DELTA", 0.02)
 AUDIO_INPUT_DEVICE = _env("AUDIO_INPUT_DEVICE", "auto")
 WAKE_DEBUG = _env_bool("WAKE_DEBUG", False) or _env_bool("NEXI_WAKE_DEBUG", False) or _env_bool("OPENWAKEWORD_DEBUG", False)
@@ -111,7 +121,7 @@ WAKE_DEBUG = _env_bool("WAKE_DEBUG", False) or _env_bool("NEXI_WAKE_DEBUG", Fals
 NOISE_CALIBRATION_SECONDS = _env_float("NEXI_NOISE_CALIBRATION_SECONDS", 2.0)
 NOISE_CALIBRATION_MULTIPLIER = _env_float("NEXI_NOISE_CALIBRATION_MULTIPLIER", 1.5)
 NOISE_CALIBRATION_MIN_RMS = _env_float("NEXI_NOISE_CALIBRATION_MIN_RMS", 0.003)
-NOISE_CALIBRATION_MAX_RMS = _env_float("NEXI_NOISE_CALIBRATION_MAX_RMS", 0.015)
+NOISE_CALIBRATION_MAX_RMS = _env_float("NEXI_NOISE_CALIBRATION_MAX_RMS", 0.025)
 
 VAD_BACKEND = _env("VAD_BACKEND", "silero")
 VAD_MIN_SPEECH_MS = _env_int("VAD_MIN_SPEECH_MS", _env_int("NEXI_COMMAND_MIN_SPEECH_MS", 400))
@@ -313,13 +323,16 @@ class AudioWakePipeline:
         clock: Optional[Callable[[], float]] = None,
         enable_clap: Optional[bool] = None,
         command_queue=None,
+        control_queue=None,
     ):
         self._on_command_text = on_command_text
         self._command_queue = command_queue
+        self._control_queue = control_queue
         self._asr = asr or _default_asr
         self._clock = clock or time.time
         self._wake_scorer = wake_scorer  # built lazily in start() if None
         self._vad = vad  # built lazily in start() if None
+        self._wake_vad = None  # separate Silero VAD for the wake voice-gate (lazy)
 
         self._enable_clap = enable_clap
         self._frame_queue: "queue.Queue[bytes]" = queue.Queue(maxsize=256)
@@ -335,6 +348,10 @@ class AudioWakePipeline:
         self._consecutive_hits = 0
         self._last_wake_at = 0.0
         self._prev_hotword_score = 0.0
+        # Rolling window of recent frame RMS (~1.2s). openWakeWord's score peaks with
+        # a buffer delay — often on a near-silent frame AFTER the phrase — so the wake
+        # gate must ask "was there speech recently?", not "is THIS frame loud?".
+        self._recent_rms = deque(maxlen=_env_int("NEXI_WAKE_RMS_WINDOW_FRAMES", 15))
 
         try:
             from engine.wake_orchestrator import WakeOrchestrator
@@ -402,7 +419,101 @@ class AudioWakePipeline:
             return bool(self._enable_clap)
         return _clap_enabled_env() or self._clap_manager is not None
 
+    def _drain_control_events(self) -> int:
+        if self._control_queue is None:
+            return 0
+        handled = 0
+        while True:
+            try:
+                event = self._control_queue.get_nowait()
+            except queue.Empty:
+                break
+            except Exception:
+                break
+            handled += 1
+            if not isinstance(event, dict):
+                continue
+            session_id = str(event.get("session_id") or "")
+            manager = get_session_manager()
+            if event.get("type") == "capture_followup":
+                if session_id and manager.is_current(session_id):
+                    self._capture_followup(event)
+                elif session_id:
+                    _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
+                continue
+            if event.get("type") != "finish_session":
+                continue
+            if session_id and manager.is_current(session_id):
+                finish_session(str(event.get("reason") or "complete"))
+            elif session_id:
+                _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
+        return handled
+
+    def _capture_followup(self, event: dict) -> bool:
+        session_id = str(event.get("session_id") or "")
+        source = str(event.get("source") or "voice").strip() or "voice"
+        manager = get_session_manager()
+        if not session_id or not manager.is_current(session_id):
+            return False
+
+        not_before = float(event.get("not_before") or 0.0)
+        while time.time() < not_before:
+            remaining = max(0.0, not_before - time.time())
+            try:
+                self._frame_queue.get(timeout=min(0.05, remaining))
+            except queue.Empty:
+                pass
+
+        try:
+            self.flush_wake_tail()
+            manager.set_state("listening")
+            self._post_status("listening_started", source=source)
+            _safe_log(f"[LISTEN] followup_capture_started source={source}")
+
+            def _next_frame() -> Optional[bytes]:
+                try:
+                    return self._frame_queue.get(timeout=0.2)
+                except queue.Empty:
+                    return None
+
+            audio = self.capture_command(_next_frame, source=source, followup=True)
+            stats = self._last_capture_stats or {}
+            if not stats.get("speech_started", False) or len(audio) < (ASR_MIN_AUDIO_MS / 1000.0) * SAMPLE_RATE * 2:
+                self._post_status("sleeping", source=source)
+                finish_session("followup_no_speech_timeout")
+                return False
+            transcript = self.emit_command(audio, source=source)
+            self.flush_wake_tail()
+            if not transcript:
+                self._post_status("sleeping", source=source)
+                finish_session("followup_asr_empty")
+                return False
+            manager.set_state("thinking")
+            return True
+        except Exception as exc:
+            _safe_log(f"[LISTEN] followup_capture_failed reason={type(exc).__name__}")
+            self._post_status("sleeping", source=source)
+            finish_session("followup_capture_failed")
+            return False
+
     # ---- pure per-frame logic (testable) ----
+
+    def _wake_frame_is_voice(self, frame_int16: bytes) -> bool:
+        """Silero voice-gate for waking. True only for voiced speech, so ambient
+        office energy (keyboard/door/HVAC/fan) cannot wake NEXI even though the
+        wake scorer fires on it. Fails OPEN (returns True) if a VAD is unavailable
+        so we never silently stop responding."""
+        if self._wake_vad is None:
+            try:
+                self._wake_vad = build_vad()
+            except Exception:
+                self._wake_vad = False  # sentinel: unavailable, don't retry
+        if not self._wake_vad:
+            return True
+        try:
+            return bool(self._wake_vad.is_speech(frame_int16))
+        except Exception:
+            return True
 
     def process_frame(self, frame_int16: bytes) -> dict:
         """Run one frame through the wake detectors.
@@ -444,8 +555,21 @@ class AudioWakePipeline:
             scorer_name = getattr(self._wake_scorer, "name", "")
             if scorer_name == "openwakeword":
                 rms, _peak = _calc_rms_peak(frame_int16)
-                if rms < HOTWORD_MIN_RMS:
+                self._recent_rms.append(rms)
+                recent_max = max(self._recent_rms) if self._recent_rms else rms
+                # Gate on RECENT speech, not this exact frame. The score for "hey nexi"
+                # commonly peaks 1-2 frames AFTER the phrase (openWakeWord buffers ~1s
+                # internally), and that peak frame is often near-silent — the old
+                # instantaneous `rms < floor` check rejected exactly the frame that
+                # fires, which is why normal speech was missed and only shouting worked.
+                if recent_max < _WAKE_RMS_FLOOR:
                     result["reason"] = f"low_rms_{rms:.5f}"
+                    self._consecutive_hits = 0
+                    self._prev_hotword_score = score
+                    score = 0.0
+                elif WAKE_REQUIRE_VOICE and not self._wake_frame_is_voice(frame_int16):
+                    # energy is present but it is NOT voiced speech (office noise) -> don't wake
+                    result["reason"] = f"not_speech_rms_{rms:.5f}"
                     self._consecutive_hits = 0
                     self._prev_hotword_score = score
                     score = 0.0
@@ -531,7 +655,12 @@ class AudioWakePipeline:
         except Exception as e:
             _safe_log(f"[BRIDGE] status_post_failed reason={type(e).__name__}")
 
-    def capture_command(self, frame_source: Callable[[], Optional[bytes]], source: str = "voice") -> bytes:
+    def capture_command(
+        self,
+        frame_source: Callable[[], Optional[bytes]],
+        source: str = "voice",
+        followup: bool | None = None,
+    ) -> bytes:
         """Capture frames after a wake event until VAD silence or max duration.
 
         `frame_source()` returns the next frame or None when no more frames
@@ -543,13 +672,14 @@ class AudioWakePipeline:
             self._vad = vad
 
         frame_ms = max(1.0, (FRAME_SAMPLES / SAMPLE_RATE) * 1000.0)
-        followup_capture = False
-        try:
-            from engine.clarification_manager import has_pending_clarification
-            from engine.followup_manager import has_pending_followup
-            followup_capture = has_pending_clarification() or has_pending_followup()
-        except Exception:
-            followup_capture = False
+        followup_capture = bool(followup)
+        if followup is None:
+            try:
+                from engine.clarification_manager import has_pending_clarification
+                from engine.followup_manager import has_pending_followup
+                followup_capture = has_pending_clarification() or has_pending_followup()
+            except Exception:
+                followup_capture = False
         max_seconds = ASR_FOLLOWUP_MAX_RECORD_SECONDS if followup_capture else ASR_MAX_RECORD_SECONDS
         silence_ms = ASR_FOLLOWUP_SILENCE_TIMEOUT_MS if followup_capture else ASR_SILENCE_TIMEOUT_MS
         max_frames = int((max_seconds * 1000.0) / frame_ms)
@@ -559,6 +689,7 @@ class AudioWakePipeline:
 
         captured: list[bytes] = list(self._preroll)
         speech_started = False
+        speech_start_index: int | None = None
         speech_frames = 0
         silence_frames = 0
         no_speech_frame_count = 0
@@ -576,6 +707,7 @@ class AudioWakePipeline:
             if vad.is_speech(frame):
                 if not speech_started:
                     speech_started = True
+                    speech_start_index = len(captured) - 1
                     _safe_log("[VAD] speech_started")
                     self._post_status("speech_started", source=source)
                 speech_frames += 1
@@ -597,6 +729,28 @@ class AudioWakePipeline:
 
         # min_speech_frames is retained for the ASR gate (see _check_vad_gates).
         _ = min_speech_frames
+
+        # Drop the dead air recorded BEFORE the user actually started speaking.
+        # We keep VAD_PREROLL_MS of lead-in so the first phoneme is never clipped.
+        # This matters for latency, not disk: the ASR round-trip is dominated by the
+        # UPLOAD, and we were shipping every second of silence while the user thought
+        # about what to say (measured: 11.6s recorded / 0.96s speech = 371KB posted).
+        if speech_started and speech_start_index is not None:
+            lead_frames = self._preroll.maxlen or 0
+            keep_from = max(0, speech_start_index - lead_frames)
+            # NEVER trim below what the ASR needs. The caller rejects any clip shorter
+            # than ASR_MIN_AUDIO_MS as "no_speech_timeout", so an over-eager trim made
+            # short utterances ("what's up?") die with listening -> thinking -> sleep.
+            # Keep extra lead-in rather than produce a too-short clip.
+            # ceil, not int(): int(1800/80)=22 frames = 1760ms, which is still UNDER
+            # the 1800ms minimum and gets discarded as no_speech_timeout.
+            min_frames = max(1, math.ceil(ASR_MIN_AUDIO_MS / frame_ms))
+            if len(captured) - keep_from < min_frames:
+                keep_from = max(0, len(captured) - min_frames)
+            if keep_from > 0:
+                trimmed_ms = int(keep_from * frame_ms)
+                captured = captured[keep_from:]
+                _safe_log(f"[VAD] trimmed_leading_silence_ms={trimmed_ms} kept_ms={int(len(captured) * frame_ms)}")
 
         duration_ms = int(len(captured) * frame_ms)
         speech_ms = int(speech_frames * frame_ms)
@@ -909,6 +1063,12 @@ class AudioWakePipeline:
 
     def start(self) -> None:
         self._last_start_error = ""
+        if not _env_bool("OPENWAKEWORD_ENABLED", True):
+            self.stop()
+            self._last_start_error = "openwakeword_disabled"
+            _safe_log("[WAKE] backend=openwakeword enabled=False")
+            _safe_log("[HOTWORD] enabled=false")
+            return
         clap_enabled = self.is_clap_enabled()
         if not OWW_ENABLED:
             self._last_start_error = "openwakeword_disabled"
@@ -1079,6 +1239,7 @@ class AudioWakePipeline:
         _last_hw_log = 0.0
         _frame_count = 0
         while not self._stop_event.is_set():
+            self._drain_control_events()
             try:
                 frame = self._frame_queue.get(timeout=0.2)
             except queue.Empty:
@@ -1098,7 +1259,7 @@ class AudioWakePipeline:
             if now_hw - _last_hw_log >= _hotword_log_interval:
                 _rms_hw, _peak_hw = _calc_rms_peak(frame)
                 hw_score = result.get("score", 0.0)
-                _safe_log(f"[HOTWORD] score={hw_score:.4f} rms={_rms_hw:.5f} hits={self._consecutive_hits}/{OWW_CONSECUTIVE} threshold={OWW_THRESHOLD} min_rms={HOTWORD_MIN_RMS:.5f} reason={result.get('reason', 'none')}")
+                _safe_log(f"[HOTWORD] score={hw_score:.4f} rms={_rms_hw:.5f} hits={self._consecutive_hits}/{OWW_CONSECUTIVE} threshold={OWW_THRESHOLD} min_rms={_WAKE_RMS_FLOOR:.5f} reason={result.get('reason', 'none')}")
                 _last_hw_log = now_hw
 
             # Periodic debug line so user sees the pipeline is alive.
@@ -1151,11 +1312,21 @@ _global_hotkey_listener = None
 _last_start_error = ""
 
 
-def start_audio_wake_pipeline(on_command_text: Optional[Callable[[str], None]] = None, command_queue=None) -> None:
+def start_audio_wake_pipeline(on_command_text: Optional[Callable[[str], None]] = None, command_queue=None, control_queue=None) -> None:
     global _global_pipeline, _global_hotkey_listener, _last_start_error
+    if not _env_bool("OPENWAKEWORD_ENABLED", True):
+        stop_audio_wake_pipeline()
+        _last_start_error = "openwakeword_disabled"
+        _safe_log("[WAKE] backend=openwakeword enabled=False")
+        _safe_log("[HOTWORD] enabled=false")
+        return
     if _global_pipeline is not None and _global_pipeline.is_running:
         return
-    _global_pipeline = AudioWakePipeline(on_command_text=on_command_text, command_queue=command_queue)
+    _global_pipeline = AudioWakePipeline(
+        on_command_text=on_command_text,
+        command_queue=command_queue,
+        control_queue=control_queue,
+    )
     _global_pipeline.start()
     _last_start_error = _global_pipeline.last_start_error
     if _global_pipeline.is_running:

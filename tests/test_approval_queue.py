@@ -116,3 +116,36 @@ def test_routing():
     assert _route("approve action") == "approve_action"
     assert _route("reject") == "reject_action"
     assert _route("reject action") == "reject_action"
+
+
+def test_internal_approval_token_is_not_a_source_literal():
+    """Nexi reads its own repo (Forge / Studio / Claude Code integration). A hardcoded
+    sentinel would be a shared secret the model can open, quote back as a slot, and
+    self-approve a high-risk action with. The live value must not appear in the source."""
+    from pathlib import Path
+    import engine.approval_queue as aq
+
+    src = Path(aq.__file__).read_text(encoding="utf-8")
+    assert aq._INTERNAL_APPROVAL not in src, "live approval sentinel is readable from source"
+
+
+def test_internal_approval_token_differs_per_process():
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = "import engine.approval_queue as aq; print(aq._INTERNAL_APPROVAL)"
+    runs = {
+        subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                       cwd=str(Path(__file__).resolve().parents[1])).stdout.strip()
+        for _ in range(2)
+    }
+    assert len(runs) == 2, "sentinel is stable across processes — it is guessable"
+
+
+def test_guessed_prefix_does_not_approve():
+    """The documented prefix alone must not satisfy the gate."""
+    import engine.approval_queue as aq
+
+    result = aq.gate("x", {aq._APPROVAL_TOKEN_KEY: "__nexi_internal_approved__"}, "critical", "do x")
+    assert result is not None, "a guessed prefix bypassed the approval gate"

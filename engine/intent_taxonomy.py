@@ -57,8 +57,14 @@ ALLOWED_DOMAINS = {
 ALLOWED_RISK_LEVELS = {"none", "low", "medium", "high", "critical"}
 
 ALLOWED_INTENTS = {
+    # Non-tool intents remain explicit. Registered tool intents are merged below
+    # so executable capabilities cannot drift out of schema validation/routing.
     "unknown",
     "clarify",
+    "which_model",
+    "nexi_forge_tool",
+    "nexi_list_forged_tools",
+    "nexi_remove_tool",
     "stop_speaking",
     "cancel",
     "sleep",
@@ -106,6 +112,8 @@ ALLOWED_INTENTS = {
     "gesture_click_mode",
     "gesture_scroll_mode",
     "eye_mouse_calibrate",
+    "face_recognition",
+    "face_register",
     "search_youtube",
     "play_youtube",
     "tell_time",
@@ -166,6 +174,11 @@ ALLOWED_INTENTS = {
     "nexi_workflow_artifacts",
     "nexi_cancel_workflow",
     "nexi_continue_workflow",
+    "nexi_start_studio_build",
+    "nexi_studio_status",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+    "nexi_agent_runtime_status",
     "media_pause",
     "media_resume",
     "media_mute",
@@ -235,6 +248,8 @@ TOOL_INTENTS = {
     "gesture_click_mode",
     "gesture_scroll_mode",
     "eye_mouse_calibrate",
+    "face_recognition",
+    "face_register",
     "search_youtube",
     "play_youtube",
     "tell_time",
@@ -295,6 +310,11 @@ TOOL_INTENTS = {
     "nexi_workflow_artifacts",
     "nexi_cancel_workflow",
     "nexi_continue_workflow",
+    "nexi_start_studio_build",
+    "nexi_studio_status",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+    "nexi_agent_runtime_status",
     "media_pause",
     "media_resume",
     "media_mute",
@@ -305,7 +325,23 @@ TOOL_INTENTS = {
     "browser_forward",
     "browser_history",
     "browser_fullscreen",
+    "which_model",
+    # Executable tools that were silently answered by chat because they were
+    # missing here (route_for_intent -> "brain"). Guarded by
+    # tests/test_tool_intent_consistency.py.
+    "repeat_last",
+    "system_status",
+    # Nexi building her own tools (engine/forge).
+    "nexi_forge_tool",
+    "nexi_list_forged_tools",
+    "nexi_remove_tool",
 }
+
+from engine.tool_registry import registered_tool_names
+
+_REGISTERED_TOOL_INTENTS = set(registered_tool_names())
+ALLOWED_INTENTS.update(_REGISTERED_TOOL_INTENTS)
+TOOL_INTENTS = _REGISTERED_TOOL_INTENTS - {"sleep", "wake"}
 
 OUTPUT_INTENTS = {
     "open_output_workspace",

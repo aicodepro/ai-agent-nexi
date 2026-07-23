@@ -8,7 +8,8 @@ COMMAND_WORDS = {
     "open", "search", "google", "find", "create", "make", "new", "folder", "file",
     "take", "note", "screenshot", "capture", "remember", "forget", "show", "what",
     "who", "where", "when", "why", "how", "tell", "explain", "play", "pause", "stop",
-    "sleep", "wake", "activate", "hello", "hi", "nexi", "calculate", "compute",
+    "sleep", "wake", "activate", "hello", "hi", "bye", "goodbye", "thanks", "nexi",
+    "calculate", "compute",
 }
 
 SHORT_FOLLOWUP_ANSWERS = {

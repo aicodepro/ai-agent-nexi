@@ -18,35 +18,11 @@
       "openable": true
     },
     {
-      "index": 7,
+      "index": 5,
       "name": "Microphone Array (Intel\u00ae Smart Sound Technology (Intel\u00ae SST))",
       "channels": 4,
       "default_samplerate": 44100,
       "score": 70,
-      "openable": true
-    },
-    {
-      "index": 2,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 44100,
-      "score": 40,
-      "openable": true
-    },
-    {
-      "index": 8,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 44100,
-      "score": 40,
-      "openable": true
-    },
-    {
-      "index": 15,
-      "name": "Headset (Phantom 550)",
-      "channels": 1,
-      "default_samplerate": 16000,
-      "score": 40,
       "openable": true
     },
     {
@@ -58,7 +34,7 @@
       "openable": false
     },
     {
-      "index": 6,
+      "index": 4,
       "name": "Primary Sound Capture Driver",
       "channels": 2,
       "default_samplerate": 44100,
@@ -66,7 +42,7 @@
       "openable": false
     },
     {
-      "index": 14,
+      "index": 9,
       "name": "Microphone Array (Intel\u00ae Smart Sound Technology (Intel\u00ae SST))",
       "channels": 2,
       "default_samplerate": 48000,
@@ -74,7 +50,7 @@
       "openable": false
     },
     {
-      "index": 16,
+      "index": 10,
       "name": "Microphone Array 1 (Intel\u00ae Smart Sound Technology (Intel\u00ae SST) Microphone)",
       "channels": 2,
       "default_samplerate": 48000,
@@ -82,7 +58,7 @@
       "openable": false
     },
     {
-      "index": 17,
+      "index": 11,
       "name": "Microphone Array 2 (Intel\u00ae Smart Sound Technology (Intel\u00ae SST) Microphone)",
       "channels": 4,
       "default_samplerate": 16000,
@@ -90,7 +66,7 @@
       "openable": false
     },
     {
-      "index": 18,
+      "index": 12,
       "name": "Microphone Array 3 (Intel\u00ae Smart Sound Technology (Intel\u00ae SST) Microphone)",
       "channels": 4,
       "default_samplerate": 16000,
@@ -98,7 +74,7 @@
       "openable": false
     },
     {
-      "index": 21,
+      "index": 15,
       "name": "PC Speaker (Realtek HD Audio output with SST)",
       "channels": 2,
       "default_samplerate": 48000,
@@ -106,7 +82,7 @@
       "openable": false
     },
     {
-      "index": 22,
+      "index": 16,
       "name": "Stereo Mix (Realtek HD Audio Stereo input)",
       "channels": 2,
       "default_samplerate": 48000,
@@ -114,7 +90,7 @@
       "openable": false
     },
     {
-      "index": 25,
+      "index": 19,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(WH-CH510))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -122,7 +98,7 @@
       "openable": false
     },
     {
-      "index": 27,
+      "index": 21,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(JBL T460BT))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -130,7 +106,7 @@
       "openable": false
     },
     {
-      "index": 30,
+      "index": 24,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(E4 Series))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -138,7 +114,7 @@
       "openable": false
     },
     {
-      "index": 32,
+      "index": 26,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(Tribit XSound Go))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -146,7 +122,7 @@
       "openable": false
     },
     {
-      "index": 35,
+      "index": 29,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(SRS-XB10))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -154,7 +130,7 @@
       "openable": false
     },
     {
-      "index": 40,
+      "index": 34,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(Phantom 550))",
       "channels": 1,
       "default_samplerate": 16000,
@@ -162,7 +138,7 @@
       "openable": false
     },
     {
-      "index": 42,
+      "index": 36,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(Redmi Buds 5A))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -170,7 +146,7 @@
       "openable": false
     },
     {
-      "index": 46,
+      "index": 40,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(pTron TWS))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -178,7 +154,7 @@
       "openable": false
     },
     {
-      "index": 49,
+      "index": 43,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(UG RYTHEM MIST 2.0))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -186,7 +162,7 @@
       "openable": false
     },
     {
-      "index": 52,
+      "index": 46,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(Rockerz 330))",
       "channels": 1,
       "default_samplerate": 8000,
@@ -194,7 +170,7 @@
       "openable": false
     },
     {
-      "index": 55,
+      "index": 49,
       "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free%0\r\n;(Rockerz 450))",
       "channels": 1,
       "default_samplerate": 8000,

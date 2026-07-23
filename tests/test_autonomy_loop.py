@@ -5,20 +5,20 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import unittest
 from datetime import datetime
 
-from src.orin.control.safety import EmergencyStop
-from src.orin.brain.task_state import (
+from engine.control.safety import EmergencyStop
+from engine.brain.task_state import (
     AutonomyTask, AutonomyStep, create_task, create_step,
     validate_status, validate_risk, normalize_status, normalize_risk,
     VALID_TASK_STATUSES, VALID_STEP_STATUSES, VALID_RISKS,
 )
-from src.orin.brain.self_reflection import (
+from engine.brain.self_reflection import (
     summarize_goal, detect_missing_context, should_ask_followup,
     generate_followup_question,
 )
-from src.orin.brain.recovery_planner import (
+from engine.brain.recovery_planner import (
     create_recovery_plan, classify_failure, suggest_next_action,
 )
-from src.orin.brain.autonomy_loop import AutonomyLoop
+from engine.brain.autonomy_loop import AutonomyLoop
 
 
 class TestAutonomyTaskContracts(unittest.TestCase):
@@ -429,11 +429,11 @@ class TestAutonomyLoopForgetPreference(unittest.TestCase):
 
 class TestAutonomyLoopExistingTestsStillPass(unittest.TestCase):
     def test_model_router_importable(self):
-        import src.orin.brain.model_router as mr
+        import engine.brain.model_router as mr
         self.assertTrue(hasattr(mr, "route"))
 
     def test_model_client_importable(self):
-        import src.orin.brain.model_client as mc
+        import engine.brain.model_client as mc
         self.assertTrue(hasattr(mc, "MockModelClient"))
 
 

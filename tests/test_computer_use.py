@@ -1,3 +1,4 @@
+import pytest
 import sys
 import os
 
@@ -8,6 +9,18 @@ from engine.groq_intent_router_v2 import _deterministic_router
 from engine import intent_taxonomy as tax
 from engine import computer_use as cu
 from engine import approval_queue as aq
+
+
+@pytest.fixture(autouse=True)
+def _disable_llm_safety_gate(monkeypatch):
+    """The LLM safety gate calls the Groq safety model. Offline (no GROQ_API_KEY) it fails
+    CLOSED and blocks every medium+ risk tool, so nothing here would reach the approval /
+    confirmation logic these tests exist to check. Disable it locally rather than suite-wide:
+    a blocked tool is the SAFE default for a test run, since an allowed one really launches
+    apps and moves the mouse."""
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "false")
+
+
 
 
 CU_TOOLS = ["screen_read", "click_ui_element", "type_text"]

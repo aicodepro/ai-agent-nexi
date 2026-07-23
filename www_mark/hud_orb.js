@@ -17,6 +17,8 @@
   var logoImg = null;
   var speaking = false;
   var bgDots = [];
+  var _wfBars = null, _wfColor = '';   // waveform bars, built once (see step())
+  var _badgeCol = '';                  // last badge colour written (avoid per-frame writes)
 
   var PRI = '#00d4ff', PRI_DIM = '#007a99', PRI_GHO = '#001f2e';
   var ACC = '#ff6b00', ACC2 = '#ffcc00', GREEN = '#00ff88';
@@ -32,7 +34,10 @@
 
   // Load logo
   var logo = new Image();
-  logo.onload = function () { logoImg = logo; };
+  logo.onload = function () {
+    logoImg = logo;
+    if (state === 'sleeping') draw(tick);
+  };
   logo.src = 'assets/nexi-logo.svg';
 
   function resize() {
@@ -52,6 +57,7 @@
         bgDots.push([x, y]);
       }
     }
+    if (state === 'sleeping') draw(tick);
   }
 
   function hex(c, a) { return hexToRgba(c, a); }
@@ -234,26 +240,51 @@
     ctx.textAlign = 'center';
     ctx.fillText(sym + txt, cx, sy);
 
-    // Update DOM state badge
+    // Update DOM state badge only when it actually changes (was written every frame).
     var badge = document.getElementById('nexi-status-badge');
-    if (badge) { badge.textContent = sym + txt; badge.style.color = col; }
+    if (badge) {
+      var badgeTxt = sym + txt;
+      if (badge.textContent !== badgeTxt) badge.textContent = badgeTxt;
+      if (_badgeCol !== col) { badge.style.color = col; _badgeCol = col; }
+    }
 
-    // Waveform in center-stage
+    // Waveform in center-stage.
+    // Build the 28 bars ONCE and only mutate their height/colour per frame.
+    // Previously this rebuilt innerHTML every animation frame (~1700 element
+    // constructions/sec, each forcing a full parse + style recalc + layout),
+    // which was the main source of UI lag. Now: no reparse, one cheap layout on
+    // an isolated element. Colour is written only when the state changes.
     var wfStrip = document.getElementById('waveform');
     if (wfStrip) {
       var N = 28;
-      var html = '';
+      if (!_wfBars || _wfBars.length !== N) {
+        wfStrip.textContent = '';
+        _wfBars = [];
+        for (var bi = 0; bi < N; bi++) {
+          var bar = document.createElement('span');
+          bar.style.cssText = 'display:inline-block;width:5px;border-radius:1px;';
+          wfStrip.appendChild(bar);
+          _wfBars.push(bar);
+        }
+        _wfColor = '';
+      }
+      // Motion grammar per state (this, not colour, is how a user reads state):
+      //  speaking  -> lively, audio-like     idle/other -> slow calm sweep
+      var wfColor = (state === 'speaking') ? PRI : BORDER_B;
+      if (wfColor !== _wfColor) {
+        for (var ci = 0; ci < N; ci++) _wfBars[ci].style.background = wfColor;
+        _wfColor = wfColor;
+      }
       for (var wi = 0; wi < N; wi++) {
         var h;
         if (state === 'speaking') {
-          h = 3 + Math.floor(Math.random() * 18);
+          // pseudo-amplitude until Python pushes real levels: mid-band emphasis
+          h = 3 + Math.floor((0.5 + 0.5 * Math.sin(tick * 0.5 + wi)) * (18 - Math.abs(wi - N / 2)));
         } else {
           h = Math.max(2, Math.floor(3 + 2 * Math.sin(tick * 0.09 + wi * 0.7)));
         }
-        var wfColor = state === 'speaking' ? PRI : BORDER_B;
-        html += '<span style="height:' + h + 'px;background:' + wfColor + ';width:5px;border-radius:1px;"></span>';
+        _wfBars[wi].style.height = h + 'px';
       }
-      wfStrip.innerHTML = html;
     }
 
     // Wake hint
@@ -266,6 +297,7 @@
   }
 
   function step() {
+    animId = null;
     tick++;
     var now = Date.now();
     var since = now - lastT;
@@ -320,7 +352,19 @@
     if (blinkTick >= 38) { blink = !blink; blinkTick = 0; }
 
     draw(tick);
-    animId = requestAnimationFrame(step);
+    if (state !== 'sleeping' && !document.hidden) animId = requestAnimationFrame(step);
+  }
+
+  function startAnimation() {
+    if (!animId && state !== 'sleeping' && !document.hidden) {
+      lastT = Date.now();
+      animId = requestAnimationFrame(step);
+    }
+  }
+
+  function stopAnimation() {
+    if (animId) cancelAnimationFrame(animId);
+    animId = null;
   }
 
   window.setOrbState = function (s) {
@@ -349,6 +393,10 @@
     if (s === 'sleeping') {
       halo = 20;
       scale = 1.0;
+      stopAnimation();
+      draw(tick);
+    } else {
+      startAnimation();
     }
     if (s === 'idle') {
       tgtScale = 1.0;
@@ -358,14 +406,19 @@
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      stopAnimation();
     } else {
-      if (!animId) { lastT = Date.now(); animId = requestAnimationFrame(step); }
+      if (state === 'sleeping') draw(tick);
+      else startAnimation();
     }
   });
+
+  window.__nexiHudOrb = {
+    isAnimating: function () { return animId !== null; }
+  };
 
   resize();
   window.addEventListener('resize', resize);
   lastT = Date.now();
-  animId = requestAnimationFrame(step);
+  startAnimation();
 })();

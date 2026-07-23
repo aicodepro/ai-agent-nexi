@@ -17,6 +17,7 @@ existing low/medium tools are entirely unaffected.
 from __future__ import annotations
 
 import itertools
+import secrets
 import time
 from typing import Any
 
@@ -25,8 +26,28 @@ _APPROVAL_FLOOR = _RISK_ORDER["high"]
 
 # Internal marker injected ONLY by approve(); a plain user/router-supplied "approved"
 # slot can never bypass the gate (the intent router cannot emit this key/value).
+#
+# The value is randomised per process instead of being a fixed literal. Nexi reads its own
+# source (Forge, Studio, and the Claude Code integration all get repo access), so a
+# hardcoded sentinel is a shared secret sitting in a file the model can open and quote back
+# as a slot to self-approve a high-risk action. A per-process token cannot be recovered
+# from source. It is never logged, never serialised into a tool schema, and never crosses a
+# process boundary — approve() and gate() run in-process.
 _APPROVAL_TOKEN_KEY = "_approval_token"
-_INTERNAL_APPROVAL = "__nexi_internal_approved__"
+_INTERNAL_APPROVAL = f"__nexi_internal_approved__{secrets.token_urlsafe(24)}"
+
+# Handler prefixes for tools that gate through THIS queue. Their flow is
+# submit -> user approves -> re-invoked with the internal token, so the queue IS their
+# confirmation step. The generic confirm gates in tool_registry.execute_tool and
+# safety_gate must skip them: refusing one there means it is never queued, so
+# `approve_action` has nothing to approve and the action becomes unreachable rather than
+# merely confirmed. Defined here so both gates read one list instead of drifting apart.
+QUEUE_GATED_HANDLER_PREFIXES = ("engine.computer_use.", "engine.browser_intelligence.")
+
+
+def is_queue_gated(handler: str) -> bool:
+    return str(handler or "").startswith(QUEUE_GATED_HANDLER_PREFIXES)
+
 
 _counter = itertools.count(1)
 _pending: dict[str, dict[str, Any]] = {}

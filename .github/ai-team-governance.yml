@@ -1,0 +1,209 @@
+schema_version: 3
+policy_id: nexi-studio-v3-local-gated
+policy_status: active
+
+organization:
+  ceo:
+    canonical_name: Devendra Yadav
+    aliases:
+      - Darsh Yadav
+
+authority:
+  gate_authority: nexi-python-supervisor
+  implementation: python
+  exclusive: true
+  fail_closed: true
+  g0_authorization: python_only
+  llm_agents:
+    may_recommend: true
+    may_authorize_gate: false
+    may_mint_authorization: false
+    may_approve_release: false
+    may_treat_messages_as_human_consent: false
+
+limits:
+  max_questions_per_gate: 3
+  max_fix_loops_per_gate: 3
+  silent_assumptions: forbidden
+  safe_internal_decisions: record_as_assumptions
+
+run:
+  artifacts:
+    root: data/nexi/studio/runs/{run_id}
+    state: data/nexi/studio/runs/{run_id}/run.json
+    handoffs:
+      - data/nexi/studio/runs/{run_id}/01-requirements.md
+      - data/nexi/studio/runs/{run_id}/02-research.md
+      - data/nexi/studio/runs/{run_id}/03-architecture.md
+      - data/nexi/studio/runs/{run_id}/04-sprint-plan.md
+      - data/nexi/studio/runs/{run_id}/05-implementation.md
+      - data/nexi/studio/runs/{run_id}/06-developer-tests.md
+      - data/nexi/studio/runs/{run_id}/07-qa.md
+      - data/nexi/studio/runs/{run_id}/08-security-review.md
+      - data/nexi/studio/runs/{run_id}/09-integration.md
+      - data/nexi/studio/runs/{run_id}/10-release.md
+      - data/nexi/studio/runs/{run_id}/11-closeout.md
+  handoff_target_tokens: 500
+  atomic_state_write: required
+  artifact_sha256: required
+  concurrent_run_isolation: required
+
+gates:
+  G0:
+    state: AUTHORIZED
+    stage: authorization
+    owner: nexi-python-supervisor
+    python_only: true
+    artifact_number: null
+  G1:
+    state: REQUIREMENTS_READY
+    stage: requirements
+    agent: business-analyst
+    artifact_number: 1
+    depends_on: [G0]
+  G2:
+    state: RESEARCH_READY
+    stage: research
+    agent: research-analyst
+    artifact_number: 2
+    depends_on: [G1]
+  G3:
+    state: ARCHITECTURE_READY
+    stage: architecture
+    agent: solution-architect
+    artifact_number: 3
+    depends_on: [G1, G2]
+  G4:
+    state: SPRINT_READY
+    stage: sprint_plan
+    agent: product-manager
+    artifact_number: 4
+    depends_on: [G3]
+  G5:
+    state: IMPLEMENTATION_COMPLETE
+    stage: implementation
+    agent: developer-team
+    artifact_number: 5
+    depends_on: [G4]
+  G6:
+    state: DEVELOPER_TESTS_PASS
+    stage: developer_tests
+    agent: test-engineer
+    repair_owner: developer-team
+    artifact_number: 6
+    depends_on: [G5]
+  G7:
+    state: QA_PASS
+    stage: qa
+    agent: qa-verifier
+    acceptance_coverage: exactly_once
+    artifact_number: 7
+    depends_on: [G6]
+  G8:
+    state: SECURITY_PASS
+    stage: security_review
+    agent: security-reviewer
+    unresolved_critical_or_high: block
+    artifact_number: 8
+    depends_on: [G7]
+  G9:
+    state: INTEGRATION_PASS
+    stage: integration
+    agent: integration-verifier
+    require_objective_tests_or_build: true
+    require_no_post_test_source_mutation: true
+    artifact_number: 9
+    depends_on: [G8]
+  G10:
+    # Architectural gate label retained for compatibility; it is not an approval claim.
+    state: RELEASE_APPROVED
+    stage: release
+    agent: release-manager
+    readiness_only: true
+    implies_human_or_external_approval: false
+    artifact_number: 10
+    allowed_truth_states:
+      - LOCAL_VERIFIED
+      - COMMITTED_LOCAL
+    depends_on: [G9]
+  G11:
+    state: CLOSED
+    stage: closeout
+    agent: knowledge-curator
+    artifact_number: 11
+    requires_consistent_hashes_and_gate_truth: true
+    depends_on: [G10]
+
+delegation:
+  default: deny
+  developer-team:
+    allow:
+      - frontend-engineer
+      - backend-engineer
+      - design-engineer
+      - test-engineer
+      - devops-engineer
+    deny:
+      - qa-verifier
+      - security-reviewer
+      - integration-verifier
+      - release-manager
+  reviewers:
+    may_delegate: false
+
+repository:
+  inspection_only: true
+  mutating_git_adapter: absent
+  mutating_github_adapter: absent
+  branches:
+    protected: [main, master, development]
+    direct_implementation_on_protected: deny
+    force_push: deny
+    require_same_repository_branch_head_on_resume: true
+
+reviewers:
+  identities:
+    lead_developers: []
+    release_approvers: []
+    qa_reviewers: []
+    security_reviewers: []
+    devops_reviewers: []
+    codeowners: []
+  empty_required_identity_action: deny
+  invented_identity_action: deny
+
+release:
+  enabled: false
+  configuration_complete: false
+  pull_request_integration: false
+  ci_integration: false
+  explicit_release_or_hotfix_when_incomplete: block_at_G10
+  local_build_highest_default: LOCAL_VERIFIED
+
+deployment:
+  enabled: false
+  configuration_complete: false
+  adapter: absent
+  environments: []
+  production_environment: null
+
+truthfulness:
+  evidence_before_claim: true
+  synthetic_pass: forbidden
+  fake_approval: forbidden
+  fake_identity: forbidden
+  inferred_human_consent: forbidden
+  stale_sha_result: reject
+  unexecuted_check: NOT_RUN
+  local_verified_is_not:
+    - PUSHED
+    - PR_OPEN
+    - CI_VERIFIED
+    - DEPLOYED_UNVERIFIED
+    - PRODUCTION_VERIFIED
+
+restart:
+  policy: pause_for_resume
+  fresh_explicit_authorization: required
+  reconcile_project_path_branch_head: required
+  external_side_effect_replay: forbidden_without_adapter_recheck

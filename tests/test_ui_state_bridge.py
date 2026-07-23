@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -55,18 +56,19 @@ def test_command_text_returns_ui_to_idle_after_dispatch():
 
 
 def test_core_ui_functions_exist_in_js():
-    text = (ROOT / "www" / "controller.js").read_text(encoding="utf-8")
-    assert "function DisplayMessage" in text
-    assert "function senderText" in text
-    assert "function receiverText" in text
-    assert "function setStatus" in text
-    assert "function sourceLabel" in text
-    assert "function ShowHood" in text
+    text = (ROOT / "www_mark" / "controller.js").read_text(encoding="utf-8")
+    # controller.js defines these as `window.X = function (...) {...}`, not `function X`.
+    # sourceLabel is not included: it doesn't exist under any name in www_mark/ (no
+    # window.sourceLabel, no eel.expose, no reference anywhere else in the repo) — that
+    # function was dropped, superseded by updateSourceText()'s internal #nexi-source hint.
+    for name in ("DisplayMessage", "senderText", "receiverText", "setStatus", "ShowHood"):
+        pattern = r"function\s+" + name + r"\b|window\." + name + r"\s*=\s*function"
+        assert re.search(pattern, text), f"{name} not defined in controller.js"
 
 
 def test_idle_hint_mentions_hey_nexi_and_double_clap():
-    html = (ROOT / "www" / "index.html").read_text(encoding="utf-8")
-    js = (ROOT / "www" / "controller.js").read_text(encoding="utf-8")
+    html = (ROOT / "www_mark" / "index.html").read_text(encoding="utf-8")
+    js = (ROOT / "www_mark" / "controller.js").read_text(encoding="utf-8")
     combined = f"{html}\n{js}".lower()
     assert "hey nexi" in combined
     assert "double clap" in combined

@@ -4,10 +4,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 from unittest.mock import patch
-from src.orin.voice.response_style import ResponseStyle
-from src.orin.voice.voice_personality import VoicePersonality
-from src.orin.voice.voice_orchestrator import VoiceOrchestrator
-from src.orin.control.safety import EmergencyStop
+from engine.voice.response_style import ResponseStyle
+from engine.voice.voice_personality import VoicePersonality
+from engine.voice.voice_orchestrator import VoiceOrchestrator
+from engine.control.safety import EmergencyStop
 
 
 class TestResponseStyle(unittest.TestCase):

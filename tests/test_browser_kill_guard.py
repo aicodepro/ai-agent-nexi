@@ -1,11 +1,24 @@
 """Guard: NEXI must never force-kill a browser (a past incident closed the
 user's Chrome and lost every tab). See engine/control/process_controller.py."""
+import subprocess
+
 import engine.control.process_controller as pc
 
 
 def _recorder(monkeypatch):
+    """Record taskkill invocations without running them.
+
+    Must return a real CompletedProcess: kill_process now inspects
+    `completed.returncode` so it reports an actual failure instead of claiming success
+    unconditionally. A recorder returning None makes every non-blocked kill look failed.
+    """
     calls = []
-    monkeypatch.setattr(pc.subprocess, "run", lambda *a, **k: calls.append(a[0] if a else k))
+
+    def fake_run(*a, **k):
+        calls.append(a[0] if a else k)
+        return subprocess.CompletedProcess(a[0] if a else [], 0, "", "")
+
+    monkeypatch.setattr(pc.subprocess, "run", fake_run)
     return calls
 
 
@@ -53,11 +66,22 @@ def test_start_process_rejects_shell_metacharacters(monkeypatch):
 
 
 def test_start_process_allows_safe_name(monkeypatch):
+    """start_process no longer shells out via os.system — it launches an argv list with
+    shell=False, which is what makes a voice-supplied app name un-injectable. Assert the
+    mechanism that provides the guarantee, not the one it replaced."""
     calls = []
-    monkeypatch.setattr(pc.os, "system", lambda cmd: calls.append(cmd))
+
+    def fake_popen(*a, **k):
+        calls.append((a[0] if a else None, k))
+        return None  # start_process does not use the handle
+
+    monkeypatch.setattr(pc.subprocess, "Popen", fake_popen)
     result = pc.start_process("spotify")
     assert result.ok is True
-    assert len(calls) == 1 and "&" not in calls[0]
+    assert len(calls) == 1
+    argv, kwargs = calls[0]
+    assert argv == ["spotify"], "app name must be one argv element, never a shell string"
+    assert kwargs.get("shell") is False
 
 
 def test_kill_process_uses_argv_not_shell(monkeypatch):

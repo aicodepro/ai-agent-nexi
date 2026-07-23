@@ -1,5 +1,6 @@
 """Tests: Double clap with DSP backend requires two events, single clap never wakes."""
 
+import math
 import os
 import struct
 import sys
@@ -11,16 +12,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _make_clap_impulse():
-    """Sharper impulse with higher peak_ratio (>6.0) for tightened thresholds."""
-    samples = [0] * 800
-    for i in range(5):
-        idx = 400 + i
-        if idx < len(samples):
-            samples[idx] = 20000
-    for i in range(5):
-        idx = 405 + i
-        if idx < len(samples):
-            samples[idx] = -18000
+    """HF-rich impulse (broadband tone burst), same shape as
+    test_double_clap_gap_window.py's make_clap_signal(). The dsp_clap
+    hf_ratio check is derivative-based (sample-to-sample delta energy), so a
+    flat constant-amplitude plateau has ~0 high-frequency content and is
+    rejected regardless of peak_ratio; a real transient needs actual
+    sample-to-sample variation to register as high-frequency energy.
+    """
+    total = 1280
+    samples = [0] * total
+    start = total * 3 // 4
+    for i in range(200):
+        idx = start + i
+        if idx >= total:
+            break
+        val = (math.sin(2 * math.pi * 3500 * i / 16000.0) * 0.4 +
+               math.sin(2 * math.pi * 5000 * i / 16000.0) * 0.4) * (1.0 - i / 200) * 0.6
+        samples[idx] = int(val * 32767)
     return struct.pack(f"<{len(samples)}h", *samples)
 
 

@@ -84,6 +84,8 @@ def _safe_name(name: str) -> str | None:
 
 def resolve_location(text: str) -> Path | None:
     q = _norm(text)
+    if not q:
+        return None
     home = Path.home()
     aliases = {
         "desktop": home / "Desktop",
@@ -95,8 +97,18 @@ def resolve_location(text: str) -> Path | None:
         "e drive": Path("E:/"),
         "e": Path("E:/"),
     }
+    # Single-word aliases match whole words only. A raw `key in q` substring test let the
+    # "e" (E: drive) alias match any phrase containing the letter e, so "my project folder"
+    # resolved to E:\ root instead of returning None and re-asking — files landed on the
+    # drive root. Same whole-word approach as create_folder_workflow.resolve_location.
+    words = set(re.findall(r"[a-z]+", q))
     for key, path in aliases.items():
-        if q == key or key in q:
+        if q == key:
+            return path
+        if " " in key:
+            if key in q:
+                return path
+        elif key in words:
             return path
     return None
 
@@ -131,6 +143,18 @@ def _open_app(app_name: str) -> str:
             subprocess.Popen(command, shell=True)
         except Exception:
             pass
+        import time
+        deadline = time.time() + 2.0
+        while time.time() < deadline:
+            try:
+                import psutil
+                for p in psutil.process_iter(["name"]):
+                    pn = (p.info.get("name") or "").lower()
+                    if app in pn or pn in app:
+                        return f"Opening {app_name}."
+            except Exception:
+                pass
+            time.sleep(0.2)
         return f"Opening {app_name}."
     try:
         import pyautogui
@@ -159,7 +183,9 @@ def _web_search(query: str) -> str:
 
 def open_app(app_name: str) -> dict:
     message = _open_app(app_name)
-    return {"success": True, "message": message, "tool": "open_app", "verified": True}
+    # No "verified" flag: the launch is fire-and-forget, so tool_result_verifier
+    # confirms a real process exists from "app" instead of trusting us.
+    return {"success": True, "message": message, "tool": "open_app", "app": app_name}
 
 
 def open_website(url: str = "", site: str = "") -> dict:

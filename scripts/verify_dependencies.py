@@ -36,18 +36,19 @@ def main():
     print("\n[Control Layer Imports]")
     try:
         sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-        from src.orin.control import (  # noqa: F401
+        from engine.control import (  # noqa: F401
             execute_control_action, match_control_action, list_control_actions,
             EmergencyStop, ControlResult, registry
         )
-        print("  PASS: src.orin.control package imported successfully")
+        print("  PASS: engine.control package imported successfully")
         PASS += 1
     except ImportError as e:
-        print(f"  FAIL: src.orin.control import failed - {e}")
+        print(f"  FAIL: engine.control import failed - {e}")
         FAIL += 1
 
     print("\n[Framework Compatibility]")
-    test_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "www", "controller.js"))
+    from engine.ui_loader import get_ui_dir
+    test_path = os.path.join(get_ui_dir(), "controller.js")
     if os.path.exists(test_path):
         print(f"  PASS: controller.js exists at {test_path}")
         PASS += 1

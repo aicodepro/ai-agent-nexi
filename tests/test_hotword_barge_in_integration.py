@@ -76,22 +76,43 @@ def test_hotword_during_speaking_does_not_route_hotword_as_command():
                 print("✅ Hotword during speaking does not route hotword as command")
 
 
-def test_next_utterance_after_hotword_barge_in_is_routed():
+def test_next_utterance_after_hotword_barge_in_is_routed(monkeypatch):
     """Test that the next utterance after hotword barge-in is properly routed."""
     bridge = get_mock_runtime_bridge()
-    
+
+    # _wake_scorer is built lazily in start() (never called here), so it stays
+    # None unless injected -- and with no scorer the "listening" code path (as
+    # opposed to the "_is_speaking" barge-in branch, which assumes score=1.0
+    # when no scorer is set) skips scoring entirely and can never wake. Inject
+    # a scorer, and lower OWW_CONSECUTIVE for this single-frame test (the real
+    # anti-false-wake default of 2 is deliberately not touched -- see
+    # engine/audio_wake_pipeline.py OWW_CONSECUTIVE).
+    import engine.audio_wake_pipeline as awp
+    monkeypatch.setattr(awp, "OWW_THRESHOLD", 0.5)
+    monkeypatch.setattr(awp, "OWW_CONSECUTIVE", 1)
+
+    class _ScriptedHotwordScorer:
+        name = "scripted"
+
+        def score(self, frame):
+            return 0.9
+
     with patch('engine.audio_wake_pipeline.get_session_manager') as mock_session_manager:
         mock_session_manager.return_value.are_detectors_paused.return_value = False
         mock_session_manager.return_value.get_state.return_value = "listening"
-        
+        mock_session_manager.return_value.is_post_session_suppressed.return_value = False
+
         with patch('engine.audio_wake_pipeline._is_speaking') as mock_is_speaking:
             mock_is_speaking.return_value = False
-            
-            pipeline = AudioWakePipeline(command_queue=bridge._command_queue)
-            
+
+            pipeline = awp.AudioWakePipeline(
+                command_queue=bridge._command_queue,
+                wake_scorer=_ScriptedHotwordScorer(),
+            )
+
             # Simulate normal hotword detection (not during speaking)
             result = pipeline.process_frame(b"\x00\x00" * 160)
-            
+
             # This would trigger normal wake, not barge-in
             assert result.get("wake") == True
             assert result.get("source") == "hotword"

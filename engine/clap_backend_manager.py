@@ -49,20 +49,29 @@ class ClapBackendManager:
         self._primary_ready = False
         self._fallback_ready = False
         self._last_wake_at = 0.0
-        self._cooldown_ms = _env_int("NEXI_CLAP_COOLDOWN_MS", 1500) if cooldown_ms is None else int(cooldown_ms)
+        self._cooldown_ms = _env_int(
+            "NEXI_CLAP_COOLDOWN_MS", _env_int("JARVIS_CLAP_COOLDOWN_MS", 1500)
+        ) if cooldown_ms is None else int(cooldown_ms)
         self._debug = _env_bool("NEXI_CLAP_DEBUG", False)
 
-        self._min_gap_ms = _env_float("NEXI_CLAP_MIN_GAP_MS", _env_float("CLAP_MIN_GAP_MS", 100.0))
-        self._configured_max_gap_ms = _env_float("NEXI_CLAP_MAX_GAP_MS", _env_float("CLAP_MAX_GAP_MS", 3500.0))
+        self._min_gap_ms = _env_float(
+            "NEXI_CLAP_MIN_GAP_MS",
+            _env_float("CLAP_MIN_GAP_MS", _env_float("JARVIS_CLAP_MIN_GAP_MS", 100.0)),
+        )
+        self._configured_max_gap_ms = _env_float(
+            "NEXI_CLAP_MAX_GAP_MS",
+            _env_float("CLAP_MAX_GAP_MS", _env_float("JARVIS_CLAP_MAX_GAP_MS", 3500.0)),
+        )
         self._max_gap_ms = max(MIN_EFFECTIVE_MAX_GAP_MS, self._configured_max_gap_ms)
         self._double_clap = None
 
         self._init_backends()
 
     def _init_backends(self) -> None:
-        order = [item.strip() for item in (os.getenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn") or "dsp_clap,clap_nn").split(",") if item.strip()]
-        primary = order[0] if order else (os.getenv("NEXI_CLAP_PRIMARY", "dsp_clap") or "dsp_clap").strip()
-        fallback = order[1] if len(order) > 1 else (os.getenv("NEXI_CLAP_FALLBACK", "") or "").strip()
+        configured_order = os.getenv("NEXI_CLAP_BACKEND_ORDER", os.getenv("JARVIS_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn"))
+        order = [item.strip() for item in (configured_order or "dsp_clap,clap_nn").split(",") if item.strip()]
+        primary = order[0] if order else (os.getenv("NEXI_CLAP_PRIMARY", os.getenv("JARVIS_CLAP_PRIMARY", "dsp_clap")) or "dsp_clap").strip()
+        fallback = order[1] if len(order) > 1 else (os.getenv("NEXI_CLAP_FALLBACK", os.getenv("JARVIS_CLAP_FALLBACK", "")) or "").strip()
 
         self._primary_name = primary
         self._fallback_name = fallback
@@ -80,18 +89,19 @@ class ClapBackendManager:
         elif primary == "nexi":
             self._primary, self._primary_ready = self._build_nexi()
 
-        if fallback == "clap_nn":
-            self._fallback, self._fallback_ready = self._build_clap_nn()
-        elif fallback == "yamnet":
-            self._fallback, self._fallback_ready = self._build_yamnet()
-        elif fallback == "dsp_clap":
-            self._fallback = self._build_dsp_clap()
-            self._fallback_ready = self._fallback is not None
-        elif fallback == "nexi":
-            self._fallback, self._fallback_ready = self._build_nexi()
-        elif fallback == "tzur":
-            self._fallback = self._build_tzur()
-            self._fallback_ready = self._fallback is not None
+        if not self._primary_ready:
+            if fallback == "clap_nn":
+                self._fallback, self._fallback_ready = self._build_clap_nn()
+            elif fallback == "yamnet":
+                self._fallback, self._fallback_ready = self._build_yamnet()
+            elif fallback == "dsp_clap":
+                self._fallback = self._build_dsp_clap()
+                self._fallback_ready = self._fallback is not None
+            elif fallback == "nexi":
+                self._fallback, self._fallback_ready = self._build_nexi()
+            elif fallback == "tzur":
+                self._fallback = self._build_tzur()
+                self._fallback_ready = self._fallback is not None
 
         configured_primary = primary
         active_backend = ""

@@ -421,6 +421,24 @@ class Phase3CommandBridge:
                 }
             cls._vision_ack()          # immediate "Looking now" (non-blocking)
             cls._mark_vision_capture()
+            # The OWNER gets real capture + real (cloud) analysis — this is the whole
+            # point of "NEXI, look at my screen". Lower trust, or NEXI_VISION_CLOUD_ENABLED=0,
+            # keeps the conservative local-only preview. The privacy guard redacts secrets
+            # on either path.
+            import os as _os
+            cloud_ok = _os.getenv("NEXI_VISION_CLOUD_ENABLED", "1") != "0"
+            if ScreenTrust.is_owner_trusted() and cloud_ok:
+                owner_result = observer.observe_screen(original, allow_cloud=True)
+                summary = owner_result.get("summary") or "I looked at your screen."
+                return {
+                    "handled": True,
+                    "result": {
+                        "ok": owner_result["ok"],
+                        "message": f"Trusted owner access: {summary}",
+                        "data": owner_result.get("data", {}),
+                        "error": owner_result.get("error"),
+                    },
+                }
             trusted_result = observer.request_trusted_read_only(original)
             return {
                 "handled": True,

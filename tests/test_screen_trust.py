@@ -4,8 +4,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 import threading
-from src.orin.vision.screen_trust import ScreenTrust, VALID_MODES
-from src.orin.control.safety import EmergencyStop
+from vision.screen_trust import ScreenTrust, VALID_MODES
+from engine.control.safety import EmergencyStop
 
 
 class TestScreenTrustDefaultMode(unittest.TestCase):

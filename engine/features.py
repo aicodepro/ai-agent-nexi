@@ -55,17 +55,33 @@ def stop_clap_if_running():
         _clap_listener_instance = None
 from email.message import EmailMessage
 import smtplib
-try:
-    import pywhatkit as kit
-except Exception as e:
-    print(f"[FEATURES] pywhatkit unavailable reason={type(e).__name__}")
+class _PyWhatKitFallback:
+    def playonyt(self, search_term):
+        from urllib.parse import quote_plus
+        webbrowser.open("https://www.youtube.com/results?search_query=" + quote_plus(str(search_term)))
 
-    class _PyWhatKitFallback:
-        def playonyt(self, search_term):
-            from urllib.parse import quote_plus
-            webbrowser.open("https://www.youtube.com/results?search_query=" + quote_plus(str(search_term)))
 
-    kit = _PyWhatKitFallback()
+_kit = None
+
+
+def _get_kit():
+    """Import pywhatkit on FIRST USE, not at startup.
+
+    Measured with -X importtime: pywhatkit is 5.03s of engine.features' 12.9s cold
+    import, and it has exactly one use site (playonyt below). main.py star-imports
+    this module *before* it can call eel.start(), so every second spent here is a
+    second the window does not exist — this was 7.5s of "Nexi loads slowly".
+    Same fix as the openai top-import. Cached, so playonyt only pays it once.
+    """
+    global _kit
+    if _kit is None:
+        try:
+            import pywhatkit
+            _kit = pywhatkit
+        except Exception as e:
+            print(f"[FEATURES] pywhatkit unavailable reason={type(e).__name__}")
+            _kit = _PyWhatKitFallback()
+    return _kit
 from hugchat import hugchat
 from pipes import quote
 from time import sleep
@@ -116,9 +132,12 @@ def openCommand(query):
 
                 else:
                     speak("Opening "+query)
-                    try:
-                        os.system('start '+query)
-                    except:
+                    # 'start '+query fed raw voice text straight to cmd.exe, so a query
+                    # like "notepad & del /f /s /q C:\\*" ran BOTH halves. start_process()
+                    # is the same launch behind an allowlist that rejects shell
+                    # metacharacters (engine/control/process_controller.py).
+                    from engine.control.process_controller import start_process
+                    if not start_process(query).ok:
                         speak("not found")
         except:
             speak("some thing went wrong")
@@ -130,7 +149,7 @@ def PlayYoutube(query):
     if not search_term:
         search_term = query
     speak("Playing "+search_term+" on YouTube")
-    kit.playonyt(search_term)
+    _get_kit().playonyt(search_term)
 
 
 def hotword():

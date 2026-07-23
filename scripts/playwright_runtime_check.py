@@ -25,6 +25,17 @@ def check(name, condition, detail=""):
         FAIL += 1
 
 
+def _launch_browser(playwright):
+    try:
+        return playwright.chromium.launch(headless=True)
+    except Exception:
+        return playwright.chromium.launch(channel="msedge", headless=True)
+
+
+def _safe_error(error):
+    return str(error).encode("ascii", "backslashreplace").decode("ascii")
+
+
 def main():
     global PASS, FAIL
     print("=" * 60)
@@ -49,37 +60,35 @@ def main():
     print("\n[2] Chrome Launch")
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = _launch_browser(p)
             page = browser.new_page()
             page.goto("about:blank")
             check("Chrome launched in headless mode", True)
             check("Page loaded about:blank", page.url == "about:blank")
             page.close()
             browser.close()
-        PASS += 2
     except Exception as e:
-        print(f"  FAIL: Chrome launch failed - {e}")
+        print(f"  FAIL: Chrome launch failed - {_safe_error(e)}")
         FAIL += 1
 
     print("\n[3] Navigation Test")
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = _launch_browser(p)
             page = browser.new_page()
             page.goto("data:text/html,<h1>Hello</h1>", wait_until="domcontentloaded")
             title = page.title()
             check("Page loads data URL", True)
             browser.close()
-        PASS += 1
     except Exception as e:
-        print(f"  FAIL: Navigation failed - {e}")
+        print(f"  FAIL: Navigation failed - {_safe_error(e)}")
         FAIL += 1
 
     print("\n[4] Control Layer Integration")
     try:
         sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-        from src.orin.control import execute_control_action, list_control_actions
+        from engine.control import execute_control_action, list_control_actions
         actions = list_control_actions()
         action_names = [a["name"] for a in actions]
 
@@ -87,14 +96,13 @@ def main():
         check("open_url action registered", "open_url" in action_names)
         check("search_google action registered", "search_google" in action_names)
         check("search_youtube action registered", "search_youtube" in action_names)
-        PASS += 4
     except ImportError as e:
         print(f" FAIL: Control layer import failed - {e}")
         FAIL += 1
 
     print("\n[5] Intent Brain (Phase 2)")
     try:
-        from src.orin.brain import IntentBrain
+        from engine.brain import IntentBrain
         brain = IntentBrain()
 
         r = brain.process("chrome kholo")
@@ -122,7 +130,7 @@ def main():
 
     print("\n[6] Voice Response Layer (Phase 2)")
     try:
-        from src.orin.voice import compose_response, compose_error
+        from engine.voice import compose_response, compose_error
         r = compose_response({
             "function": "open_chrome",
             "risk_level": "MEDIUM",
@@ -141,11 +149,11 @@ def main():
 
     print("\n[7] Runtime Doctor (Phase 2)")
     try:
-        from src.orin.diagnostics import diagnose, format_diagnosis
+        from engine.diagnostic_doctors import diagnose, format_diagnosis
         result = diagnose()
         check("Runtime doctor runs diagnose", "ok" in result)
         report = format_diagnosis(result)
-        check("Runtime doctor produces report", "Jarvi" in report)
+        check("Runtime doctor produces report", "Nexi Diagnostics" in report)
     except ImportError as e:
         print(f" FAIL: Diagnostics import failed - {e}")
         FAIL += 1

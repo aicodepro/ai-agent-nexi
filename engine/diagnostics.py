@@ -18,6 +18,11 @@ class ComponentStatus:
     detail: str = ""
     last_check: float = 0.0
     latency_ms: int = 0
+    role: str = ""
+    safety_policy: str = ""
+    verifier: str = ""
+    memory_rule: str = ""
+    diagnostic_output: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -57,6 +62,7 @@ class Diagnostics:
             "memory": cls.check_memory(),
             "tools": cls.check_tools(),
         }
+        checks.update(cls.check_diagnostic_capabilities())
         _cache = (now, checks)
         return dict(checks)
 
@@ -154,6 +160,39 @@ class Diagnostics:
             return _status("Tools", "ready", f"{count} registered", started)
         except Exception as exc:
             return _status("Tools", "error", type(exc).__name__, started)
+
+    @staticmethod
+    def check_diagnostic_capabilities() -> dict[str, ComponentStatus]:
+        started = time.time()
+        try:
+            from engine.diagnostic_capabilities import check_diagnostic_capabilities
+
+            checks: dict[str, ComponentStatus] = {}
+            now = time.time()
+            latency = max(0, int((now - started) * 1000))
+            for item in check_diagnostic_capabilities():
+                checks[str(item.get("key") or item.get("name") or "capability")] = ComponentStatus(
+                    name=str(item.get("name") or "Capability"),
+                    status=str(item.get("status") or "degraded"),
+                    detail=str(item.get("detail") or ""),
+                    last_check=now,
+                    latency_ms=latency,
+                    role=str(item.get("role") or ""),
+                    safety_policy=str(item.get("safety_policy") or ""),
+                    verifier=str(item.get("verifier") or ""),
+                    memory_rule=str(item.get("memory_rule") or ""),
+                    diagnostic_output=str(item.get("diagnostic_output") or ""),
+                )
+            return checks
+        except Exception as exc:
+            return {
+                "diagnostic_capabilities": _status(
+                    "Diagnostic Capabilities",
+                    "error",
+                    type(exc).__name__,
+                    started,
+                )
+            }
 
     @staticmethod
     def get_uptime() -> str:

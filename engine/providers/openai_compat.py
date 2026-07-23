@@ -41,6 +41,7 @@ def chat_completion(
     tools: list[dict[str, Any]] | None = None,
     tool_choice: str | None = None,
     max_retries: int = 2,
+    extra_headers: dict[str, str] | None = None,
 ) -> ProviderResult:
     """Call an OpenAI-compatible chat endpoint and normalize into ProviderResult.
 
@@ -65,6 +66,12 @@ def chat_completion(
 
     url = base_url.rstrip("/") + "/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if extra_headers:
+        # provider-specific, non-auth headers (e.g. OpenRouter's HTTP-Referer/X-Title).
+        # Never let them clobber Authorization/Content-Type.
+        for k, v in extra_headers.items():
+            if k not in ("Authorization", "Content-Type"):
+                headers[k] = v
 
     for attempt in range(max_retries + 1):
         try:
@@ -88,31 +95,68 @@ def chat_completion(
 
             body = response.json()
             message = body["choices"][0]["message"]
+            if not isinstance(message, dict):
+                return ProviderResult.failure("invalid_message", provider=provider_name, model=model)
+            assistant_message = dict(message)
+            assistant_message["role"] = "assistant"
 
             # Tool / function call path.
             calls = message.get("tool_calls") or []
             if calls:
+                if not isinstance(calls, list) or len(calls) != 1:
+                    return ProviderResult.failure("parallel_tool_calls_not_supported", provider=provider_name, model=model)
                 call = calls[0]
+                if not isinstance(call, dict):
+                    return ProviderResult.failure("invalid_tool_call", provider=provider_name, model=model)
                 fn = call.get("function", {})
-                args_raw = fn.get("arguments") or "{}"
-                try:
-                    args = json.loads(args_raw) if isinstance(args_raw, str) else dict(args_raw or {})
-                except Exception:
-                    args = {}
+                if not isinstance(fn, dict) or not isinstance(fn.get("name"), str) or not fn.get("name"):
+                    return ProviderResult.failure("invalid_tool_call", provider=provider_name, model=model)
+                # Normalize the arguments. Different models return "no arguments"
+                # differently: {} (gpt-oss, scout), "" or the literal "null"
+                # (llama-3.3), or JSON null — all of which mean an empty argument
+                # object for a zero-slot tool. Only genuinely malformed, non-object
+                # arguments are rejected.
+                args_raw = fn.get("arguments")
+                if isinstance(args_raw, dict):
+                    args = dict(args_raw)
+                else:
+                    text = (args_raw if isinstance(args_raw, str) else "").strip()
+                    if text.lower() in ("", "null", "none"):
+                        args = {}
+                    else:
+                        try:
+                            parsed = json.loads(text)
+                        except Exception:
+                            return ProviderResult.failure("invalid_tool_arguments", provider=provider_name, model=model)
+                        if parsed is None:
+                            args = {}
+                        elif isinstance(parsed, dict):
+                            args = parsed
+                        else:
+                            return ProviderResult.failure("invalid_tool_arguments", provider=provider_name, model=model)
                 return ProviderResult(
                     ok=True,
-                    tool_call={"name": str(fn.get("name") or ""), "arguments": args if isinstance(args, dict) else {}},
+                    tool_call={"id": str(call.get("id") or ""), "name": fn["name"], "arguments": args},
+                    assistant_message=assistant_message,
                     provider=provider_name,
                     model=model,
                 )
 
-            content = message.get("content") or ""
+            content = str(message.get("content") or "")
             try:
                 decision = _extract_json_object(content)
             except json.JSONDecodeError:
+                if tools is not None and content:
+                    return ProviderResult(
+                        ok=True,
+                        raw_text=content,
+                        assistant_message=assistant_message,
+                        provider=provider_name,
+                        model=model,
+                    )
                 print(f"[{provider_name.upper()}] json_valid=false", flush=True)
                 return ProviderResult.failure("invalid_json", provider=provider_name, model=model)
-            return ProviderResult(ok=True, decision=decision, raw_text=content, provider=provider_name, model=model)
+            return ProviderResult(ok=True, decision=decision, raw_text=content, assistant_message=assistant_message, provider=provider_name, model=model)
 
         except (requests.ConnectionError, requests.Timeout) as exc:
             if attempt < max_retries:

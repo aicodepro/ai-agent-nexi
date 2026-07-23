@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import threading
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 
 TOOL_HISTORY_PATH = Path(__file__).resolve().parents[1] / "data" / "memory" / "tool_usage_history.json"
+_lock = threading.RLock()
 
 BUILTIN_ALIASES = {
     "youtube": {"name": "open_website", "slots": {"url": "youtube.com"}, "confidence": 0.96},
@@ -32,19 +36,25 @@ def _empty() -> dict[str, Any]:
 
 
 def _load() -> dict[str, Any]:
-    try:
-        if TOOL_HISTORY_PATH.exists():
+    with _lock:
+        if not TOOL_HISTORY_PATH.exists():
+            return _empty()
+        try:
             data = json.loads(TOOL_HISTORY_PATH.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("tools"), dict):
                 return data
-    except Exception:
-        pass
-    return _empty()
+            raise ValueError("invalid tool history structure")
+        except Exception as exc:
+            warnings.warn(f"Could not load tool usage history: {type(exc).__name__}", RuntimeWarning, stacklevel=2)
+            return _empty()
 
 
 def _save(data: dict[str, Any]) -> None:
-    TOOL_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    TOOL_HISTORY_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    with _lock:
+        TOOL_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary = TOOL_HISTORY_PATH.with_name(TOOL_HISTORY_PATH.name + ".tmp")
+        temporary.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        os.replace(temporary, TOOL_HISTORY_PATH)
 
 
 def resolve_tool_alias(user_text: str, context: dict | None = None) -> dict:
@@ -78,19 +88,20 @@ def resolve_tool_alias(user_text: str, context: dict | None = None) -> dict:
 
 
 def record_tool_result(tool_name: str, slots: dict | None, result: dict | None) -> dict:
-    data = _load()
-    name = str(tool_name or "unknown")
-    entry = data["tools"].setdefault(name, {"success_count": 0, "failure_count": 0, "last_used_at": "", "recent_failures": []})
-    success = bool(result and result.get("success") is True)
-    entry["last_used_at"] = _now()
-    if success:
-        entry["success_count"] = int(entry.get("success_count", 0)) + 1
-    else:
-        entry["failure_count"] = int(entry.get("failure_count", 0)) + 1
-        reason = str((result or {}).get("message") or "unverified")[:160]
-        entry.setdefault("recent_failures", []).append({"reason": reason, "at": entry["last_used_at"]})
-        entry["recent_failures"] = entry["recent_failures"][-10:]
-    _save(data)
+    with _lock:
+        data = _load()
+        name = str(tool_name or "unknown")
+        entry = data["tools"].setdefault(name, {"success_count": 0, "failure_count": 0, "last_used_at": "", "recent_failures": []})
+        success = bool(result and result.get("success") is True)
+        entry["last_used_at"] = _now()
+        if success:
+            entry["success_count"] = int(entry.get("success_count", 0)) + 1
+        else:
+            entry["failure_count"] = int(entry.get("failure_count", 0)) + 1
+            reason = str((result or {}).get("message") or "unverified")[:160]
+            entry.setdefault("recent_failures", []).append({"reason": reason, "at": entry["last_used_at"]})
+            entry["recent_failures"] = entry["recent_failures"][-10:]
+        _save(data)
     print(f"[TOOL_AI] result_verified={str(success).lower()}", flush=True)
     return {"recorded": True, "success": success, "tool": name}
 

@@ -11,6 +11,8 @@ Routing logic is the pure `route()` function so it's testable without binding a 
 from __future__ import annotations
 
 import json
+import hmac
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from engine.agency import workflow_engine as we
@@ -18,6 +20,7 @@ from engine.agency import workflow_engine as we
 HOST = "127.0.0.1"
 PORT = 8127
 _ALLOWED = ("router_audit", "codebase_research", "test_generation", "integration_plan")
+_MAX_BODY_BYTES = 1024 * 1024
 
 
 def route(method: str, path: str, body: dict | None = None) -> tuple[int, object]:
@@ -47,6 +50,11 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, object
             return 200, {"run_id": run.run_id, "logs": run.logs}
         if method == "GET" and sub == "artifacts":
             return 200, {"run_id": run.run_id, "artifacts": run.artifacts}
+        if method == "POST" and sub in {"continue", "cancel"} and run.workflow_type == "studio_build":
+            return 403, {
+                "error": "Studio continuation and cancellation require Nexi's fresh one-use CEO authorization command.",
+                "required_interface": "nexi_continue_studio_build or nexi_cancel_studio_build",
+            }
         if method == "POST" and sub == "continue":
             return 200, we.continue_run(run.run_id, body.get("user_input", "")).to_dict()
         if method == "POST" and sub == "cancel":
@@ -57,13 +65,30 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, object
 
 class _Handler(BaseHTTPRequestHandler):
     def _dispatch(self, method: str) -> None:
-        length = int(self.headers.get("Content-Length") or 0)
+        if not (method == "GET" and self.path == "/health"):
+            expected = str(os.getenv("NEXI_AGENCY_API_TOKEN") or "")
+            supplied = str(self.headers.get("Authorization") or "").removeprefix("Bearer ").strip()
+            if not expected or not hmac.compare_digest(supplied, expected):
+                self._respond(401, {"error": "Unauthorized"})
+                return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self._respond(400, {"error": "Invalid Content-Length"})
+            return
+        if length < 0 or length > _MAX_BODY_BYTES:
+            self._respond(413, {"error": "Request body too large"})
+            return
         raw = self.rfile.read(length) if length else b""
         try:
             body = json.loads(raw or b"{}")
         except Exception:
             body = {}
         status, payload = route(method, self.path, body)
+
+        self._respond(status, payload)
+
+    def _respond(self, status: int, payload: object) -> None:
         data = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -82,6 +107,10 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def serve(host: str = HOST, port: int = PORT) -> None:
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("The Nexi Agency API may bind only to loopback interfaces.")
+    if not str(os.getenv("NEXI_AGENCY_API_TOKEN") or "").strip():
+        raise RuntimeError("Set NEXI_AGENCY_API_TOKEN before starting the Nexi Agency API.")
     print(f"[NEXI_AGENCY] workflow server on http://{host}:{port}", flush=True)
     HTTPServer((host, port), _Handler).serve_forever()
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "mcp-architect": {
+      "description": "Manage MCP server configurations for Nexi",
+      "mode": "subagent"
+    },
+    "skill-designer": {
+      "description": "Design and improve Nexi AI skills",
+      "mode": "subagent"
+    },
+    "repo-analyst": {
+      "description": "Analyze Nexi repo structure and dependencies",
+      "mode": "subagent"
+    }
+  }
+}

@@ -15,6 +15,8 @@ _RESETS = [
     ("engine.barge_in_manager", "reset_barge_in_state"),
     ("engine.post_tts_cleanup", "reset_cooldown"),
     ("engine.presence_state", "reset_presence_state"),
+    # keeps environment/working_memory (still true), clears last_action/current_step
+    ("engine.world_model", "reset_world"),
 ]
 
 

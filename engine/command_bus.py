@@ -9,6 +9,7 @@ _SYSTEM_CONTROL_COMMANDS = {
     "sleep",
     "go to sleep",
     "stop listening",
+    "wake",
     "wake up",
     "activate nexi",
 }
@@ -29,7 +30,8 @@ def current_source() -> str:
 
 
 def _is_system_control_command(text: str) -> bool:
-    return (text or "").strip().lower().rstrip(".?!") in _SYSTEM_CONTROL_COMMANDS
+    from engine.intent_pre_router import normalize_immediate_command
+    return normalize_immediate_command(text) in _SYSTEM_CONTROL_COMMANDS
 
 
 def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> bool:
@@ -165,27 +167,6 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
     except Exception:
         pass
 
-    # ── Post‑TTS cooldown & audio flush ────────────────────────────────────────
-    try:
-        from engine.post_tts_cleanup import post_tts_cleanup
-        # post_tts_cleanup() is called by tts_provider_manager after each TTS,
-        # but we can invoke it here as well to ensure the state machine is
-        # synchronized after a voice command ends.
-        if source in {"hotword", "clap", "double_clap", "hotkey"} and not source.startswith("ui"):
-            # For voice commands, trigger a cleanup after the command bus
-            # processes the command (it runs synchronously here, but this ensures
-            # the cooldown starts after any TTS from the previous interaction).
-            # We add this to the pending queue to avoid blocking command dispatch.
-            import threading
-            def _start_cooldown():
-                try:
-                    post_tts_cleanup()
-                except Exception:
-                    pass
-            threading.Thread(target=_start_cooldown, daemon=True, name="post-tts-trigger").start()
-    except Exception:
-        pass
-
     from engine.interrupt_controller import is_speaking, request_interrupt, clear_interrupt
     if is_speaking():
         print(f"[COMMAND_BUS] interrupt_before_new_command source={source}", flush=True)
@@ -200,6 +181,11 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
     normalized = normalize_command(text)
     original_normalized = normalized
     system_control_command = _is_system_control_command(normalized)
+    try:
+        from engine.studio.commands import is_explicit_studio_command
+        studio_command = is_explicit_studio_command(normalized)
+    except Exception:
+        studio_command = False
     pending_clarification = False
     pending_followup = False
     pending_short_answer = False
@@ -217,20 +203,21 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
         print("[CLARIFY] pending=true bypass_transcript_filter=true", flush=True)
     if pending_followup:
         print("[FOLLOWUP] pending=true bypass_transcript_filter=true", flush=True)
-    if system_control_command and (pending_clarification or pending_followup):
+    if (system_control_command or studio_command) and (pending_clarification or pending_followup):
+        clear_reason = "studio_command" if studio_command else "system_command"
         try:
             from engine.clarification_manager import clear_clarification
-            clear_clarification("system_command")
+            clear_clarification(clear_reason)
         except Exception:
             pass
         try:
             from engine.followup_manager import clear_followup
-            clear_followup("system_command")
+            clear_followup(clear_reason)
         except Exception:
             pass
         pending_clarification = False
         pending_followup = False
-        print("[COMMAND_BUS] pending_cleared reason=system_command", flush=True)
+        print(f"[COMMAND_BUS] pending_cleared reason={clear_reason}", flush=True)
     if pending_clarification or pending_followup:
         try:
             from engine.transcript_filter import accepts_pending_followup_answer
@@ -286,14 +273,14 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
     if (mode == "voice" or source in {"hotword", "clap", "double_clap", "hotkey", "ui_button", "mic_button", "voice"}) and not active_workflow:
         from engine.transcript_filter import clean_transcript, is_gibberish_or_wrong_language
         normalized = clean_transcript(normalized)
-        if not pending_short_answer and is_gibberish_or_wrong_language(normalized):
+        if not pending_short_answer and not studio_command and is_gibberish_or_wrong_language(normalized):
             print(f"[TRANSCRIPT] rejected reason=non_english_or_gibberish preview={normalized[:40]}", flush=True)
             print("[VOICE] clarification_requested", flush=True)
             from engine.clarification_manager import ask_clarification
             from engine.command import speak
             response = ask_clarification(normalized, reason="clarification")
             speak(response["display_text"])
-            return False
+            return True
 
     dispatch_unified_command(normalized, source=source)
     return True

@@ -168,6 +168,25 @@ def _safe_memory_context(text: str) -> dict[str, Any]:
     }
 
 
+def _safe_world() -> dict[str, Any]:
+    try:
+        from engine.world_model import get_world
+
+        state = get_world()
+        summary = {
+            "last_action": state.get("last_action", ""),
+            "last_result": state.get("last_result", ""),
+            "current_step": state.get("current_step", ""),
+        }
+        environment = state.get("environment") or {}
+        if environment:
+            summary["environment"] = {key: environment[key] for key in list(environment)[:6]}
+        return {key: value for key, value in summary.items() if value}
+    except Exception:
+        pass
+    return {}
+
+
 def build_intent_context(text: str, source: str = "ui") -> dict[str, Any]:
     context = {
         "source": str(source or "ui")[:40],
@@ -179,13 +198,15 @@ def build_intent_context(text: str, source: str = "ui") -> dict[str, Any]:
         "latest_output": _safe_output_context(),
         "recent_turns": _safe_recent_turns(),
         "memory_context": _safe_memory_context(text),
+        "world": _safe_world(),
     }
     print(
         "[INTENT_CONTEXT] built "
         f"pending={str(bool(context['pending_followup'] or context['pending_clarification'])).lower()} "
         f"workflow={str(bool(context['active_workflow'])).lower()} "
         f"training={str(bool(context['active_training'])).lower()} "
-        f"memory={str(bool(context['memory_context']['available'])).lower()}",
+        f"memory={str(bool(context['memory_context']['available'])).lower()} "
+        f"world={str(bool(context['world'])).lower()}",
         flush=True,
     )
     return context

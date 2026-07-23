@@ -15,6 +15,12 @@ class PtySession:
         self._on_output = on_output
         self._pty = None
         self._reader = None
+        self.last_error = ""
+
+    def _failed(self, operation: str, exc: Exception) -> bool:
+        self.last_error = f"{operation}: {type(exc).__name__}: {exc}"
+        print(f"[CLAUDE_PTY] {self.last_error}", flush=True)
+        return False
 
     @staticmethod
     def available() -> bool:
@@ -27,9 +33,9 @@ class PtySession:
     def start(self, argv, cwd=None, cols=120, rows=30) -> bool:
         try:
             import winpty
-        except Exception:
-            return False
-        self._pty = winpty.PtyProcess.spawn(argv, cwd=cwd, dimensions=(rows, cols))
+            self._pty = winpty.PtyProcess.spawn(argv, cwd=cwd, dimensions=(rows, cols))
+        except Exception as exc:
+            return self._failed("start", exc)
         self._reader = threading.Thread(target=self._read_loop, daemon=True)
         self._reader.start()
         return True
@@ -40,27 +46,34 @@ class PtySession:
                 data = self._pty.read()
                 if data:
                     self._on_output(data)
-        except Exception:
-            pass
+        except Exception as exc:
+            self._failed("read", exc)
 
-    def write(self, data: str) -> None:
+    def write(self, data: str) -> bool:
         if self._pty is not None:
             try:
                 self._pty.write(data)
-            except Exception:
-                pass
+                return True
+            except Exception as exc:
+                return self._failed("write", exc)
+        return False
 
-    def resize(self, cols: int, rows: int) -> None:
+    def resize(self, cols: int, rows: int) -> bool:
         if self._pty is not None:
             try:
                 self._pty.setwinsize(rows, cols)
-            except Exception:
-                pass
+                return True
+            except Exception as exc:
+                return self._failed("resize", exc)
+        return False
 
-    def stop(self) -> None:
+    def stop(self) -> bool:
         if self._pty is not None:
             try:
                 self._pty.terminate(force=True)
-            except Exception:
-                pass
-            self._pty = None
+                return True
+            except Exception as exc:
+                return self._failed("stop", exc)
+            finally:
+                self._pty = None
+        return False

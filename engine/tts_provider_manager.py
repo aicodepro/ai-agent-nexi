@@ -65,12 +65,12 @@ def stop_all() -> bool:
     try:
         from engine import groq_tts
         stopped = groq_tts.stop() or stopped
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[TTS] groq_stop_failed reason={type(exc).__name__}", flush=True)
     try:
         from engine.interrupt_controller import request_interrupt
         request_interrupt("tts_provider_manager", "stop_all")
         stopped = True
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[TTS] interrupt_stop_failed reason={type(exc).__name__}", flush=True)
     return stopped

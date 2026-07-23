@@ -1,8 +1,21 @@
+import pytest
 import os
 import sys
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
+@pytest.fixture(autouse=True)
+def _disable_llm_safety_gate(monkeypatch):
+    """The LLM safety gate calls the Groq safety model. Offline (no GROQ_API_KEY) it fails
+    CLOSED and blocks every medium+ risk tool, so nothing here would reach the approval /
+    confirmation logic these tests exist to check. Disable it locally rather than suite-wide:
+    a blocked tool is the SAFE default for a test run, since an allowed one really launches
+    apps and moves the mouse."""
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "false")
+
+
 
 
 def test_hand_gesture_preview_does_not_move_mouse():

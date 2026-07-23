@@ -24,6 +24,14 @@ __all__ = ["request_tool", "workflow_engine"]
 workflow_engine = _we
 
 
+def _studio_module(*, register: bool = True):
+    """Import and register Studio only when a Studio handler is invoked."""
+    from engine.studio import supervisor
+    if register:
+        supervisor.register()
+    return supervisor
+
+
 def _ok(message: str, **extra: Any) -> dict[str, Any]:
     return {"handled": True, "ok": True, "success": True, "verified": True,
             "tool": extra.pop("tool", "nexi_agency"), "message": message, **extra}
@@ -114,6 +122,9 @@ def nexi_cancel_workflow(slots: dict | None = None) -> dict[str, Any]:
     run = _resolve(slots)
     if not run:
         return _ok("There's no agent workflow to cancel.", tool="nexi_cancel_workflow")
+    if run.workflow_type == "studio_build":
+        return {"handled": True, "ok": False, "success": False, "verified": False,
+                "tool": "nexi_cancel_workflow", "message": "Use an explicit 'cancel studio' command to cancel a Studio build."}
     run = _we.cancel_run(run.run_id)
     return _ok(f"Workflow {run.run_id} is now {run.status}.", tool="nexi_cancel_workflow",
                run_id=run.run_id, status=run.status)
@@ -124,7 +135,26 @@ def nexi_continue_workflow(slots: dict | None = None) -> dict[str, Any]:
     if not run or run.status != "waiting_for_input":
         return _ok("There's no paused agent workflow to continue.", tool="nexi_continue_workflow",
                    status=(run.status if run else "none"))
+    if run.workflow_type == "studio_build":
+        return {"handled": True, "ok": False, "success": False, "verified": False,
+                "tool": "nexi_continue_workflow", "message": "Use an explicit 'studio continue: ...' command to resume a Studio build."}
     answer = str((slots or {}).get("input") or (slots or {}).get("text") or "").strip()
     run = _we.continue_run(run.run_id, answer)
     return _ok(f"Resumed workflow {run.run_id} — {run.result or run.status}.",
                tool="nexi_continue_workflow", run_id=run.run_id, status=run.status)
+
+
+def nexi_start_studio_build(slots: dict | None = None) -> dict[str, Any]:
+    return _studio_module().start_studio_build(slots)
+
+
+def nexi_studio_status(slots: dict | None = None) -> dict[str, Any]:
+    return _studio_module(register=False).studio_status(slots)
+
+
+def nexi_cancel_studio_build(slots: dict | None = None) -> dict[str, Any]:
+    return _studio_module().cancel_studio_build(slots)
+
+
+def nexi_continue_studio_build(slots: dict | None = None) -> dict[str, Any]:
+    return _studio_module().continue_studio_build(slots)

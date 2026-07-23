@@ -15,14 +15,16 @@ def test_runpy_passes_queue_to_audio_process(monkeypatch):
     import engine.audio_wake_pipeline as awp
 
     q = object()
+    control = object()
     seen = {}
     monkeypatch.setenv("VOICE_WAKE_BACKEND", "openwakeword")
     monkeypatch.setattr(awp, "start_audio_wake_pipeline", lambda **kwargs: seen.update(kwargs))
     monkeypatch.setattr(awp, "is_pipeline_running", lambda: True)
 
-    run.listenHotword(command_queue=q, stop_event=StopNow())
+    run.listenHotword(command_queue=q, control_queue=control, stop_event=StopNow())
 
     assert seen["command_queue"] is q
+    assert seen["control_queue"] is control
 
 
 def test_runpy_passes_queue_to_ui_process(monkeypatch):
@@ -30,13 +32,14 @@ def test_runpy_passes_queue_to_ui_process(monkeypatch):
     import main
 
     q = object()
+    control = object()
     stop = object()
     calls = []
     monkeypatch.setattr(main, "main", lambda **kwargs: calls.append(kwargs))
 
-    run.startNexi(command_queue=q, stop_event=stop)
+    run.startNexi(command_queue=q, control_queue=control, stop_event=stop)
 
-    assert calls == [{"command_queue": q, "stop_event": stop}]
+    assert calls == [{"command_queue": q, "control_queue": control, "stop_event": stop}]
 
 
 def test_openwakeword_backend_does_not_use_legacy_fallback_when_disabled(monkeypatch):

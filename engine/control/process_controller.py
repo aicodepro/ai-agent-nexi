@@ -51,20 +51,20 @@ KNOWN_APPS = {
 
 
 def start_process(app_name):
-    # 'start' is a cmd.exe builtin (no start.exe), so it needs a shell. Injection is
-    # prevented by only interpolating hardcoded KNOWN_APPS constants below, or an
-    # app_name that passed the _SAFE_APP_NAME allowlist (see the fallback path).
     app_name = app_name.lower().strip()
     if app_name in KNOWN_APPS:
-        info = KNOWN_APPS[app_name]  # hardcoded, not user input
+        info = KNOWN_APPS[app_name]
         try:
-            if info["path"]:
-                if info["path"].startswith("start "):
-                    os.system(info["path"])
-                else:
-                    os.system(f'start {info["path"]}')
+            executable = info["path"] or info["exe"]
+            if executable.startswith("start "):
+                os.startfile(executable.removeprefix("start "))
             else:
-                os.system(f'start {info["exe"]}')
+                subprocess.Popen(
+                    [executable],
+                    shell=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             return ControlResult.success(message=f"Started {app_name.title()}")
         except Exception as e:
             return ControlResult.failure(
@@ -78,7 +78,12 @@ def start_process(app_name):
             code="UNSAFE_APP_NAME",
         )
     try:
-        os.system(f'start "" {app_name}')  # name is validated safe; "" is the window title
+        subprocess.Popen(
+            [app_name],
+            shell=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
         return ControlResult.success(message=f"Started {app_name.title()}")
     except Exception as e:
         return ControlResult.failure(
@@ -103,10 +108,16 @@ def kill_process(app_name):
     try:
         # argv list + shell=False: exe_name is one argument, never shell-parsed,
         # so no command injection is possible even for arbitrary input.
-        subprocess.run(
+        completed = subprocess.run(
             ["taskkill", "/f", "/im", f"{exe_name}.exe"],
             shell=False, capture_output=True, text=True, timeout=10
         )
+        if completed.returncode != 0:
+            return ControlResult.failure(
+                message=f"Failed to close {app_name}",
+                code="KILL_FAILED",
+                error_message=(completed.stderr or completed.stdout or "taskkill failed").strip(),
+            )
         return ControlResult.success(message=f"Closed {app_name.title()}")
     except subprocess.TimeoutExpired:
         return ControlResult.failure(

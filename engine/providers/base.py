@@ -17,6 +17,8 @@ class ProviderResult:
     decision: dict[str, Any] | None = None
     # Tool call requested by the model (function-calling mode), if any.
     tool_call: dict[str, Any] | None = None
+    # Original assistant message, retained for the next function-calling turn.
+    assistant_message: dict[str, Any] | None = None
     error_code: str = ""
     raw_text: str = ""
     provider: str = ""

@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 from typing import Any
 
 import requests
 
 from engine.intent_taxonomy import BRAIN_INTENTS, OUTPUT_INTENTS, empty_result, exact_schema
+from engine.studio.commands import explicit_studio_action, issue_authorization, parse_studio_command, studio_command_body
 
 
 def _norm(text: str) -> str:
@@ -33,16 +35,36 @@ def _json_object(text: str) -> dict[str, Any]:
 
 
 # ── Rate limiter ────────────────────────────────────────────────────────────
-_last_llm_call: float = 0.0
+_last_llm_call: dict[str, float] = {}
+_llm_rate_lock = threading.Lock()
 
-def _llm_rate_limited() -> bool:
+def _llm_rate_limited(scope: str = "default") -> bool:
     global _last_llm_call
     cooldown = float(os.getenv("GROQ_INTENT_COOLDOWN_SECONDS", "0.5"))
     now = time.time()
-    if now - _last_llm_call < cooldown:
-        return True
-    _last_llm_call = now
-    return False
+    with _llm_rate_lock:
+        if not isinstance(_last_llm_call, dict):
+            _last_llm_call = {}
+        if now - _last_llm_call.get(scope, 0.0) < cooldown:
+            return True
+        _last_llm_call[scope] = now
+        return False
+
+
+def _intent_timeout_seconds() -> float:
+    try:
+        value = float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "3"))
+    except (TypeError, ValueError):
+        value = 3.0
+    return max(0.1, min(value, 10.0))
+
+
+def _intent_max_retries() -> int:
+    try:
+        value = int(os.getenv("GROQ_INTENT_MAX_RETRIES", "1"))
+    except (TypeError, ValueError):
+        value = 1
+    return max(0, min(value, 2))
 
 
 # ── Deterministic fallback ──────────────────────────────────────────────────
@@ -54,6 +76,19 @@ def _qa_like(q: str) -> bool:
         "write ", "translate ", "calculate ", "compute ", "solve ",
     )
     return any(q.startswith(prefix) for prefix in prefixes)
+
+
+# Words that mark an utterance as conversation/planning rather than an action request.
+# Used by the no-feature-matched fallback at the end of _deterministic_router: with a
+# signal the brain answers, without one Nexi asks instead of guessing. See the comment
+# there for why this is a conversational allowlist and not an action-verb blocklist.
+_BRAIN_SIGNAL_RE = re.compile(
+    r"\b(?:plan|planning|plans|idea|ideas|brainstorm|think|thought|thoughts|opinion|"
+    r"advice|advise|suggest|suggestion|recommend|explain|explanation|discuss|help|"
+    r"should|could|would|why|how|teach|learn|understand|summarise|summarize|summary|"
+    r"compare|comparison|difference|meaning|means|about)\b",
+    re.I,
+)
 
 
 def _react_like(q: str) -> bool:
@@ -72,9 +107,27 @@ def _react_like(q: str) -> bool:
     )
 
 
+def _is_multistep(text: str) -> bool:
+    """True when the utterance is a compound command (>=2 executable steps).
+
+    Reuses the Master Router's compound splitter, which splits on sequence markers
+    (then / and then / after that / next / ; / "and <verb>") but keeps object-lists
+    like "search for cats and dogs" as one command. Deterministic and offline, so
+    multi-step routing never depends on the LLM. Falls back to the narrow
+    _react_like heuristic if the splitter is unavailable.
+    """
+    try:
+        from engine.router.compound import split_steps
+        if len(split_steps(str(text or ""))) >= 2:
+            return True
+    except Exception:
+        pass
+    return _react_like(_norm(text))
+
+
 # Zero-slot tools that can be matched by a simple alias/keyword in any position.
 _SIMPLE_ALIAS_TOOLS = {
-    "tell_time": ("system", ("what time is it", "what's the time", "whats the time", "current time", "time now", "tell me the time", "the time")),
+    "tell_time": ("system", ("what time is it", "what's the time", "whats the time", "current time", "time now", "tell me the time")),
     "tell_joke": ("conversation", ("tell me a joke", "tell a joke", "make me laugh", "crack a joke", "say a joke")),
     "internet_speed_test": ("system", ("internet speed", "speed test", "check internet speed", "check my internet", "network speed", "test internet")),
     "get_active_window": ("system", ("which app is active", "what app is active", "active window", "what app am i using", "current app", "what app is open", "what is the active app")),
@@ -126,15 +179,71 @@ _SIMPLE_ALIAS_TOOLS = {
 }
 
 
+# A question that merely CONTAINS a tool word is not a command. "why is the weather so
+# unpredictable" wants an explanation; the specific matchers (_weather_match) already
+# guard this, but the alias matcher below matched the bare word "weather" and hijacked
+# the question into weather_lookup. Guard once here so every alias inherits it rather
+# than each matcher re-implementing the check.
+_QUESTION_PREFIX_RE = re.compile(
+    r"^\s*(?:why|how\s+(?:does|do|did|is|are|can|would|should)|explain|"
+    r"what\s+(?:is|are|causes|makes|does)|who\s+(?:is|are)|when\s+(?:is|did|was)|"
+    r"tell\s+me\s+about|difference\s+between)\b", re.I)
+
+
+# ...but a question about the user's OWN machine, or about Nexi itself, IS a command:
+# "what is my system status", "what are you monitoring", "why is my pc slow", "what is my
+# ip address" are exactly what the awareness tools exist to answer. Only general-knowledge
+# questions that happen to contain a tool keyword should be vetoed.
+#
+# "me" and "i" are deliberately NOT here: "tell me about python and go" is a question, not
+# a command, and including "me" would let it through.
+_SELF_REFERENTIAL_RE = re.compile(r"\b(?:my|your|you)\b", re.I)
+
+
+def _is_question_not_command(q: str) -> bool:
+    """True when the utterance asks ABOUT something rather than asking for it."""
+    text = str(q or "")
+    if _QUESTION_PREFIX_RE.match(text) is None:
+        return False
+    return _SELF_REFERENTIAL_RE.search(text) is None
+
+
 def _alias_tool_match(q: str) -> dict[str, Any] | None:
     """Match zero-slot tools by alias phrase. Longest phrase wins to avoid 'pause' eating 'pause and explain'."""
+    # An explanatory question must never be executed as a tool, however many tool
+    # keywords it happens to contain.
+    if _is_question_not_command(q):
+        return None
     best_intent = ""
     best_domain = ""
     best_len = 0
     for intent, (domain, phrases) in _SIMPLE_ALIAS_TOOLS.items():
         for phrase in phrases:
-            if (q == phrase or f" {phrase} " in f" {q} " or q.startswith(phrase + " ") or q.endswith(" " + phrase)) and len(phrase) > best_len:
+            if intent in {"approve_action", "reject_action"}:
+                matched = q == phrase
+            else:
+                matched = q == phrase or f" {phrase} " in f" {q} " or q.startswith(phrase + " ") or q.endswith(" " + phrase)
+            if matched and len(phrase) > best_len:
                 best_intent, best_domain, best_len = intent, domain, len(phrase)
+    # Registry aliases are authoritative for newly added zero-slot tools. The
+    # static table above retains tuned legacy phrases, while this prevents a
+    # registered capability from silently falling through to the brain.
+    try:
+        from engine.tool_registry import model_visible_tools
+
+        for tool in model_visible_tools():
+            if tool.required_slots:
+                continue
+            phrases = (tool.name.replace("_", " "), *tool.aliases)
+            for raw_phrase in phrases:
+                phrase = str(raw_phrase or "").strip().lower()
+                if not phrase:
+                    continue
+                matched = q == phrase or f" {phrase} " in f" {q} " or q.startswith(phrase + " ") or q.endswith(" " + phrase)
+                if matched and len(phrase) > best_len:
+                    best_intent, best_domain, best_len = tool.name, tool.category, len(phrase)
+    except Exception:
+        pass
     if not best_intent:
         return None
     # Weather handled separately because it carries an optional location slot.
@@ -159,6 +268,14 @@ def _youtube_match(q: str, text: str) -> dict[str, Any] | None:
 
 def _weather_match(q: str, text: str) -> dict[str, Any] | None:
     if not any(w in q for w in ("weather", "temperature", "how hot", "how cold")):
+        return None
+    # "how hot is the sun" / "how cold is space" are questions, not weather. Only
+    # treat how-hot/how-cold as weather when it's clearly about ambient conditions.
+    if ("how hot" in q or "how cold" in q) and "weather" not in q and "temperature" not in q:
+        if not any(w in q for w in ("outside", "today", "tonight", "right now", " now", " here", " it ", "is it")):
+            return None
+    # "why is the weather so unpredictable" / "how does weather work" are questions.
+    if q.startswith(("why ", "how does ", "how do ", "explain ", "what causes ", "what makes ")):
         return None
     location = ""
     m = re.search(r"(?:weather|temperature)\s+(?:in|at|for)\s+(.+)", q)
@@ -188,6 +305,146 @@ _FEATURE_GAP_RES = [
     re.compile(r"^(?:i want|i need|i would like|i'd like)(?: a| an)?\s+(?:new\s+)?(.*\b" + _FEATURE_NOUN + r"\b.*)$"),
     re.compile(r"^feature request:?\s+(.+)$"),
 ]
+_STUDIO_INTENTS = {
+    "nexi_start_studio_build",
+    "nexi_studio_status",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+}
+_MODEL_FORBIDDEN_INTENTS = frozenset({
+    "approve_action",
+    "reject_action",
+    "nexi_start_studio_build",
+    "nexi_cancel_studio_build",
+    "nexi_continue_studio_build",
+    "nexi_cancel_workflow",
+    "nexi_continue_workflow",
+})
+
+
+def _inferred_build_match(text: str, *, source: str = "unknown") -> dict[str, Any] | None:
+    """Understand a build request that used no magic phrase.
+
+    Darsh: "I will not issue 'studio mode'. Nexi should interpret the request through
+    its own self-understanding." _studio_match above handles the explicit grammar; this
+    catches "I want a python function that reverses a string".
+
+    Deliberately routes to CLARIFY, never straight to a build:
+      * an inferred reading can be wrong, and an 11-stage build is expensive to undo;
+      * authorization must come from the CEO's own turn. The confirming reply IS that
+        turn, so the token is minted from a real utterance rather than from an inference.
+        This keeps `consume_authorization_audit` honest — a guess can never authorize.
+    Any failure returns None so the normal router handles the turn as before.
+    """
+    if str(os.getenv("NEXI_INFER_BUILD_INTENT", "1")).strip().lower() in {"0", "false", "no", "off"}:
+        return None
+    try:
+        from engine.studio.intent_detect import confirmation_question, detect_smart
+        verdict = detect_smart(text)
+    except Exception as exc:
+        print(f"[INTENT_V2] infer_build_skipped reason={type(exc).__name__}", flush=True)
+        return None
+    if verdict.get("action") != "confirm" or not verdict.get("goal"):
+        return None
+    print(f"[INTENT_V2] inferred_build confidence={verdict['confidence']} "
+          f"signals={','.join(verdict.get('signals') or [])}", flush=True)
+    return exact_schema(empty_result(
+        route="clarify",
+        intent="nexi_start_studio_build",
+        domain="workflow",
+        confidence=float(verdict["confidence"]),
+        reason="inferred_build_intent",
+    ) | {
+        # `clarification_question` is the schema's field for what NEXI asks — a `speak`
+        # key is silently dropped by exact_schema, so the confirmation would never be
+        # voiced and the turn would look like a bug rather than a question.
+        "clarification_question": confirmation_question(verdict),
+        "expects_user_reply": True,
+        "slots": {"goal": verdict["goal"], "command_source": source},
+    })
+
+
+def _studio_match(q: str, text: str, *, source: str = "unknown") -> dict[str, Any] | None:
+    """Route only explicit Studio start/control phrases."""
+    action = explicit_studio_action(text)
+    if not action:
+        return None
+    body = studio_command_body(text)
+    if action == "status":
+        return empty_result(route="tool", intent="nexi_studio_status", domain="workflow", confidence=1.0, reason="studio_status")
+    if action == "cancel":
+        raw_text = str(text or "").strip()
+        return exact_schema(empty_result(route="tool", intent="nexi_cancel_studio_build", domain="workflow", confidence=1.0, reason="studio_cancel") | {"slots": {
+            "raw_text": raw_text,
+            "command_source": source,
+            "_studio_auth": issue_authorization(raw_text, "cancel", source=source),
+        }})
+    if action == "continue":
+        match = re.match(r"^(?:studio continue|continue studio|resume studio build)\b(?:\s*:?\s*(.*))?$", body, flags=re.I | re.S)
+        if match is None:
+            return None
+        answer = (match.group(1) or "").strip()
+        if not answer:
+            return exact_schema(empty_result(
+                route="clarify",
+                intent="nexi_continue_studio_build",
+                domain="workflow",
+                confidence=1.0,
+                reason="studio_answer_required",
+                clarification_question="What answer should I give the Studio team?",
+            ) | {"missing_slots": ["answer"]})
+        raw_text = str(text or "").strip()
+        return exact_schema(empty_result(route="tool", intent="nexi_continue_studio_build", domain="workflow", confidence=1.0, reason="studio_continue") | {"slots": {
+            "answer": answer,
+            "raw_text": raw_text,
+            "command_source": source,
+            "_studio_auth": issue_authorization(raw_text, "continue", source=source),
+        }})
+    parsed = parse_studio_command(text)
+    if not parsed:
+        return None
+    if not parsed["goal"]:
+        return exact_schema(empty_result(
+            route="clarify",
+            intent="nexi_start_studio_build",
+            domain="workflow",
+            confidence=1.0,
+            reason="studio_goal_required",
+            clarification_question="What should we build now?",
+        ) | {"missing_slots": ["goal"]})
+    slots = {
+        "command": parsed["raw_text"],
+        "goal": parsed["goal"],
+        "command_source": source,
+        "_studio_auth": issue_authorization(parsed["raw_text"], "start", source=source),
+    }
+    if parsed.get("project_dir"):
+        slots["project_dir"] = parsed["project_dir"]
+    return exact_schema(empty_result(route="tool", intent="nexi_start_studio_build", domain="workflow", confidence=1.0, reason="explicit_studio_build") | {"slots": slots, "risk_level": "high"})
+
+
+_FORGE_RES = [
+    # "build yourself a tool that ..." / "write your own skill to ..."
+    re.compile(r"^(?:can you |please )?(?:build|make|write|create|forge)\s+(?:yourself|your own)\s+(?:a |an )?(?:new )?(?:tool|skill|function)\s+(?:that |which |to |for |which can )?(.+)$"),
+    # "forge a tool that ..." — 'forge' is unambiguous, no "yourself" needed
+    re.compile(r"^(?:can you |please )?forge\s+(?:me )?(?:a |an )?(?:new )?(?:tool|skill|function)\s+(?:that |which |to |for )?(.+)$"),
+]
+
+
+def _forge_match(q: str, text: str) -> dict[str, Any] | None:
+    """Route "build YOURSELF a tool that X" to the forge, which actually writes it.
+
+    Distinct from _feature_gap_match below: "build a tool that watches my downloads"
+    is a feature REQUEST for the roadmap, while "build yourself a tool that ..." is
+    an instruction to write and install it now. The "yourself"/"forge" wording is the
+    signal, so this must run before the feature-gap parser claims it.
+    """
+    for rx in _FORGE_RES:
+        m = rx.match(q)
+        if m and m.group(1).strip():
+            spec = m.group(1).strip(" .?!")
+            return exact_schema(empty_result(route="tool", intent="nexi_forge_tool", domain="system", confidence=0.95, reason="forge_tool") | {"slots": {"spec": spec}})
+    return None
 
 
 def _feature_gap_match(q: str, text: str) -> dict[str, Any] | None:
@@ -285,6 +542,17 @@ def _settings_match(q: str) -> dict[str, Any] | None:
     return None
 
 
+def _has_word(text: str, *words: str) -> bool:
+    """Whole-word match, tolerating a trailing plural.
+
+    Short common words must not match as substrings: "handle it" contains "hand"
+    and used to start camera gesture control at 0.93 confidence, and "conveyed"
+    contains "eye". Prefix matches that are deliberate (e.g. "recogni") stay as
+    plain `in` checks.
+    """
+    return any(re.search(rf"\b{re.escape(word)}s?\b", text) for word in words)
+
+
 def _deterministic_router(text: str, context: dict | None = None) -> dict[str, Any]:
     q = _norm(text)
     if not q:
@@ -318,6 +586,21 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"open a new tab", "open new tab", "new tab"}:
         return empty_result(route="tool", intent="browser_new_tab", domain="browser", confidence=0.95, reason="browser_new_tab")
 
+    # Explicit Studio authorization must beat the propose-only feature-gap path.
+    _studio = _studio_match(q, str(text or ""), source=str((context or {}).get("source") or "unknown"))
+    if _studio:
+        return _studio
+
+    # Compound executable requests need the ReAct loop before one-action parsers.
+    if _react_like(q):
+        return empty_result(route="react", intent="react_multi_step", domain="workflow", confidence=0.88, reason="multi_step_task")
+
+    # "build yourself a tool that X" -> actually forge it (must beat the feature-gap
+    # parser, which would otherwise log it as a roadmap request instead of building it).
+    _forge = _forge_match(q, str(text or ""))
+    if _forge:
+        return _forge
+
     # ── Feature-gap, browser write, computer-use, task->app, skill-help and Settings beat the generic open handler ─
     _fg = _feature_gap_match(q, str(text or ""))
     if _fg:
@@ -344,7 +627,8 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
         target = re.sub(r"^(open|launch)\s+", "", str(text or "").strip(), flags=re.I).strip()
         from engine.website_resolver import looks_like_website, resolve_website
         if looks_like_website(target):
-            return exact_schema(empty_result(route="tool", intent="open_website", domain="web", confidence=0.95, reason="open_website") | {"slots": {"url": resolve_website(target).get("url", target)}})
+            url = target if re.match(r"^[a-z][a-z0-9+.-]*://", target, flags=re.I) else resolve_website(target).get("url", target)
+            return exact_schema(empty_result(route="tool", intent="open_website", domain="web", confidence=0.95, reason="open_website") | {"slots": {"url": url}})
         from engine.app_resolver import resolve_app_name
         return exact_schema(empty_result(route="tool", intent="open_app", domain="desktop", confidence=0.95, reason="open_app") | {"slots": {"app_name": resolve_app_name(target).get("app_name", target)}})
 
@@ -373,9 +657,6 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q.startswith(("create file", "create a file", "create text file", "create python file")):
         return empty_result(route="workflow", intent="create_file", domain="workflow", confidence=0.92, reason="file_workflow")
 
-    if _react_like(q):
-        return empty_result(route="react", intent="react_multi_step", domain="workflow", confidence=0.88, reason="multi_step_task")
-
     # ── YouTube play/search handled early via _youtube_match() ───────────────
 
     # ── Hinglish browser open (chrome/browser kholo) ─────────────────────────
@@ -396,38 +677,142 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if _alias_hit:
         return _alias_hit
 
-    if "stop" in q and any(word in q for word in ("camera", "gesture", "eye", "control")):
+    if "stop" in q and _has_word(q, "camera", "gesture", "eye", "control"):
         return empty_result(route="tool", intent="stop_camera_control", domain="desktop", confidence=0.95, reason="stop_camera_control")
-    if "calibrate" in q and "eye" in q:
+    if "calibrate" in q and _has_word(q, "eye"):
         return empty_result(route="tool", intent="eye_mouse_calibrate", domain="desktop", confidence=0.95, reason="eye_calibration")
-    if "eye" in q and ("mouse" in q or "control" in q or "tracking" in q):
+    if _has_word(q, "eye") and ("mouse" in q or "control" in q or "tracking" in q):
         mode = "control" if ("enable" in q or "eye control" in q) and "preview" not in q else "preview"
         return exact_schema(empty_result(route="tool", intent="eye_mouse_control", domain="desktop", confidence=0.93, reason="eye_mouse_control") | {"slots": {"mode": mode}, "risk_level": "high" if mode == "control" else "low", "requires_confirmation": mode == "control"})
-    if "hand" in q or "gesture" in q:
-        mode = "control" if ("enable" in q or "hand mouse" in q or "gesture mouse" in q or "mouse control" in q) and "preview" not in q else "preview"
+    if _has_word(q, "hand", "gesture"):
+        mode = "preview" if "preview" in q else "control"
         return exact_schema(empty_result(route="tool", intent="hand_gesture_control", domain="desktop", confidence=0.93, reason="hand_gesture_control") | {"slots": {"mode": mode}, "risk_level": "high" if mode == "control" else "low", "requires_confirmation": mode == "control"})
     if "camera" in q and "preview" in q:
         return empty_result(route="tool", intent="camera_preview", domain="desktop", confidence=0.93, reason="camera_preview")
+
+    if "face" in q and any(word in q for word in ("recogni", "detect", "identify", "who is")):
+        mode = "start"
+        if any(w in q for w in ("stop", "disable", "off")):
+            mode = "stop"
+        return exact_schema(empty_result(route="tool", intent="face_recognition", domain="desktop", confidence=0.93, reason="face_recognition") | {"slots": {"mode": mode}})
+    if "face" in q and any(word in q for word in ("register", "train", "new face", "add face", "learn face", "teach")):
+        name_match = re.search(r"(?:register|train|add|learn|teach)\s+(?:face\s+)?(?:for|as|named?|called?)?\s+(.+)", q)
+        name = name_match.group(1).strip(" .?!") if name_match else "User"
+        return exact_schema(empty_result(route="tool", intent="face_register", domain="desktop", confidence=0.93, reason="face_register") | {"slots": {"name": name}})
 
     if _qa_like(q):
         intent = "essay_request" if q.startswith("write ") and "essay" in q else "general_qa"
         return empty_result(route="brain", intent=intent, domain="conversation", confidence=0.86, reason="qa_prefix")
 
-    # NO FEATURE MATCHED -> hand off to the brain (Gemini), never a dead-end "I didn't
-    # understand". The brain handles chat, planning ("let's plan something"), explanation,
-    # and can ask its own clarifying question for vague actions ("close this"). A lone
-    # unmatched token is treated as ASR noise and still clarifies (1-word meaningful inputs
-    # like bye/thanks/stop are handled explicitly earlier). Bare open/search/empty clarify too.
-    if len(q.split()) >= 2:
-        return empty_result(route="brain", intent="general_qa", domain="conversation", confidence=0.7, reason="no_feature_fallback")
-    return empty_result(route="clarify", intent="unknown", domain="unknown", confidence=0.6, reason="unknown_input")
+    # NO FEATURE MATCHED. Hand off to the BRAIN only when the input actually reads as
+    # conversation or planning ("lets plan something", "help me plan the fix") — the brain
+    # is good at those and asks a better question than any canned string.
+    #
+    # Everything else clarifies. HEAD sent all 2+ word input to the brain, which meant an
+    # unmatched ACTION request ("delete that old thing", "install the missing plugin")
+    # reached a model that will happily answer as though it had done the thing — Nexi
+    # claiming a deletion it never performed. Gibberish ("flibbertigibbet plover") has no
+    # signal either and must not be answered as if it meant something. Keying on a
+    # conversational signal rather than an action-verb blocklist covers both without a
+    # verb list to maintain.
+    #
+    # Confidence must stay above confidence_manager.should_clarify's 0.65 floor, or
+    # route_intent_v2 flips brain back to clarify and this rule does nothing.
+    if len(q.split()) > 1 and _BRAIN_SIGNAL_RE.search(q):
+        return empty_result(
+            route="brain",
+            intent="general_qa",
+            domain="conversation",
+            confidence=0.75,
+            reason="no_feature_fallback",
+        )
+
+    return empty_result(
+        route="clarify",
+        intent="unknown",
+        domain="unknown",
+        confidence=0.6,
+        reason="unknown_input",
+        clarification_question="I'm not sure what action or answer you want. Could you clarify?",
+    )
 
 
 # ── LLM router (Groq by default; optional xAI Grok) ──────────────────────────
+_ROUTE_DESCRIPTIONS: dict[str, str] = {
+    "tool": "Execute a PC action via a registered tool (open app, search, create file, etc.). should_call_tool=true.",
+    "brain": "Answer a conversation or question via the Gemini brain. should_call_gemini=true.",
+    "system": "Internal lifecycle: greeting, identity, status, diagnostics, battery, disk, skills.",
+    "memory": "Remember, recall, forget, or manage notes and facts.",
+    "training": "Enter or manage Nexi training mode.",
+    "output": "Manage the output workspace (pin, copy, save, show, read, shorten, regenerate).",
+    "workflow": "Start a multi-step or agent workflow (create folder/file, agent audit, codebase research, test gen, integration plan).",
+    "react": "Multi-step reactive task combining several actions.",
+    "clarify": "Ask user for missing information when input is ambiguous.",
+    "followup": "Continue a previous interaction with context awareness.",
+    "sleep": "Put Nexi to sleep.",
+    "wake": "Wake Nexi up.",
+    "interrupt": "Stop current action immediately.",
+    "reject": "Reject a request for safety reasons.",
+    "cancel": "Cancel a pending action.",
+}
+
+_DOMAIN_DESCRIPTIONS: dict[str, str] = {
+    "desktop": "Local PC actions: open app, file ops, camera, eye/hand/gesture control, screen read, click, type.",
+    "browser": "Browser tab management: new tab, close, refresh, back, forward, history, fullscreen.",
+    "web": "Internet actions: search, open website, YouTube, weather, speed test.",
+    "memory": "Remember, recall, forget, notes.",
+    "training": "Training mode operations.",
+    "output": "Output workspace management.",
+    "workflow": "Agent workflows and multi-step tasks.",
+    "conversation": "Chat, Q&A, social responses (greeting, thanks, bye, identity).",
+    "system": "Internal system queries (diagnostics, battery, disk, skills, HUD, active window, running apps, network).",
+    "unknown": "Not yet classified.",
+}
+
+
+def _rag_filter_capabilities(text: str, capabilities: list, k: int = 0) -> list:
+    """Tool-RAG (idea #59, RAG-MCP): give the model only the tools that are
+    semantically plausible for THIS utterance instead of all 113 (~35KB of JSON).
+
+    Reuses the e5 index the semantic router already built — no new infrastructure.
+    Published result: ~3.2x tool-selection accuracy and ~50% fewer prompt tokens,
+    because a model asked to pick 1-of-113 picks badly.
+    https://arxiv.org/abs/2505.03275
+
+    Degrades to the FULL list whenever the index isn't warm or anything fails —
+    a narrowed list that omits the right tool is worse than a long one, and the
+    warm check keeps this off the ~83s cold-build path.
+    """
+    k = k or int(os.getenv("NEXI_TOOL_RAG_TOPK", "12") or 12)
+    if not capabilities or k <= 0:
+        return capabilities
+    try:
+        import engine.router as _router_pkg
+
+        router = getattr(_router_pkg, "_ROUTER", None)
+        if router is None:
+            return capabilities  # not warm — never block a turn to build it
+        from engine.router.normalize import normalize
+
+        match = router.semantic.match(normalize(text).canonical)
+        wanted = {getattr(c, "intent", "") for c in (match.candidates or [])[:k]}
+        wanted.discard("")
+        if not wanted:
+            return capabilities
+        picked = [c for c in capabilities if c.get("name") in wanted]
+        if not picked:
+            return capabilities
+        print(f"[TOOL_RAG] {len(capabilities)} -> {len(picked)} candidates", flush=True)
+        return picked
+    except Exception:
+        return capabilities
+
+
 def _route_with_llm(text: str, context: dict) -> dict[str, Any] | None:
     if (os.getenv("GROQ_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
         return None
-    if _llm_rate_limited():
+    scope = str((context or {}).get("session_id") or (context or {}).get("source") or "default")
+    if _llm_rate_limited(scope):
         return None
     try:
         from engine.providers import get_intent_provider
@@ -442,21 +827,44 @@ def _route_with_llm(text: str, context: dict) -> dict[str, Any] | None:
     try:
         from engine.tool_manifest_loader import router_capability_manifest
 
-        capabilities = router_capability_manifest()
+        # Tool-RAG: narrow 113 tools to the semantically plausible few before the
+        # model ever sees them (idea #59).
+        capabilities = _rag_filter_capabilities(text, router_capability_manifest())
     except Exception:
         capabilities = []
 
+    llm_payload = {
+        "text": text,
+        "context": context,
+        "capabilities": capabilities,
+        "route_taxonomy": _ROUTE_DESCRIPTIONS,
+        "domain_taxonomy": _DOMAIN_DESCRIPTIONS,
+    }
+
     messages = [
         {"role": "system", "content": _load_prompt()},
-        {"role": "user", "content": json.dumps({"text": text, "context": context, "capabilities": capabilities})},
+        {"role": "user", "content": json.dumps(llm_payload)},
     ]
 
     from engine.intent_taxonomy import router_decision_schema
 
-    result = provider.route_with_schema(messages, router_decision_schema(), timeout=float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "3")))
+    result = None
+    timeout = _intent_timeout_seconds()
+    for attempt in range(_intent_max_retries() + 1):
+        try:
+            result = provider.route_with_schema(messages, router_decision_schema(), timeout=timeout)
+        except Exception as exc:
+            if attempt == _intent_max_retries():
+                print(f"[INTENT_V2] provider_failed reason={type(exc).__name__}", flush=True)
+                return None
+            continue
+        if result.ok or result.error_code == "invalid_json" or attempt == _intent_max_retries():
+            break
+    if result is None:
+        return None
     if not result.ok:
         if result.error_code == "invalid_json":
-            return empty_result(route="clarify", intent="unknown", confidence=0.0, reason="invalid_json")
+            return empty_result(route="clarify", intent="unknown", confidence=0.0, reason="invalid_json", clarification_question="The routing response was invalid. Could you rephrase your request?")
         # On provider failure, optionally fall back to a secondary provider.
         fallback_name = (os.getenv("INTENT_ROUTER_FALLBACK_PROVIDER", "") or "").strip().lower()
         if fallback_name:
@@ -465,7 +873,7 @@ def _route_with_llm(text: str, context: dict) -> dict[str, Any] | None:
 
                 fb = _gip(fallback_name)
                 if fb is not None and fb.is_available():
-                    fb_result = fb.route_with_schema(messages, router_decision_schema(), timeout=float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "3")))
+                    fb_result = fb.route_with_schema(messages, router_decision_schema(), timeout=timeout)
                     if fb_result.ok and fb_result.decision is not None:
                         print(f"[INTENT_V2] fallback_provider={fb.name} used", flush=True)
                         return fb_result.decision
@@ -481,6 +889,95 @@ def _route_with_llm(text: str, context: dict) -> dict[str, Any] | None:
 # Backwards-compatible alias for older imports/tests.
 def _route_with_groq(text: str, context: dict) -> dict[str, Any] | None:
     return _route_with_llm(text, context)
+
+
+_MASTER_WARMING = False
+
+
+def _warm_master_router() -> None:
+    """Build the tiered Master Router in the BACKGROUND, once.
+
+    Building it loads the e5 embedder, which takes ~83s on first use (and touches
+    the HF hub). That must never happen inside a voice turn — it stalled the whole
+    dispatch and NEXI sat in "thinking" until the session timed out.
+    """
+    global _MASTER_WARMING
+    if _MASTER_WARMING:
+        return
+    _MASTER_WARMING = True
+
+    def _build() -> None:
+        try:
+            import time as _time
+            from engine.router import get_router
+            started = _time.time()
+            get_router()
+            print(f"[INTENT_V2] master_router warm in {_time.time() - started:.1f}s", flush=True)
+        except Exception as exc:
+            print(f"[INTENT_V2] master_warm_failed reason={type(exc).__name__}", flush=True)
+
+    try:
+        threading.Thread(target=_build, name="nexi-master-router-warm", daemon=True).start()
+    except Exception:
+        _MASTER_WARMING = False
+
+
+def _route_with_master(text: str, context: dict) -> dict[str, Any] | None:
+    """Hybrid stage — consult the tiered Master Router (local semantic layer +
+    compound splitter + gpt-oss escalation) and return its decision ONLY when it
+    is confident enough to act, or it found a multi-step plan.
+
+    Otherwise return None so the legacy Groq seam + deterministic fallback below
+    stay in charge. This is the "tiered router is primary, legacy is the automatic
+    fallback when the tiered router is unsure" contract. Never raises — any failure
+    (missing embedder, import error, provider down) degrades to the legacy router.
+    """
+    if (os.getenv("NEXI_ROUTER_HYBRID", "1") or "").strip().lower() in {"0", "false", "no", "off"}:
+        return None
+    try:
+        import engine.router as _router_pkg
+
+        # NEVER block the turn on the embedder build (~83s cold). If the router is not
+        # warm yet, start warming in the background and let the legacy path answer THIS
+        # turn. Once warm, subsequent turns get the semantic tier for free.
+        if getattr(_router_pkg, "_ROUTER", None) is None:
+            _warm_master_router()
+            return None
+        decision = _router_pkg.route(text, {"source": str((context or {}).get("source") or "ui")})
+        route = decision.route
+        intent = decision.intent
+        band = getattr(decision, "band", "")
+    except Exception as exc:
+        print(f"[INTENT_V2] master_unavailable reason={type(exc).__name__}", flush=True)
+        return None
+
+    # Human-approval and workflow-control authority never come from a model or a
+    # semantic guess — only the deterministic command matchers above may mint them.
+    if intent in _MODEL_FORBIDDEN_INTENTS:
+        return None
+    if route == "react":
+        result = dict(decision.result)
+        result["confidence"] = max(float(result.get("confidence") or 0.0), 0.9)
+        print(f"[INTENT_V2] master route=react tier={getattr(decision, 'tier', '?')} steps={len(getattr(decision, 'plan', []) or [])}", flush=True)
+        return result
+    if band in {"act", "confirm"} and route in {"tool", "output", "workflow", "memory", "system"}:
+        # Guard against low-confidence semantic false positives ("make my screen
+        # brighter" -> screen_read): only override the legacy router when the match
+        # is strong. Weaker matches fall through so the legacy brain/clarify path
+        # handles them gracefully. Floor is on the numpy-fallback sim scale; retune
+        # via env when the e5 embedder is enabled (see engine/router/confidence.py).
+        sim = float(getattr(decision, "sim", 0.0) or 0.0)
+        floor = float(os.getenv("NEXI_ROUTER_HYBRID_MIN_SIM", "0.62") or 0.62)
+        tier = int(getattr(decision, "tier", 0) or 0)
+        if sim < floor and tier == 0:
+            return None
+        result = dict(decision.result)
+        # Trust the tiered router's calibrated band: it already decided this is an
+        # action, so don't let _finalize re-clarify a match on the sim scale.
+        result["confidence"] = max(float(result.get("confidence") or 0.0), 0.9)
+        print(f"[INTENT_V2] master route={route} intent={intent} band={band} tier={tier} sim={sim}", flush=True)
+        return result
+    return None
 
 
 # ── Slot enrichment for deterministic fallback ───────────────────────────────
@@ -580,19 +1077,43 @@ def _deterministic_is_confident(result: dict[str, Any]) -> bool:
         # Confident only when no slots are missing (e.g. "open chrome", not bare "open").
         return not result.get("missing_slots")
     if route == "brain":
+        # general_qa is a soft guess: "what is my battery" LOOKS like a question but
+        # is really a tool call. Never let a general_qa guess short-circuit the tiered
+        # middle — give it a chance to find the real tool. Social/identity brain
+        # replies (social_close, social_reply, …) stay authoritative.
+        if result.get("intent") == "general_qa":
+            return False
         return float(result.get("confidence") or 0.0) >= 0.85
     return False
 
 
-def route_intent_v2(text: str, *, source: str = "ui", context: dict | None = None) -> dict[str, Any]:
+def _route_intent_v2_inner(text: str, *, source: str = "ui", context: dict | None = None) -> dict[str, Any]:
+    # Kick the tiered router's ~83s embedder build off on the FIRST command so it is
+    # ready for later turns. No-op after the first call, and never blocks this turn.
+    if (os.getenv("NEXI_ROUTER_HYBRID", "1") or "").strip().lower() not in {"0", "false", "no", "off"}:
+        _warm_master_router()
+
+    # Studio commands are explicit authorization and must never be reinterpreted
+    # by an LLM or swallowed by an unrelated pending workflow.
+    studio = _studio_match(_norm(text), str(text or ""), source=source)
+    if studio:
+        return _finalize(studio, text)
+
+    inferred = _inferred_build_match(str(text or ""), source=source)
+    if inferred:
+        return _finalize(inferred, text)
+
     from engine.intent_context_builder import build_intent_context
     from engine.intent_pre_router import pre_route
 
     ctx = context or build_intent_context(text, source=source)
+
+    # Stage 1: Pre-route (learned corrections, immediate commands)
     pre = pre_route(text, ctx)
     if pre:
         return _finalize(pre, text)
 
+    # Stage 2: Check for learned corrections
     try:
         from engine.correction_learner import apply_correction
         correction = apply_correction(text)
@@ -600,23 +1121,152 @@ def route_intent_v2(text: str, *, source: str = "ui", context: dict | None = Non
             action_text = str(correction.get("action_text") or "")
             if action_text:
                 routed = _deterministic_router(action_text, ctx)
-                return _finalize(routed, action_text, selected_rule=str((correction.get("rule") or {}).get("id") or "correction"))
+                if routed.get("intent") not in _STUDIO_INTENTS:
+                    return _finalize(routed, action_text, selected_rule=str((correction.get("rule") or {}).get("id") or "correction"))
     except Exception:
         pass
 
-    # Deterministic exact/alias routing first — cheap, safe, model-independent.
+    # Stage 3: Compound / multi-step commands go to the ReAct loop BEFORE any
+    # single-action parser can truncate them ("open notepad and type hello" must
+    # not collapse into one open_app call). Deterministic + offline — no LLM.
+    # Explicit Studio builds are single authorized commands, never react plans.
+    if _is_multistep(text) and not explicit_studio_action(str(text or "")):
+        return _finalize(empty_result(route="react", intent="react_multi_step", domain="workflow", confidence=0.9, reason="multi_step_task"), text)
+
+    # Stage 4: Confident deterministic matches are authoritative and skip the LLM.
     deterministic = _deterministic_router(text, ctx)
     if _deterministic_is_confident(deterministic):
         return _finalize(deterministic, text)
 
-    # LLM router (Groq by default; optional xAI Grok) for fuzzy / ambiguous language.
+    # Stage 4b: a deterministic clarify that already knows the exact missing slot
+    # (bare "open" / "search") keeps its precise question — it is not handed to
+    # the tiered/LLM middle.
+    if deterministic.get("route") == "clarify" and deterministic.get("missing_slots") and deterministic.get("intent") not in {"unknown"}:
+        return _finalize(deterministic, text)
+
+    # Stage 5: HYBRID — the tiered Master Router (local semantic layer + gpt-oss
+    # escalation) is primary for fuzzy language. It takes the wheel only when it is
+    # confident enough to act or found a multi-step plan; otherwise the legacy Groq
+    # seam + deterministic fallback below stay in charge.
+    master = _route_with_master(text, ctx)
+    if master is not None:
+        return _finalize(master, text)
+
+    # Stage 6: Legacy Groq single-call seam (fallback for the fuzzy middle).
+    # It receives the user text, prior context, the complete tool catalog, and
+    # route/domain taxonomy, and returns a route/intent/slots in one call.
     llm_raw = _route_with_groq(text, ctx)
-    if llm_raw is not None and llm_raw.get("route") not in {"clarify", "unknown"} and llm_raw.get("intent") not in {"unknown", "clarify"}:
+    if llm_raw is not None:
+        llm_route = llm_raw.get("route", "")
+        llm_intent = llm_raw.get("intent", "")
+        llm_confidence = float(llm_raw.get("confidence") or 0.0)
+
+        # Human approval and workflow-control authority can only come from exact
+        # deterministic command routing above. A model decision is never consent.
+        if llm_intent in _MODEL_FORBIDDEN_INTENTS:
+            return _finalize(deterministic, text)
+
+        # LLM returned a clear, confident result — return it directly.
+        if llm_route not in {"clarify", "unknown", ""} and llm_intent not in {"unknown", "clarify", ""}:
+            if llm_confidence >= 0.6:
+                return _finalize(llm_raw, text)
+            # Low confidence LLM result — check deterministic fallback.
+            if _deterministic_is_confident(deterministic):
+                return _finalize(deterministic, text)
+            # Return LLM's result even if low confidence — brain handles it.
+            return _finalize(llm_raw, text)
+
+        # LLM returned clarify/unknown — check deterministic.
+        if _deterministic_is_confident(deterministic):
+            return _finalize(deterministic, text)
+        # Pass LLM's clarify through so the brain gets context.
         return _finalize(llm_raw, text)
 
-    # Fall back to deterministic result (enriched with slot extraction).
+    # Stage 7: everything unavailable (rate limit, provider error, disabled) —
+    # fall back to deterministic rules, then enrich slots with the LLM if needed.
     enriched = _enrich_slots_with_llm(deterministic, text)
     return _finalize(enriched, text)
+
+
+_REASONING_PROVIDER_KEYS = ("GROQ_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "OLLAMA_HOST")
+
+
+def _reasoning_available() -> bool:
+    """True when a model is actually reachable for the ReAct loop.
+
+    Escalating to react with no provider promises reasoning Nexi cannot deliver:
+    the loop would burn the turn and fail. Offline, a precise clarify is the better
+    answer, so this fails closed to the pre-existing behaviour.
+    """
+    if (os.getenv("INTENT_ROUTER_PROVIDER", "") or "").strip().lower() == "none":
+        return False
+    return any((os.getenv(key) or "").strip() for key in _REASONING_PROVIDER_KEYS)
+
+
+def _escalate_unknown_to_react(result: dict[str, Any], text: str) -> dict[str, Any]:
+    """Think instead of asking the user to rephrase.
+
+    Every path above that finds no confident single action terminates in
+    clarify/unknown. That is the router reporting it has no one-shot answer --
+    which is exactly when the ReAct loop (reason -> act -> observe -> verify)
+    should take over, since it can inspect the world and try something.
+
+    Deliberately narrow. A precise missing-slot clarify keeps its question
+    (bare "open" still asks "open what?"), because those carry a KNOWN intent;
+    only a genuine `unknown` escalates. Applied at the public entry point, not in
+    _finalize, so react_planner's direct _finalize calls cannot re-enter this.
+    """
+    if (os.getenv("NEXI_REACT_ON_UNKNOWN", "1") or "").strip().lower() in {"0", "false", "no", "off"}:
+        return result
+    if str(result.get("route") or "") != "clarify" or str(result.get("intent") or "") != "unknown":
+        return result
+    if not _reasoning_available():
+        return result
+    # A one-word mystery is a misheard transcript, not a goal. Let it clarify.
+    if len(str(text or "").split()) < 2:
+        return result
+    # Gibberish has no goal to reason about ("flibbertigibbet plover"). Spending an
+    # LLM loop on it -- and giving a model tool choice over noise -- is strictly worse
+    # than asking again. command_bus applies this in voice mode only; escalation
+    # needs it on every source.
+    try:
+        from engine.transcript_filter import is_gibberish_or_wrong_language
+
+        if is_gibberish_or_wrong_language(text):
+            return result
+    except Exception:
+        pass
+    # A short answer to a pending question must not spawn a reasoning loop.
+    try:
+        from engine.clarification_manager import has_pending_clarification
+        from engine.followup_manager import has_pending_followup
+
+        if has_pending_clarification() or has_pending_followup():
+            return result
+    except Exception:
+        pass
+
+    escalated = exact_schema(empty_result(
+        route="react",
+        intent="react_multi_step",
+        domain="workflow",
+        confidence=0.7,
+        reason="unknown_escalated_to_react",
+    ))
+    print("[INTENT_V2] escalate unknown -> react", flush=True)
+    try:
+        from engine.intent_explainer import record_intent_decision
+
+        record_intent_decision(escalated, selected_tool="", selected_rule="", missing_slot="")
+    except Exception:
+        pass
+    return escalated
+
+
+def route_intent_v2(text: str, *, source: str = "ui", context: dict | None = None) -> dict[str, Any]:
+    return _escalate_unknown_to_react(
+        _route_intent_v2_inner(text, source=source, context=context), text
+    )
 
 
 def classify_intent_v2(text: str, *, source: str = "ui", context: dict | None = None) -> dict[str, Any]:

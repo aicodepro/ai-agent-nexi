@@ -45,4 +45,8 @@ def test_hotword_and_double_clap_candidates_share_arbitration(monkeypatch):
     clock.advance(0.1)
     clap = pipeline._evaluate_wake_candidate("double_clap", True, 1.0, clock(), "test")
     assert clap.should_wake is False
-    assert clap.reason == "source_not_allowed"
+    # WakeOrchestrator's default allow_sources is "hotword,double_clap,hotkey" (its
+    # own docstring: "OR logic: hotword OR double_clap OR hotkey") — double_clap is
+    # always an allowed source. 100ms after the hotword wake, a same-arbitrator
+    # double_clap candidate is correctly suppressed by cooldown, not by source.
+    assert clap.reason == "cooldown"

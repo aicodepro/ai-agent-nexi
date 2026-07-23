@@ -13,7 +13,7 @@ class TestSpeechInterrupt(unittest.TestCase):
     """Test stop phrase detection."""
 
     def setUp(self):
-        from src.orin.voice.speech_interrupt import (
+        from engine.voice.speech_interrupt import (
             is_stop_speaking_command,
             is_emergency_stop_command,
             classify_stop_command,
@@ -61,6 +61,14 @@ class TestSpeechInterrupt(unittest.TestCase):
         self.assertTrue(self.is_stop("stop."))
         self.assertTrue(self.is_stop("stop!"))
 
+    def test_polite_stop_variants_use_configured_wake_phrase(self):
+        with patch.dict(
+            os.environ, {"NEXI_HOTWORD_PHRASES": "hey atlas,atlas"}
+        ):
+            self.assertTrue(self.is_stop("please stop"))
+            self.assertTrue(self.is_stop("could you please stop talking?"))
+            self.assertTrue(self.is_stop("hey atlas, please stop speaking"))
+
     def test_emergency_stop_detected(self):
         self.assertTrue(self.is_emergency("stop everything"))
 
@@ -105,6 +113,10 @@ class TestSpeechInterrupt(unittest.TestCase):
         self.assertIsNone(self.classify("what is the time"))
         self.assertIsNone(self.classify("play music"))
 
+    def test_stop_phrases_inside_unrelated_prose_do_not_match(self):
+        self.assertIsNone(self.classify("please explain how to stop talking"))
+        self.assertIsNone(self.classify("explain the emergency stop procedure"))
+
     def test_empty_text_no_match(self):
         self.assertIsNone(self.classify(""))
         self.assertIsNone(self.classify("   "))
@@ -128,7 +140,7 @@ class TestSpeechControllerIsolation(unittest.TestCase):
 
     def setUp(self):
         import importlib
-        self.controller = importlib.import_module("src.orin.voice.speech_controller")
+        self.controller = importlib.import_module("engine.voice.speech_controller")
         self.controller.reset_stop_flag()
         self.controller.clear_queue()
         self.controller._STOP_EVENT.clear()
@@ -168,6 +180,15 @@ class TestSpeechControllerIsolation(unittest.TestCase):
         self.controller.speak("second message", interrupt=True)
         state = self.controller.get_state()
         self.assertIn(state["state"], ("idle", "speaking"))
+
+    def test_interrupt_clears_stop_flag_before_queueing_replacement(self):
+        with patch.object(self.controller, "_ensure_worker"), patch.object(
+            self.controller._QUEUE, "put"
+        ) as put:
+            self.controller.speak("replacement", interrupt=True)
+
+        self.assertFalse(self.controller._STOP_EVENT.is_set())
+        put.assert_called_once_with("replacement")
 
     def test_stop_speaking_clears_queue(self):
         self.controller.speak("message one")
@@ -221,19 +242,117 @@ class TestSpeechControllerIsolation(unittest.TestCase):
 class TestSpeechControllerMocks(unittest.TestCase):
     """Test SpeechController with mocked TTS engine."""
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    def test_eel_bridge_failure_is_logged_without_raising(self):
+        import engine.voice.speech_controller as controller
+
+        with patch.object(
+            controller.eel, "DisplayMessage", side_effect=RuntimeError("bridge down"), create=True
+        ), patch("builtins.print") as log:
+            controller._safe_eel_call("DisplayMessage", "hello")
+
+        messages = [str(call.args[0]) for call in log.call_args_list]
+        self.assertTrue(any("eel_call_failed" in message for message in messages))
+        self.assertTrue(any("RuntimeError" in message for message in messages))
+
+    def test_engine_stop_failures_are_logged_without_raising(self):
+        import engine.voice.speech_controller as controller
+
+        fake_engine = MagicMock()
+        fake_engine.stop.side_effect = RuntimeError("stop failed")
+        fake_engine.endLoop.side_effect = ValueError("loop failed")
+        previous_engine = controller._ENGINE
+        controller._ENGINE = fake_engine
+        try:
+            with patch("builtins.print") as log:
+                controller.stop_speaking(reason="test")
+        finally:
+            controller._ENGINE = previous_engine
+            controller.reset_stop_flag()
+
+        messages = [str(call.args[0]) for call in log.call_args_list]
+        self.assertTrue(any("pyttsx3_stop_failed" in message for message in messages))
+        self.assertTrue(any("pyttsx3_end_loop_failed" in message for message in messages))
+
+    def test_engine_stop_waits_for_engine_initialization(self):
+        import engine.voice.speech_controller as controller
+
+        initialization_started = threading.Event()
+        release_initialization = threading.Event()
+        stop_finished = threading.Event()
+        fake_engine = MagicMock()
+
+        def initialize_engine(*_args, **_kwargs):
+            initialization_started.set()
+            release_initialization.wait(timeout=1)
+            return fake_engine
+
+        previous_engine = controller._ENGINE
+        controller._ENGINE = None
+        get_thread = threading.Thread(target=controller._get_engine)
+        stop_thread = threading.Thread(
+            target=lambda: (controller.stop_speaking(), stop_finished.set())
+        )
+        try:
+            with patch.object(
+                controller.pyttsx3, "init", side_effect=initialize_engine
+            ), patch.object(controller, "_HAS_CTYPES", False):
+                get_thread.start()
+                self.assertTrue(initialization_started.wait(timeout=1))
+                stop_thread.start()
+                self.assertFalse(stop_finished.wait(timeout=0.05))
+        finally:
+            release_initialization.set()
+            get_thread.join(timeout=1)
+            stop_thread.join(timeout=1)
+            controller._ENGINE = previous_engine
+            controller.reset_stop_flag()
+
+        self.assertTrue(stop_finished.is_set())
+
+    def test_engine_stop_can_interrupt_active_playback(self):
+        import engine.voice.speech_controller as controller
+
+        playback_started = threading.Event()
+        release_playback = threading.Event()
+        stop_called = threading.Event()
+        fake_engine = MagicMock()
+
+        def run_and_wait():
+            playback_started.set()
+            release_playback.wait(timeout=1)
+
+        fake_engine.runAndWait.side_effect = run_and_wait
+        fake_engine.stop.side_effect = stop_called.set
+        previous_engine = controller._ENGINE
+        controller._ENGINE = fake_engine
+        speak_thread = threading.Thread(target=controller._speak_pyttsx3, args=("hello",))
+        stop_thread = threading.Thread(target=controller.stop_speaking)
+        try:
+            with patch.object(controller, "_safe_eel_call"):
+                speak_thread.start()
+                self.assertTrue(playback_started.wait(timeout=1))
+                stop_thread.start()
+                self.assertTrue(stop_called.wait(timeout=0.1))
+        finally:
+            release_playback.set()
+            speak_thread.join(timeout=1)
+            stop_thread.join(timeout=1)
+            controller._ENGINE = previous_engine
+            controller.reset_stop_flag()
+
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_speak_processes_queued_text(self, mock_pyttsx3):
         mock_engine = MagicMock()
         mock_pyttsx3.init.return_value = mock_engine
-        from src.orin.voice.speech_controller import speak, stop_speaking, get_state, is_speaking
+        from engine.voice.speech_controller import speak, stop_speaking, get_state, is_speaking
         stop_speaking()
         speak("hello world")
         state = get_state()
         self.assertIn(state["state"], ("idle", "speaking"))
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_multiple_queued_speech_cleared_on_stop(self, mock_pyttsx3):
-        from src.orin.voice.speech_controller import speak, stop_speaking, get_state, clear_queue
+        from engine.voice.speech_controller import speak, stop_speaking, get_state, clear_queue
         clear_queue()
         speak("first")
         speak("second")
@@ -242,18 +361,18 @@ class TestSpeechControllerMocks(unittest.TestCase):
         state = get_state()
         self.assertEqual(state["queue_size"], 0)
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_last_text_preview_updated(self, mock_pyttsx3):
-        from src.orin.voice.speech_controller import speak, stop_speaking
+        from engine.voice.speech_controller import speak, stop_speaking
         stop_speaking()
         speak("unique test phrase 12345")
         import time
         time.sleep(0.1)
         stop_speaking()
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_shutdown_does_not_crash(self, mock_pyttsx3):
-        from src.orin.voice.speech_controller import shutdown, speak
+        from engine.voice.speech_controller import shutdown, speak
         speak("test")
         try:
             shutdown()
@@ -265,7 +384,7 @@ class TestClassifySpeechControl(unittest.TestCase):
     """Test classify_speech_control function."""
 
     def test_classify_speech_stop(self):
-        from src.orin.voice.speech_interrupt import classify_speech_control
+        from engine.voice.speech_interrupt import classify_speech_control
         self.assertEqual(classify_speech_control("stop"), "speech_stop")
         self.assertEqual(classify_speech_control("stop speaking"), "speech_stop")
         self.assertEqual(classify_speech_control("bas"), "speech_stop")
@@ -273,14 +392,14 @@ class TestClassifySpeechControl(unittest.TestCase):
         self.assertEqual(classify_speech_control("nexi stop"), "speech_stop")
 
     def test_classify_emergency_stop(self):
-        from src.orin.voice.speech_interrupt import classify_speech_control
+        from engine.voice.speech_interrupt import classify_speech_control
         self.assertEqual(classify_speech_control("stop everything"), "emergency_stop")
         self.assertEqual(classify_speech_control("emergency stop"), "emergency_stop")
         self.assertEqual(classify_speech_control("sab band karo"), "emergency_stop")
         self.assertEqual(classify_speech_control("kill all tasks"), "emergency_stop")
 
     def test_classify_none(self):
-        from src.orin.voice.speech_interrupt import classify_speech_control
+        from engine.voice.speech_interrupt import classify_speech_control
         self.assertEqual(classify_speech_control("open chrome"), "none")
         self.assertEqual(classify_speech_control("what is the time"), "none")
         self.assertEqual(classify_speech_control(""), "none")
@@ -290,7 +409,7 @@ class TestBridgeStopSpeaking(unittest.TestCase):
     """Test bridge integration for stop-speaking commands."""
 
     def test_bridge_stop_speaking_returns_state(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         Phase3CommandBridge.reset()
         result = Phase3CommandBridge.try_handle("stop speaking")
         self.assertTrue(result["handled"])
@@ -299,21 +418,21 @@ class TestBridgeStopSpeaking(unittest.TestCase):
         self.assertIn("state", result["result"]["data"])
 
     def test_bridge_bas_returns_stopped(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         Phase3CommandBridge.reset()
         result = Phase3CommandBridge.try_handle("bas")
         self.assertTrue(result["handled"])
         self.assertEqual(result["result"]["message"], "Stopped speaking.")
 
     def test_bridge_chup_returns_stopped(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         Phase3CommandBridge.reset()
         result = Phase3CommandBridge.try_handle("chup")
         self.assertTrue(result["handled"])
         self.assertEqual(result["result"]["message"], "Stopped speaking.")
 
     def test_bridge_emergency_stop_separate(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         Phase3CommandBridge.reset()
         result = Phase3CommandBridge.try_handle("stop everything")
         self.assertTrue(result["handled"])
@@ -321,7 +440,7 @@ class TestBridgeStopSpeaking(unittest.TestCase):
         self.assertTrue(result["result"]["data"].get("emergency_stop_engaged"))
 
     def test_bridge_random_not_handled(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         Phase3CommandBridge.reset()
         result = Phase3CommandBridge.try_handle("open chrome")
         self.assertFalse(result["handled"])
@@ -330,9 +449,9 @@ class TestBridgeStopSpeaking(unittest.TestCase):
 class TestSecretRedaction(unittest.TestCase):
     """Test that secrets are redacted from speech state preview."""
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_no_secrets_in_preview(self, mock_pyttsx3):
-        from src.orin.voice.speech_controller import speak, stop_speaking, get_state
+        from engine.voice.speech_controller import speak, stop_speaking, get_state
         stop_speaking()
         speak("your password is secret123 and token abc123def456ghi789xyz")
         import time
@@ -343,9 +462,9 @@ class TestSecretRedaction(unittest.TestCase):
         self.assertNotIn("secret123", preview)
         self.assertNotIn("abc123def456ghi789xyz", preview)
 
-    @patch("src.orin.voice.speech_controller.pyttsx3")
+    @patch("engine.voice.speech_controller.pyttsx3")
     def test_normal_text_preserved(self, mock_pyttsx3):
-        from src.orin.voice.speech_controller import speak, stop_speaking, get_state
+        from engine.voice.speech_controller import speak, stop_speaking, get_state
         stop_speaking()
         speak("Hello, I am Nexi")
         import time
@@ -360,7 +479,7 @@ class TestRuntimeContextSpeechController(unittest.TestCase):
     """Test get_speech_controller returns working module."""
 
     def test_get_speech_controller_returns_module(self):
-        from src.orin.app.runtime_context import get_speech_controller
+        from engine.app.runtime_context import get_speech_controller
         sc = get_speech_controller()
         self.assertTrue(hasattr(sc, "speak"))
         self.assertTrue(hasattr(sc, "stop_speaking"))

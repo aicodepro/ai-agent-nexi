@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 ROOT = Path(__file__).resolve().parents[1]
-JS_ROOT = ROOT / "www"
+JS_ROOT = ROOT / "www_mark"
 PY_ROOTS = [ROOT / "engine", ROOT / "src", ROOT / "main.py"]
 
 
@@ -25,10 +25,20 @@ def _iter_files(root, suffix):
             yield path
 
 
+_JS_COMMENT_RE = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
+
+
+def _strip_js_comments(text: str) -> str:
+    # Comments (e.g. studio_panel.js's header documenting `eel.studioEvent(payload)` as
+    # the Python->JS call it wires up) contain literal `eel.X(` text that isn't a real
+    # call. Strip comments first so the static scan only sees actual code.
+    return _JS_COMMENT_RE.sub("", text)
+
+
 def _js_calls_python():
     calls = set()
     for path in _iter_files(JS_ROOT, ".js"):
-        text = _read(path)
+        text = _strip_js_comments(_read(path))
         for match in re.finditer(r"eel\.(\w+)\s*\(", text):
             name = match.group(1)
             if name != "expose":
@@ -39,7 +49,11 @@ def _js_calls_python():
 def _js_exposes():
     exposes = set()
     for path in _iter_files(JS_ROOT, ".js"):
-        text = _read(path)
+        text = _strip_js_comments(_read(path))
+        # This codebase always exposes as eel.expose(fnRef, 'name') (two args), not the
+        # bare eel.expose(name) form, so match both.
+        for match in re.finditer(r"eel\.expose\(\s*[\w.]+\s*,\s*[\"'](\w+)[\"']\s*\)", text):
+            exposes.add(match.group(1))
         for match in re.finditer(r"eel\.expose\(\s*(\w+)\s*\)", text):
             exposes.add(match.group(1))
     return exposes
@@ -88,6 +102,10 @@ def test_wake_button_function_exists():
 def test_ui_has_sleeping_and_listening_states():
     controller = _read(JS_ROOT / "controller.js")
     index = _read(JS_ROOT / "index.html")
+    main_js = _read(JS_ROOT / "main.js")
     assert "sleeping" in controller
     assert "listening" in controller
-    assert "SleepWakeBtn" in index
+    # Sleep/wake control is now id="power-button" (title "Sleep / Wake"), wired to
+    # eel.toggleNexiSleepWake(), rather than an element literally named SleepWakeBtn.
+    assert 'id="power-button"' in index
+    assert "toggleNexiSleepWake" in main_js

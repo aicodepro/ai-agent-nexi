@@ -132,8 +132,8 @@ r3 = ap.process_frame(b"\x00\x00" * 640)
 check("pipeline works after finish", r3.get("reason") != "session_active")
 
 header("6. Auto-followup env default")
-val = os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "false")
-check("NEXI_AUTO_FOLLOWUP_AFTER_TTS defaults to false", val == "false")
+val = os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "true")
+check("NEXI_AUTO_FOLLOWUP_AFTER_TTS defaults to true", val == "true")
 
 header("7. Groq TTS failure reporting")
 from engine.groq_tts import GroqTTSResult

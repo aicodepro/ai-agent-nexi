@@ -29,20 +29,27 @@ def _clean_all_state(monkeypatch):
 def test_auto_listen_requested_after_missing_slot_question():
     import engine.command as command
     from engine import turn_manager
-    with patch("engine.command.speak") as mock_speak, patch("engine.command.safe_eel_call"):
+    with patch("engine.command.speak") as mock_speak, \
+         patch("engine.command.safe_eel_call"), \
+         patch("engine.reflection_engine.reflect_after_turn") as reflect:
         command.allCommands("create a folder")
     mock_speak.assert_any_call("What should I name the folder?", handler_reason="missing_slot")
+    assert reflect.call_args.args[2] == {}
     assert turn_manager.should_auto_listen() is True
 
 
-def test_hotword_missing_slot_starts_auto_followup_capture():
+def test_hotword_missing_slot_requests_audio_process_followup_capture():
     from engine import turn_manager
     from engine.command_bus import dispatch_unified_command
     with patch("engine.command.speak"), \
          patch("engine.command.safe_eel_call"), \
+         patch("engine.runtime_bridge.request_followup_capture", create=True, return_value=True) as request_capture, \
          patch("engine.command.takecommand", return_value="") as mock_take:
         dispatch_unified_command("create a folder", source="hotword")
-    mock_take.assert_called_once()
+    request_capture.assert_called_once()
+    assert request_capture.call_args.kwargs["source"] == "hotword"
+    assert request_capture.call_args.kwargs["reason"] == "missing_slot"
+    mock_take.assert_not_called()
     assert turn_manager.should_auto_listen() is False
 
 

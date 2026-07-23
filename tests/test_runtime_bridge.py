@@ -74,6 +74,20 @@ def test_post_status_puts_event(q):
     assert event["text"] == "preview"
 
 
+def test_followup_capture_is_scheduled_after_cooldown_with_boundary_margin(q):
+    from engine.runtime_bridge import request_followup_capture
+
+    with patch("engine.runtime_bridge.current_bridge_session_id", return_value="sess-followup"), patch(
+        "engine.runtime_bridge._control_queue", q
+    ), patch("engine.post_tts_cleanup.get_cooldown_remaining_ms", return_value=800):
+        assert request_followup_capture(source="hotword", reason="missing_slot") is True
+
+    event = q.get(timeout=1)
+    assert event["type"] == "capture_followup"
+    assert event["session_id"] == "sess-followup"
+    assert event["not_before"] - event["created_at"] >= 0.84
+
+
 def test_post_error_puts_event(q):
     ok = post_error(q, "mic failed", source="audio")
     assert ok is True
@@ -156,6 +170,82 @@ def test_bridge_event_preview_does_not_contain_full_long_text(capsys):
     # The log line should exist but not contain the full 200-char string.
     assert "a" * 200 not in out
     assert "chars=200" in out
+
+
+def test_pending_followup_waits_for_audio_process_listening_event():
+    event = {
+        "type": EVENT_COMMAND_TEXT,
+        "text": "create a folder",
+        "source": "hotword",
+        "session_id": "sess-followup",
+    }
+
+    with patch("engine.command_bus.submit_user_command", return_value=True), patch(
+        "engine.followup_manager.has_pending_followup", return_value=True
+    ), patch(
+        "engine.clarification_manager.has_pending_clarification", return_value=False
+    ), patch("engine.runtime_bridge._set_ui_state") as set_state, patch(
+        "engine.runtime_bridge._finish_session"
+    ) as finish:
+        handle_bridge_event(event)
+
+    assert not any(call.args[0] == "listening" for call in set_state.call_args_list)
+    finish.assert_not_called()
+
+
+def test_command_dispatch_propagates_session_to_tts_ui_state():
+    import engine.command as command
+    from engine.runtime_bridge import current_bridge_session_id
+
+    seen = []
+
+    def submit(*_args, **_kwargs):
+        seen.append(current_bridge_session_id())
+        command._set_ui_state("saying", source="tts")
+        return True
+
+    event = {
+        "type": EVENT_COMMAND_TEXT,
+        "text": "what is 2+2",
+        "source": "hotword",
+        "session_id": "sess123",
+    }
+    with patch("engine.command_bus.submit_user_command", side_effect=submit), patch(
+        "eel.updateNexiState", create=True
+    ) as update:
+        handle_bridge_event(event)
+
+    saying = [call.args[0] for call in update.call_args_list if call.args[0]["state"] == "saying"]
+    assert seen == ["sess123"]
+    assert saying and saying[-1]["session_id"] == "sess123"
+
+
+def test_empty_asr_result_finishes_session_once():
+    event = {"type": EVENT_ASR_RESULT, "text": "", "source": "hotword", "session_id": "sess-empty"}
+
+    with patch("engine.wake_session_manager.ignore_if_stale", return_value=False), patch(
+        "engine.runtime_bridge._finish_session"
+    ) as finish:
+        handle_bridge_event(event)
+
+    finish.assert_called_once_with("sess-empty")
+
+
+def test_empty_asr_status_finishes_session_once():
+    event = {
+        "type": EVENT_STATUS,
+        "status": EVENT_ASR_RESULT,
+        "text": "",
+        "source": "hotword",
+        "session_id": "sess-empty-status",
+    }
+
+    with patch("engine.wake_session_manager.ignore_if_stale", return_value=False), patch(
+        "engine.runtime_bridge._finish_session"
+    ) as finish:
+        handle_bridge_event(event)
+
+    finish.assert_called_once_with("sess-empty-status")
 
 
 if __name__ == "__main__":

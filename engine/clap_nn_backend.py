@@ -42,7 +42,7 @@ class ClapNNBackend:
         model_path: str = "",
         sample_rate: int = 16000,
         threshold: float = 0.85,
-        window_ms: int = 500,
+        window_ms: int = 600,
         stride_ms: int = 100,
         model_sample_rate: int = 44100,
         n_mels: int = 128,
@@ -65,6 +65,19 @@ class ClapNNBackend:
         self._model = None
         self._ready = False
         self._last_error = ""
+
+        # --- streaming state: rolling window + edge-triggered onset gating ---
+        # The model classifies a ~600 ms clip, but the pipeline feeds 80 ms frames. So we
+        # keep a rolling window of recent audio and only invoke the CNN when a frame carries
+        # a clap-like onset (peak >= trigger), then suppress re-fires for a refractory period
+        # so one physical clap = one event (the double-clap state machine handles timing).
+        self._win_bytes = max(2, int(self._input_sr * self._window_ms / 1000)) * 2
+        self._buf = bytearray()
+        self._trigger_peak = float(os.getenv("NEXI_CLAP_NN_TRIGGER_PEAK", "0.12"))
+        self._refractory_sec = max(0.0, float(os.getenv("NEXI_CLAP_NN_REFRACTORY_MS", "120"))) / 1000.0
+        self._threshold = float(os.getenv("NEXI_CLAP_NN_THRESHOLD", str(self._threshold)))
+        self._debug = (os.getenv("NEXI_CLAP_DEBUG", "") or "").strip().lower() in {"1", "true", "yes", "on"}
+        self._last_fire_ts = -1e9
 
         if not model_path or not os.path.isfile(model_path):
             self._last_error = f"CLAP_NN model file not found: {model_path}"
@@ -182,41 +195,63 @@ class ClapNNBackend:
 
         return mel_spec[np.newaxis, :, :]  # (1, 256, 256)
 
-    def process_pcm16(self, pcm16: bytes, timestamp: float) -> ClapNNResult:
-        """Process a 16 kHz PCM16 frame and return clap detection result."""
+    def _classify_window(self) -> float:
+        """Run the CNN on the rolling window (left-padded to the full length) -> clap prob.
+
+        Extracted as a seam so streaming/edge-trigger logic can be unit-tested without a model.
+        """
         import torch
 
+        window = self._buf
+        if len(window) < self._win_bytes:  # left-pad with silence so it's always a full clip
+            window = bytes(self._win_bytes - len(window)) + bytes(window)
+        else:
+            window = bytes(window[-self._win_bytes:])
+        mel = self._pcm16_to_mel_spec(window)
+        if mel is None:
+            return 0.0
+        with torch.no_grad():
+            inp = torch.from_numpy(mel).unsqueeze(0).float()  # (1,1,256,256)
+            output = self._model(inp)
+            probs = torch.exp(output)  # log_softmax -> softmax
+            return float(probs[0, 1].item())
+
+    def process_pcm16(self, pcm16: bytes, timestamp: float) -> ClapNNResult:
+        """Process a 16 kHz PCM16 frame (rolling-window + edge-triggered) -> clap result."""
         rms, peak = self._calc_rms_peak(pcm16)
         if not self._loaded or not self._ready or self._model is None:
             return ClapNNResult(is_clap=False, timestamp=timestamp, rms=rms, peak=peak,
                                 reason=self._last_error or "model_not_loaded")
 
-        mel = self._pcm16_to_mel_spec(pcm16)
-        if mel is None:
-            return ClapNNResult(is_clap=False, timestamp=timestamp, rms=rms, peak=peak,
-                                reason="audio_too_short")
+        # Maintain the rolling window.
+        self._buf.extend(pcm16)
+        excess = len(self._buf) - self._win_bytes
+        if excess > 0:
+            del self._buf[:excess]
 
-        # Run inference
+        def _r(is_clap, conf, reason):
+            if self._debug:
+                print(f"[CLAP_NN] is_clap={str(is_clap).lower()} conf={conf:.3f} peak={peak:.3f} reason={reason}", flush=True)
+            return ClapNNResult(is_clap=is_clap, confidence=conf, timestamp=timestamp,
+                                rms=rms, peak=peak, reason=reason)
+
+        # One event per physical clap: ignore frames during the refractory window.
+        if timestamp - self._last_fire_ts < self._refractory_sec:
+            return _r(False, 0.0, "refractory")
+
+        # Onset gate: only run the CNN when this frame carries a clap-like transient peak.
+        if peak < self._trigger_peak:
+            return _r(False, 0.0, "below_trigger")
+
         try:
-            with torch.no_grad():
-                inp = torch.from_numpy(mel).unsqueeze(0).float()  # (1,1,256,256)
-                output = self._model(inp)
-                probs = torch.exp(output)  # log_softmax → softmax
-                clap_prob = float(probs[0, 1].item())
+            clap_prob = self._classify_window()
         except Exception as e:
-            return ClapNNResult(is_clap=False, timestamp=timestamp, rms=rms, peak=peak,
-                                reason=f"inference_error:{type(e).__name__}")
+            return _r(False, 0.0, f"inference_error:{type(e).__name__}")
 
-        is_clap = clap_prob >= self._threshold
-        reason = "clap_detected" if is_clap else "speech_or_noise"
-        return ClapNNResult(
-            is_clap=is_clap,
-            confidence=clap_prob,
-            timestamp=timestamp,
-            rms=rms,
-            peak=peak,
-            reason=reason,
-        )
+        if clap_prob >= self._threshold:
+            self._last_fire_ts = timestamp
+            return _r(True, clap_prob, "clap_detected")
+        return _r(False, clap_prob, "onset_not_clap")
 
     @staticmethod
     def _calc_rms_peak(pcm16: bytes) -> tuple[float, float]:
@@ -238,7 +273,8 @@ class ClapNNBackend:
             return 0.0, 0.0
 
     def reset(self) -> None:
-        pass
+        self._buf.clear()
+        self._last_fire_ts = -1e9
 
     def get_status(self) -> dict:
         return {

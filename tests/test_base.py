@@ -3,7 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-from src.orin.control.base import ControlResult, ControlFunction
+from engine.control.base import ControlResult, ControlFunction
 
 
 class TestControlResult(unittest.TestCase):

@@ -31,13 +31,55 @@ def _fallback_decision(text: str) -> dict:
     return {"allowed": True, "risk": "none", "category": "none", "reason": "No safety check needed.", "requires_confirmation": False}
 
 
+def _provider_unavailable_decision(action: str, text: str = "", context: dict | None = None) -> dict:
+    """No safety provider reachable.
+
+    A named ACTION fails closed — blocking is the only safe answer when the classifier that
+    would have vetted it is unavailable.
+
+    With no action it depends on what the text is FOR. A brain question performs nothing, so
+    demanding confirmation to answer "what is an API key?" is pure noise (and the phrase
+    trips RISKY_WORDS on "api key"). Anything else is treated as an imperative and keeps the
+    heuristic: a flat "allowed, no confirmation" would be LOOSER than the pre-existing
+    behaviour, where "delete notes" with no provider came back medium / requires-confirmation.
+    """
+    if not action:
+        if str((context or {}).get("route") or "").strip().lower() == "brain":
+            return {"allowed": True, "risk": "none", "category": "qa", "reason": "No action requested.", "requires_confirmation": False}
+        return _fallback_decision(text)
+    return {
+        "allowed": False,
+        "risk": "blocked",
+        "category": "safety_unavailable",
+        "reason": "The safety check is unavailable, so this action was blocked.",
+        "requires_confirmation": False,
+    }
+
+
+def _safety_timeout_seconds() -> float:
+    try:
+        value = float(os.getenv("SAFETY_GATE_TIMEOUT_SECONDS", "4"))
+    except (TypeError, ValueError):
+        value = 4.0
+    return max(0.1, min(value, 10.0))
+
+
 def classify_safety(text: str, *, action: str = "", context: dict | None = None) -> dict:
-    if not should_safety_check(text, intent=action):
+    if (os.getenv("SAFETY_GATE_ENABLED", "true") or "").lower() in {"0", "false", "no", "off"}:
+        return {"allowed": True, "risk": "none", "category": "disabled", "reason": "Safety gate disabled.", "requires_confirmation": False}
+    requires_check = should_safety_check(text, intent=action)
+    if action:
+        try:
+            from engine.tool_registry import get_tool
+            requires_check = requires_check or str((get_tool(action) or {}).get("safety") or "low").lower() in {"medium", "high", "critical"}
+        except Exception:
+            pass
+    if not requires_check:
         return _fallback_decision(text)
     api_key = (os.getenv("GROQ_API_KEY") or "").strip()
     model = (os.getenv("SAFETY_MODEL") or "openai/gpt-oss-safeguard-20b").strip()
     if not api_key:
-        return _fallback_decision(text)
+        return _provider_unavailable_decision(action, text, context)
     payload = {
         "model": model,
         "temperature": 0,
@@ -51,15 +93,19 @@ def classify_safety(text: str, *, action: str = "", context: dict | None = None)
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json=payload,
-            timeout=float(os.getenv("SAFETY_GATE_TIMEOUT_SECONDS", "4")),
+            timeout=_safety_timeout_seconds(),
         )
         if response.status_code >= 400:
-            return _fallback_decision(text)
+            return _provider_unavailable_decision(action, text, context)
         content = response.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
+        if not isinstance(data, dict) or not {"allowed", "risk", "requires_confirmation"}.issubset(data):
+            return _provider_unavailable_decision(action, text, context)
+        if not isinstance(data["allowed"], bool) or not isinstance(data["requires_confirmation"], bool):
+            return _provider_unavailable_decision(action, text, context)
         return enforce_safety(data)
     except Exception:
-        return _fallback_decision(text)
+        return _provider_unavailable_decision(action, text, context)
 
 
 def enforce_safety(decision: dict) -> dict:
@@ -78,6 +124,26 @@ def enforce_safety(decision: dict) -> dict:
 def _tool_requires_confirmation(tool: dict, values: dict) -> bool:
     if not tool.get("requires_confirmation"):
         return False
+    # engine.computer_use tools gate through approval_queue — that queue IS their
+    # confirmation step (submit -> user approves -> re-invoked with the internal token).
+    # Refusing them here means they are never queued, so approve_action has nothing to
+    # approve and the action is unreachable instead of merely confirmed. Mirrors the same
+    # carve-out in tool_registry.execute_tool.
+    try:
+        from engine.approval_queue import is_queue_gated
+        if is_queue_gated(tool.get("handler")):
+            return False
+    except Exception:
+        pass
+    # Studio tools are gated by an authorization token the owner alone can mint, which is
+    # stronger than a spoken "confirm". Intercepting them here means an authorized build
+    # can never start. Mirrors the same carve-out in tool_registry.execute_tool.
+    try:
+        from engine.tool_registry import STUDIO_AUTH_TOOLS
+        if tool.get("name") in STUDIO_AUTH_TOOLS:
+            return False
+    except Exception:
+        pass
     mode = str(values.get("mode") or "").strip().lower()
     if tool.get("name") in {"hand_gesture_control", "eye_mouse_control"} and mode != "control":
         return False
@@ -93,6 +159,16 @@ def execution_is_safe(tool_name: str, tool_input: dict | None = None, *, user_te
         tool = {}
     if not tool:
         return {"allowed": False, "risk": "blocked", "category": "unknown_tool", "reason": "Unknown tool.", "requires_confirmation": False}
+    studio_auth = values.get("_studio_auth")
+    if tool_name == "nexi_start_studio_build" and isinstance(studio_auth, str) and studio_auth:
+        # The supervisor remains authoritative and validates/consumes this one-time token.
+        return {
+            "allowed": True,
+            "risk": str(tool.get("safety") or "high"),
+            "category": "studio_authorization_delegated",
+            "reason": "Studio authorization is delegated to Studio governance.",
+            "requires_confirmation": False,
+        }
     if _tool_requires_confirmation(tool, values) and not values.get("confirmed"):
         return {
             "allowed": False,

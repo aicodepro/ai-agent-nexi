@@ -1,5 +1,6 @@
-import os
 import re
+import shlex
+import subprocess
 import time
 
 
@@ -26,23 +27,30 @@ def remove_words(input_string, words_to_remove):
 
 
 
+def _adb_shell(*args):
+    """Run `adb shell <args>` with no host shell involved.
+
+    These used to be f-strings handed to os.system, so a message containing
+    `" & calc & "` ran on THIS machine. The list form removes the host shell
+    entirely: nothing in args can be metacharacters, only arguments.
+    """
+    subprocess.run(["adb", "shell", *args], check=False)
+    time.sleep(1)
+
+
 # key events like receive call, stop call, go back
 def keyEvent(key_code):
-    command =  f'adb shell input keyevent {key_code}'
-    os.system(command)
-    time.sleep(1)
+    _adb_shell("input", "keyevent", str(key_code))
 
 # Tap event used to tap anywhere on screen
 def tapEvents(x, y):
-    command =  f'adb shell input tap {x} {y}'
-    os.system(command)
-    time.sleep(1)
+    _adb_shell("input", "tap", str(x), str(y))
 
 # Input Event is used to insert text in mobile
 def adbInput(message):
-    command =  f'adb shell input text "{message}"'
-    os.system(command)
-    time.sleep(1)
+    # adb hands its argv to the DEVICE's shell, so the message needs device-side
+    # quoting too — the list form above only protects the host.
+    _adb_shell("input", "text", shlex.quote(str(message)))
 
 # to go complete back
 def goback(key_code):

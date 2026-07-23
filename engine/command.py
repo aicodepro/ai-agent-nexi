@@ -91,8 +91,15 @@ def _set_ui_state(state: str, source: str = "system", text: str = "") -> None:
     global _current_ui_state
     try:
         from engine.ui_state_manager import canonical_state, emit_state
+        from engine.runtime_bridge import current_bridge_session_id
         normalized_state = canonical_state(state)
-        emit_state(normalized_state, source=source, text=text, status=state)
+        emit_state(
+            normalized_state,
+            source=source,
+            text=text,
+            status=state,
+            session_id=current_bridge_session_id(),
+        )
     except Exception:
         allowed = {"sleep", "listening", "recognising", "thinking", "saying", "error"}
         normalized_state = state if state in allowed else ("listening" if state in {"wake_detected", "hearing_speech"} else "sleep")
@@ -248,9 +255,15 @@ def speak_pyttsx3(text, display_text=None, start_generation=None):
         set_tts_engine(engine)
     except Exception:
         pass
-    voices = engine.getProperty('voices') 
-    engine.setProperty('voice', voices[0].id)
-    engine.setProperty('rate', 174)
+    voices = engine.getProperty('voices')
+    voice_id = voices[0].id
+    for v in voices:
+        vl = (v.name or "").lower()
+        if "zira" in vl or "natural" in vl or "neural" in vl:
+            voice_id = v.id
+            break
+    engine.setProperty('voice', voice_id)
+    engine.setProperty('rate', 160)
     safe_eel_call("DisplayMessage", shown)
     safe_eel_call("receiverText", shown)
     try:
@@ -320,9 +333,10 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
     if not enabled:
         print("[TTS] disabled", flush=True)
         safe_eel_call("receiverText", display_text)
-        _set_ui_state("listening" if expects_followup else "sleep", source="assistant_question" if expects_followup else "ready")
         if expects_followup:
             _maybe_start_auto_followup()
+        else:
+            _set_ui_state("sleep", source="ready")
         return
     set_speaking(True)
     try:
@@ -361,7 +375,18 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
             mark_assistant_done(text)
         except Exception:
             pass
-        _set_ui_state("listening" if expects_followup else "sleep", source="assistant_question" if expects_followup else "ready")
+        try:
+            from engine.voice_state_machine import get_voice_state_machine
+            get_voice_state_machine().transition("tts_finished", source="tts")
+        except Exception:
+            pass
+        try:
+            from engine.post_tts_cleanup import post_tts_cleanup
+            post_tts_cleanup()
+        except Exception:
+            pass
+        if not expects_followup:
+            _set_ui_state("sleep", source="ready")
         safe_eel_call("hideSpeechCapsule")
         print("[TTS] speak_finished", flush=True)
         print(f"[TTS] audio_output_finished", flush=True)
@@ -425,9 +450,15 @@ def _speak_identity():
     speak(_IDENTITY_RESPONSE)
 
 
-def _store_conversation_turn(query, response):
+def _store_conversation_turn(query, response, result=None):
+    """`result` is this turn's actual tool result, when there was one.
+
+    Reflection used to be handed a hardcoded {}, so it learned from turns with no
+    observed outcome. Passing it explicitly (rather than via a module global) keeps
+    a previous turn's result from leaking into a later, unrelated turn.
+    """
     try:
-        from src.orin.app.runtime_context import get_conversation_buffer
+        from engine.app.runtime_context import get_conversation_buffer
         get_conversation_buffer().append_turn(query, response)
     except Exception:
         pass
@@ -474,12 +505,12 @@ def _store_conversation_turn(query, response):
     try:
         from engine.cognitive_context import get_last_strategy
         from engine.reflection_engine import reflect_after_turn
-        reflect_after_turn(query or "", get_last_strategy(), {}, response or "")
+        reflect_after_turn(query or "", get_last_strategy(), result or {}, response or "")
     except Exception:
         pass
 
 
-_FOLLOWUP_SOURCES = {"hotword", "clap", "hotkey", "ui_button", "mic_button", "voice"}
+_FOLLOWUP_SOURCES = {"hotword", "clap", "double_clap", "hotkey", "ui_button", "mic_button", "voice"}
 
 
 def _active_workflow_id() -> str:
@@ -513,14 +544,12 @@ def _maybe_start_auto_followup() -> None:
             source = "legacy"
         if source not in _FOLLOWUP_SOURCES:
             return
+        from engine.runtime_bridge import request_followup_capture
+        if not request_followup_capture(source=source, reason=listen_source):
+            print("[LISTEN] auto_followup_deferred reason=audio_bridge_unavailable", flush=True)
+            return
         consume_auto_listen_request()
-        print(f"[LISTEN] auto_followup_started source={listen_source}", flush=True)
-        _set_ui_state("listening", source=listen_source)
-        safe_eel_call("setStatus", "Listening for your answer...", "active")
-        query = takecommand()
-        if query:
-            from engine.command_bus import submit_user_command
-            submit_user_command(query, source=source, mode="voice")
+        print(f"[LISTEN] auto_followup_requested source={listen_source}", flush=True)
     except Exception as e:
         print(f"[LISTEN] auto_followup_failed reason={type(e).__name__}", flush=True)
 
@@ -568,9 +597,10 @@ def _ask_for_clarification(query: str, reason: str = "clarification") -> None:
 
 
 def _handle_wake_sleep_command(query: str) -> bool:
-    q = (query or "").strip().lower().rstrip(".!?")
+    from engine.intent_pre_router import normalize_immediate_command
+    q = normalize_immediate_command(query)
     sleep_commands = {"sleep", "go to sleep", "stop listening"}
-    wake_commands = {"wake up", "activate nexi"}
+    wake_commands = {"wake", "wake up", "activate nexi"}
     if q in sleep_commands:
         from engine.interrupt_controller import request_interrupt, clear_interrupt
         request_interrupt(source="command", reason="sleep")
@@ -593,14 +623,14 @@ def _handle_wake_sleep_command(query: str) -> bool:
 
 
 def _handle_voice_diagnostic_command(query: str) -> bool:
-    q = (query or "").strip().lower().rstrip(".?!")
-    for prefix in ("hey nexi ", "nexi ", "hey jarbos ", "jarbos "):
-        if q.startswith(prefix):
-            q = q[len(prefix):].strip()
-            break
+    from engine.intent_pre_router import normalize_immediate_command
+    q = normalize_immediate_command(query)
     diagnostic_commands = {
         "what voice state are you in",
         "show voice diagnostics",
+        "show capability diagnostics",
+        "show agent diagnostics",
+        "show nexi capability diagnostics",
         "check hotword barge in",
         "check tts lock",
         "check memory system",
@@ -615,6 +645,13 @@ def _handle_voice_diagnostic_command(query: str) -> bool:
         return True
     if q not in diagnostic_commands:
         return False
+    if q in {"show capability diagnostics", "show agent diagnostics", "show nexi capability diagnostics"}:
+        from engine.diagnostic_capabilities import format_diagnostic_capabilities
+
+        response = format_diagnostic_capabilities()
+        speak(response, handler_reason="system")
+        _store_conversation_turn(query, response)
+        return True
     from engine.voice_diagnostics import format_voice_diagnostics, get_voice_diagnostics
     payload = get_voice_diagnostics()
     if q == "show last voice transition":
@@ -808,12 +845,22 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
                 return True
         except Exception:
             pass
-        return False
+        response = "I couldn't route that request safely. Please rephrase it."
+        speak(response, handler_reason="clarification")
+        _store_conversation_turn(query, response)
+        return True
 
     route = str(decision.get("route") or "")
     intent = str(decision.get("intent") or "")
     slots = decision.get("slots") if isinstance(decision.get("slots"), dict) else {}
     print(f"[INTENT_V2] dispatch route={route} intent={intent}", flush=True)
+
+    if route in {"workflow", "system", "memory", "feature_gap"}:
+        from engine.tool_registry import get_tool
+        routed_intent = "request_feature" if route == "feature_gap" else intent
+        if get_tool(routed_intent):
+            route = "tool"
+            intent = routed_intent
 
     if route == "clarify":
         if intent == "create_folder":
@@ -839,21 +886,26 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
         from engine.tool_registry import execute_tool
         from engine.assistant_response import guard_unverified_action_message, verified_action
 
-        tool_result = execute_tool(intent, slots, confirmed=bool(slots.get("confirmed")))
+        tool_result = execute_tool(intent, slots, confirmed=False)
+        if isinstance(tool_result, dict) and tool_result.get("missing_slot"):
+            response_text = str(tool_result.get("message") or "What information is missing?")
+            _respond_to_user(response_text, reason="missing_slot", workflow_id="create_folder" if intent == "create_folder" else None)
+            _store_conversation_turn(query, response_text)
+            return True
         action_verified = verified_action(tool_result)
         print(f"[ACTION] verified={str(action_verified).lower()}", flush=True)
         response_text = str(tool_result.get("message", "") if isinstance(tool_result, dict) else "")
         if not action_verified and not (isinstance(tool_result, dict) and tool_result.get("expects_user_reply")):
             response_text = guard_unverified_action_message(response_text or "I couldn't verify that action.", tool_result)
         _respond_to_user(response_text or "I couldn't verify that action.", reason="tool")
-        _store_conversation_turn(query, response_text or "")
+        _store_conversation_turn(query, response_text or "", tool_result)
         return True
 
     if route == "output":
         from engine.tool_registry import execute_tool
         from engine.assistant_response import guard_unverified_action_message, verified_action
 
-        result = execute_tool(intent, slots, confirmed=bool(slots.get("confirmed")))
+        result = execute_tool(intent, slots)
         if result.get("output"):
             safe_eel_call("showOutputWorkspace", json.dumps({
                 "show_workspace": True,
@@ -866,7 +918,7 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
         if not verified_action(result) and not result.get("expects_user_reply"):
             response_text = guard_unverified_action_message(response_text, result)
         _respond_to_user(response_text, reason="output")
-        _store_conversation_turn(query, response_text)
+        _store_conversation_turn(query, response_text, result)
         return True
 
     if route == "brain":
@@ -890,7 +942,8 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
         return True
 
     if route == "memory":
-        return _handle_memory_command(query) or _handle_cognitive_command(query)
+        if _handle_memory_command(query) or _handle_cognitive_command(query):
+            return True
 
     if route == "training":
         if intent == "correction":
@@ -901,7 +954,8 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
             speak(response)
             _store_conversation_turn(query, response)
             return True
-        return _handle_cognitive_command(query)
+        if _handle_cognitive_command(query):
+            return True
 
     if route == "workflow":
         if intent == "create_folder":
@@ -911,7 +965,7 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
             _respond_to_user(response, reason="missing_slot", workflow_id="create_folder")
             _store_conversation_turn(query, response)
             return True
-        return False
+        pass
 
     if route == "followup":
         answer = slots.get("answer")
@@ -941,9 +995,10 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
             response = explain_last_intent()
             speak(response)
         else:
-            return False
-        _store_conversation_turn(query, response)
-        return True
+            response = ""
+        if response:
+            _store_conversation_turn(query, response)
+            return True
 
     if route == "cancel":
         try:
@@ -967,11 +1022,12 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
         return True
 
     if route in {"sleep", "wake"}:
-        return _handle_wake_sleep_command(query)
+        if _handle_wake_sleep_command(query):
+            return True
 
     if route == "interrupt":
         try:
-            from src.orin.voice.speech_controller import stop_speaking as sc_stop, speak as sc_speak
+            from engine.voice.speech_controller import stop_speaking as sc_stop, speak as sc_speak
             sc_stop(reason="intent_v2")
             sc_speak("Stopped speaking.")
             _store_conversation_turn(query, "Stopped speaking.")
@@ -987,10 +1043,13 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
         _store_conversation_turn(query, response)
         return True
 
-    return False
+    response = decision.get("clarification_question") or "I couldn't safely complete that request. Could you clarify what you want me to do?"
+    speak(response, handler_reason="clarification")
+    _store_conversation_turn(query, response)
+    return True
 
 try:
-    from src.orin.control import (
+    from engine.control import (
         execute_control_action, match_control_action, list_control_actions,
         EmergencyStop, ControlResult, registry as control_registry
     )
@@ -1082,39 +1141,49 @@ def takecommand():
     silence_key = "ASR_FOLLOWUP_SILENCE_TIMEOUT_MS" if is_followup else "ASR_SILENCE_TIMEOUT_MS"
     max_record_seconds = _env_float(max_seconds_key, _env_float("ASR_MAX_RECORD_SECONDS", 6.0))
     silence_timeout_ms = _env_int(silence_key, _env_int("ASR_SILENCE_TIMEOUT_MS", 900))
+    max_retries = int(os.getenv("NEXI_ASR_RETRIES", "1"))
 
-    with sr.Microphone() as source:
-        print('listening....')
-        _set_ui_state("listening", source="wake")
-        safe_eel_call("setStatus", "Listening...", "listening")
-        r.pause_threshold = max(0.2, silence_timeout_ms / 1000.0)
-        r.adjust_for_ambient_noise(source, duration=0.7)
+    for retry in range(max_retries + 1):
+        with sr.Microphone() as source:
+            if retry > 0:
+                from engine.command import speak
+                speak("Say that again")
+                print('listening (retry)...')
+                r.adjust_for_ambient_noise(source, duration=0.3)
+            else:
+                print('listening....')
+            _set_ui_state("listening", source="wake")
+            safe_eel_call("setStatus", "Listening...", "listening")
+            r.pause_threshold = max(0.2, silence_timeout_ms / 1000.0)
+            if retry == 0:
+                r.adjust_for_ambient_noise(source, duration=0.7)
+            audio = r.listen(source, 10, max_record_seconds)
 
-        audio = r.listen(source, 10, max_record_seconds)
+        try:
+            print('recognizing')
+            _set_ui_state("transcribing", source="wake")
+            safe_eel_call("setStatus", "Understanding...", "transcribing")
+            query = ""
+            if (os.getenv("ASR_PROVIDER", "") or "").strip().lower() == "groq":
+                try:
+                    from engine.groq_asr import transcribe_audio_bytes
+                    query = transcribe_audio_bytes(audio.get_wav_data())
+                except Exception as e:
+                    print(f"[ASR] followup_groq_failed reason={type(e).__name__}", flush=True)
+            if not query:
+                query = r.recognize_google(audio, language='en-in')
+            if query:
+                print(f"user said: {query}")
+                _set_ui_state("thinking", source="wake", text=query)
+                time.sleep(0.05)
+                return query.lower()
+            print(f"[ASR] empty_transcript retry={retry}/{max_retries}", flush=True)
+        except Exception as e:
+            print(f"[ASR] failed reason={type(e).__name__} retry={retry}/{max_retries}", flush=True)
+            if retry >= max_retries:
+                return ""
 
-    try:
-        print('recognizing')
-        _set_ui_state("transcribing", source="wake")
-        safe_eel_call("setStatus", "Understanding...", "transcribing")
-        query = ""
-        if (os.getenv("ASR_PROVIDER", "") or "").strip().lower() == "groq":
-            try:
-                from engine.groq_asr import transcribe_audio_bytes
-                query = transcribe_audio_bytes(audio.get_wav_data())
-            except Exception as e:
-                print(f"[ASR] followup_groq_failed reason={type(e).__name__}", flush=True)
-        if not query:
-            query = r.recognize_google(audio, language='en-in')
-        print(f"user said: {query}")
-        _set_ui_state("thinking", source="wake", text=query)
-        time.sleep(0.05)
-
-    except Exception as e:
-        return ""
-
-    return query.lower()
-
-
+    return ""
 def handle_read_selected():
     speak("Sure sir, reading your selected data")
     keyboard.press_and_release("ctrl + c")
@@ -1373,6 +1442,31 @@ def dispatch_intent(query):
             from engine.HandGesture import HandGesture
             HandGesture()
 
+    elif name == "face_recognition":
+        try:
+            from engine.camera_control import start_face_recognition, is_face_recognition_running, stop_face_recognition
+            if is_face_recognition_running():
+                speak("Face recognition is already running")
+            else:
+                speak("Starting face recognition")
+                start_face_recognition()
+        except Exception as e:
+            print(f"[FACE] start error: {e}")
+            speak("Could not start face recognition")
+
+    elif name == "face_register":
+        speak("Look at the camera to register your face")
+        try:
+            from engine.camera_control import register_face
+            ok = register_face(name="User")
+            if ok:
+                speak("Face registered successfully")
+            else:
+                speak("Face registration failed")
+        except Exception as e:
+            print(f"[FACE] register error: {e}")
+            speak("Could not register face")
+
     elif name == "alarm":
         from Time_operation.brain import input_manage_alarm
         input_manage_alarm()
@@ -1467,7 +1561,7 @@ def dispatch_intent(query):
 
     elif name == "stop_speaking":
         try:
-            from src.orin.voice.speech_controller import stop_speaking, speak as sc_speak
+            from engine.voice.speech_controller import stop_speaking, speak as sc_speak
             stop_speaking(reason="user_requested")
             sc_speak("Stopped speaking.")
         except ImportError:
@@ -1604,7 +1698,7 @@ def dispatch_intent(query):
 
     elif name == "diagnose_jarvi":
         try:
-            from src.orin.diagnostics import diagnose, format_diagnosis
+            from engine.diagnostic_doctors import diagnose, format_diagnosis
             result = diagnose()
             report = format_diagnosis(result)
             speak(report)
@@ -1613,7 +1707,7 @@ def dispatch_intent(query):
 
     elif name == "check_hotword":
         try:
-            from src.orin.diagnostics import check_hotword
+            from engine.diagnostic_doctors import check_hotword
             result = check_hotword()
             speak(f"Hotword check: {'OK' if result.get('ok') else result.get('problem', 'Issue found')}")
         except ImportError:
@@ -1621,7 +1715,7 @@ def dispatch_intent(query):
 
     elif name == "check_bridge":
         try:
-            from src.orin.diagnostics import check_bridge
+            from engine.diagnostic_doctors import check_bridge
             result = check_bridge()
             speak(f"Bridge check: {'OK' if result.get('ok') else result.get('problem', 'Issue found')}")
         except ImportError:
@@ -1629,7 +1723,7 @@ def dispatch_intent(query):
 
     elif name == "check_playwright":
         try:
-            from src.orin.diagnostics import check_playwright
+            from engine.diagnostic_doctors import check_playwright
             result = check_playwright()
             speak(f"Playwright check: {'OK' if result.get('ok') else result.get('problem', 'Issue found')}")
         except ImportError:
@@ -1758,13 +1852,13 @@ def allCommands(message=1):
             safe_eel_call("senderText", query)
 
         try:
-            from src.orin.voice.speech_interrupt import (
+            from engine.voice.speech_interrupt import (
                 classify_stop_command, is_emergency_stop_command,
             )
             if is_emergency_stop_command(query):
                 if CONTROL_AVAILABLE:
                     EmergencyStop.engage(reason="User requested emergency stop")
-                from src.orin.voice.speech_controller import stop_speaking as sc_stop
+                from engine.voice.speech_controller import stop_speaking as sc_stop
                 sc_stop(reason="emergency_stop")
                 speak("Emergency stop engaged. All actions blocked.")
                 _store_conversation_turn(query, "Emergency stop engaged. All actions blocked.")
@@ -1772,7 +1866,7 @@ def allCommands(message=1):
                 return
             stop_type = classify_stop_command(query)
             if stop_type == "stop_speaking":
-                from src.orin.voice.speech_controller import stop_speaking as sc_stop, speak as sc_speak
+                from engine.voice.speech_controller import stop_speaking as sc_stop, speak as sc_speak
                 sc_stop(reason="user_requested")
                 sc_speak("Stopped speaking.")
                 _store_conversation_turn(query, "Stopped speaking.")
@@ -1802,6 +1896,15 @@ def allCommands(message=1):
                 return
         except Exception as e:
             print(f"Cognitive command error: {e}")
+
+        # Explicit Studio commands must not become answers to an active local workflow.
+        try:
+            from engine.studio.commands import is_explicit_studio_command
+            if is_explicit_studio_command(query) and _handle_product_intelligence_v2(query, command_source):
+                safe_eel_call("ShowHood")
+                return
+        except Exception as e:
+            print(f"Studio command handling error: {e}")
 
         try:
             if _try_clarification(query):
@@ -1893,7 +1996,7 @@ def allCommands(message=1):
             print(f"Repeat-last error: {e}")
 
         try:
-            from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+            from engine.app.phase3_command_bridge import Phase3CommandBridge
             bridge_result = Phase3CommandBridge.try_handle(query)
             if bridge_result.get("handled"):
                 msg = bridge_result["result"].get("message", "")
@@ -1999,7 +2102,7 @@ def clearEmergencyStop():
 @eel.expose
 def getMemorySummary():
     try:
-        from src.orin.memory.preference_store import PreferenceStore
+        from engine.memory.preference_store import PreferenceStore
         store = PreferenceStore()
         result = store.summarize()
         import json
@@ -2012,7 +2115,7 @@ def getMemorySummary():
 @eel.expose
 def rememberPreference(text):
     try:
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         result = Phase3CommandBridge.try_handle(text)
         import json
         if result.get("handled"):
@@ -2026,7 +2129,7 @@ def rememberPreference(text):
 @eel.expose
 def forgetMemory(key):
     try:
-        from src.orin.memory.preference_store import PreferenceStore
+        from engine.memory.preference_store import PreferenceStore
         store = PreferenceStore()
         result = store.forget(key)
         import json
@@ -2039,7 +2142,7 @@ def forgetMemory(key):
 @eel.expose
 def diagnoseNexi():
     try:
-        from src.orin.diagnostics.runtime_doctor import RuntimeDoctor
+        from engine.diagnostic_doctors.runtime_doctor import RuntimeDoctor
         result = RuntimeDoctor.diagnose()
         import json
         return json.dumps(result)
@@ -2062,7 +2165,7 @@ def getDashboardState():
 @eel.expose
 def requestScreenObservation(reason):
     try:
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         result = Phase3CommandBridge.try_handle(reason)
         import json
         return json.dumps(result.get("result", {}))

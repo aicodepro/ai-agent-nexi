@@ -1,0 +1,73 @@
+{
+  "schema_version": 3,
+  "artifact_root": "data/nexi/studio/runs/{run_id}",
+  "max_questions_per_gate": 3,
+  "max_fix_loops_per_gate": 3,
+  "handoff_target_tokens": 500,
+  "stages": {
+    "requirements": {"gate": "G1", "ready_state": "REQUIREMENTS_READY", "agent": "business-analyst", "permission_mode": "plan", "read_only": true, "handoff_target": "research"},
+    "research": {"gate": "G2", "ready_state": "RESEARCH_READY", "agent": "research-analyst", "permission_mode": "plan", "read_only": true, "handoff_target": "architecture"},
+    "architecture": {"gate": "G3", "ready_state": "ARCHITECTURE_READY", "agent": "solution-architect", "permission_mode": "plan", "read_only": true, "handoff_target": "sprint_plan"},
+    "sprint_plan": {"gate": "G4", "ready_state": "SPRINT_READY", "agent": "product-manager", "permission_mode": "plan", "read_only": true, "handoff_target": "implementation"},
+    "implementation": {"gate": "G5", "ready_state": "IMPLEMENTATION_COMPLETE", "agent": "developer-team", "permission_mode": "acceptEdits", "read_only": false, "handoff_target": "developer_tests", "agent_bundle": ["developer-team", "frontend-engineer", "backend-engineer", "design-engineer", "test-engineer", "devops-engineer"]},
+    "developer_tests": {"gate": "G6", "ready_state": "DEVELOPER_TESTS_PASS", "agent": "test-engineer", "permission_mode": "plan", "read_only": true, "handoff_target": "qa", "failure_handoff": "developer-team"},
+    "qa": {"gate": "G7", "ready_state": "QA_PASS", "agent": "qa-verifier", "permission_mode": "plan", "read_only": true, "handoff_target": "security_review", "failure_handoff": "developer-team"},
+    "security_review": {"gate": "G8", "ready_state": "SECURITY_PASS", "agent": "security-reviewer", "permission_mode": "plan", "read_only": true, "handoff_target": "integration", "failure_handoff": "developer-team"},
+    "integration": {"gate": "G9", "ready_state": "INTEGRATION_PASS", "agent": "integration-verifier", "permission_mode": "plan", "read_only": true, "handoff_target": "release", "failure_handoff": "developer-team"},
+    "release": {"gate": "G10", "ready_state": "LOCAL_VERIFIED", "agent": "release-manager", "permission_mode": "plan", "read_only": true, "handoff_target": "closeout"},
+    "closeout": {"gate": "G11", "ready_state": "CLOSED", "agent": "knowledge-curator", "permission_mode": "plan", "read_only": true, "handoff_target": "closed"}
+  },
+  "request_class_stage_plans": {
+    "NEW_PROJECT": ["requirements", "research", "architecture", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "IDEA_REVISION": ["requirements", "research", "architecture", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "FEATURE_CHANGE": ["requirements", "architecture", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "CHANGE_REQUEST": ["requirements", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "BUG_FIX": ["requirements", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "TECHNICAL_IMPROVEMENT": ["requirements", "architecture", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "EXPERIMENT": ["requirements", "research", "architecture", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "RELEASE": ["requirements", "sprint_plan", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "HOTFIX": ["requirements", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"],
+    "CONTINUATION": ["requirements", "sprint_plan", "implementation", "developer_tests", "qa", "security_review", "integration", "release", "closeout"]
+  },
+  "extension_allowlists": {"skills": [], "mcp_servers": [], "plugins": []},
+  "branch_policy": {
+    "protected_branches": ["main", "master", "development"],
+    "implementation_on_protected_branch": "block",
+    "require_same_repository_on_resume": true,
+    "require_same_branch_on_resume": true,
+    "require_same_head_on_resume": true
+  },
+  "release": {
+    "enabled": false,
+    "configuration_complete": false,
+    "reviewer_identities": [],
+    "pull_request_integration": false,
+    "ci_integration": false
+  },
+  "deployment": {
+    "enabled": false,
+    "configuration_complete": false,
+    "reviewer_identities": [],
+    "environments": []
+  },
+  "external_actions_implemented": false,
+  "trusted_agents": {
+    "nexi-executive-supervisor": {"file": ".claude/agents/nexi-executive-supervisor.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "bf24032a68455ba10877df4e05b6f3bd729d0686f9e9d302872fb446dc4d720b"},
+    "project-strategist": {"file": ".claude/agents/project-strategist.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "601edbb72c48195aae4d0cb2f70c4fb2029279ff91a4b45a46804952f93a53d4"},
+    "business-analyst": {"file": ".claude/agents/business-analyst.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "bb63edc93c7c0ef4bb95d5b613527fd6c7c51f3d488192989d63c79f73a36272"},
+    "research-analyst": {"file": ".claude/agents/research-analyst.md", "tool_profile": "research", "allowed_tools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch"], "sha256": "a0fe989baa716dd4b28445c36124be4d26281da4d37162160cf677cc758d2dc5"},
+    "solution-architect": {"file": ".claude/agents/solution-architect.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "e6b46e95704f25bb72c6590e11a83afe557258b2ddd2cd98d61b2a2c38c95a36"},
+    "product-manager": {"file": ".claude/agents/product-manager.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "26d0cf66526a88701c0689281ade17f905759caffc1711ab552629745bb00ffd"},
+    "developer-team": {"file": ".claude/agents/developer-team.md", "tool_profile": "implementation", "allowed_tools": ["Read", "Grep", "Glob", "Bash", "Skill", "Agent(frontend-engineer, backend-engineer, design-engineer, test-engineer, devops-engineer)"], "sha256": "ba26415f0527ec8fda853ecabe4cfa789d3398d0c67f599c4df98fbdd622806a"},
+    "frontend-engineer": {"file": ".claude/agents/frontend-engineer.md", "tool_profile": "implementation", "allowed_tools": ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"], "sha256": "77fdd8c3407a5aa0ce0b17c2dd701b1ebe0a2b8c1c5f189b04e108649a33d6e0"},
+    "backend-engineer": {"file": ".claude/agents/backend-engineer.md", "tool_profile": "implementation", "allowed_tools": ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"], "sha256": "84b088bdf595dd4af7d540b767402b458c5a8657bad9bfb23ae73c42e9bcf3b8"},
+    "design-engineer": {"file": ".claude/agents/design-engineer.md", "tool_profile": "implementation", "allowed_tools": ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"], "sha256": "dc2f2fa0d5e577cbc84d8b656aa82f02af08a393933a70b97511ac763ad08965"},
+    "test-engineer": {"file": ".claude/agents/test-engineer.md", "tool_profile": "test", "allowed_tools": ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"], "sha256": "8e2d533a1b7c280f3f57d81954c44378f416384a2017c1d0355a4e4d7cea95bf"},
+    "integration-verifier": {"file": ".claude/agents/integration-verifier.md", "tool_profile": "test", "allowed_tools": ["Read", "Grep", "Glob", "Bash"], "sha256": "246cdfcf37c6ee5cb1cbd7ca4c3a0f510453828da8e7efdbebbe00d1f4f88bd5"},
+    "qa-verifier": {"file": ".claude/agents/qa-verifier.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "8156f735d2043986640143cfde55ec0de0869c0845877f923b8f7d2069df91f5"},
+    "security-reviewer": {"file": ".claude/agents/security-reviewer.md", "tool_profile": "research", "allowed_tools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch"], "sha256": "96d284d56fb3bb252c3a8b956540c58d7d6f029d5a9cb0c3049f4c0a5c2dc287"},
+    "devops-engineer": {"file": ".claude/agents/devops-engineer.md", "tool_profile": "implementation", "allowed_tools": ["Read", "Grep", "Glob", "Edit", "Write", "Bash", "Skill"], "sha256": "9d06812e8e55cf11428e055db12d0a52cec45359a3acd98d88899a92239f5a89"},
+    "release-manager": {"file": ".claude/agents/release-manager.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "4502d950047b45af51f066457ded81341f73c5aad38d69e42b5f79a39839b339"},
+    "knowledge-curator": {"file": ".claude/agents/knowledge-curator.md", "tool_profile": "read_only", "allowed_tools": ["Read", "Grep", "Glob"], "sha256": "378ee831795a66022c34205eca195209c1c1ff3d35898968528a1831630c7f92"}
+  }
+}

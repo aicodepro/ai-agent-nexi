@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -10,6 +12,7 @@ from engine.memory_safety import is_safe_to_store, redact_sensitive
 
 
 REFLECTION_PATH = Path(__file__).resolve().parents[1] / "data" / "memory" / "reflection_events.json"
+_lock = threading.RLock()
 
 
 def _now() -> str:
@@ -23,19 +26,23 @@ def _clean(text: str, limit: int = 500) -> str:
 
 
 def _load() -> list[dict[str, Any]]:
-    try:
-        if REFLECTION_PATH.exists():
-            data = json.loads(REFLECTION_PATH.read_text(encoding="utf-8"))
-            if isinstance(data, list):
-                return data
-    except Exception:
-        pass
+    with _lock:
+        try:
+            if REFLECTION_PATH.exists():
+                data = json.loads(REFLECTION_PATH.read_text(encoding="utf-8"))
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
     return []
 
 
 def _save(events: list[dict[str, Any]]) -> None:
-    REFLECTION_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REFLECTION_PATH.write_text(json.dumps(events[-500:], indent=2), encoding="utf-8")
+    with _lock:
+        REFLECTION_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary = REFLECTION_PATH.with_name(REFLECTION_PATH.name + ".tmp")
+        temporary.write_text(json.dumps(events[-500:], indent=2), encoding="utf-8")
+        os.replace(temporary, REFLECTION_PATH)
 
 
 def extract_learning_events(user_text: str, result: dict, assistant_text: str) -> list[dict]:
@@ -122,9 +129,10 @@ def store_reflection_events(events: list[dict]) -> dict:
     if not safe_events:
         print("[REFLECTION] stored=0", flush=True)
         return {"stored": 0}
-    existing = _load()
-    existing.extend(safe_events)
-    _save(existing)
+    with _lock:
+        existing = _load()
+        existing.extend(safe_events)
+        _save(existing)
     print(f"[REFLECTION] stored={len(safe_events)}", flush=True)
     return {"stored": len(safe_events)}
 

@@ -30,7 +30,7 @@ class TestMarkStyleUiCommandBusIntegration:
 
     def test_legacy_ui_dir_exists(self):
         from engine.ui_loader import _mark_ui_exists
-        www = Path(__file__).resolve().parents[1] / "www"
+        www = Path(__file__).resolve().parents[1] / "www_mark"
         assert www.exists() and www.is_dir(), "Legacy www/ UI directory must exist"
 
     def test_mark_ui_dir_exists_with_index(self):

@@ -13,8 +13,10 @@ nexi_tool_proxy + approval. Upgrade a pass to richer reasoning in place — sign
 
 from __future__ import annotations
 
+import copy
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -65,6 +67,7 @@ class WorkflowRun:
     reflection: str = ""
     result: str | None = None
     waiting_for: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -76,18 +79,26 @@ class WorkflowRun:
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
 
+@dataclass(frozen=True)
+class WorkflowDefinition:
+    runner: Callable[[WorkflowRun], None]
+    continuer: Callable[[WorkflowRun, str], None] | None = None
+    canceller: Callable[[WorkflowRun], bool | None] | None = None
+    restart_policy: str = "fail"
+
+
 _RUNS: dict[str, WorkflowRun] = {}
+_WORKFLOW_DEFINITIONS: dict[str, WorkflowDefinition] = {}
+_LOCK = threading.RLock()
+_UNSET = object()
 
 
 def _now() -> float:
     return time.time()
 
 
-def _emit(run: WorkflowRun, etype: str, message: str, data: dict | None = None) -> None:
-    ev = WorkflowEvent(ts=_now(), type=etype, message=message, data=data or {})
-    run.events.append(ev)
-    run.updated_at = ev.ts
-    print(f"[NEXI_AGENCY] {run.run_id} {etype} {message}", flush=True)
+def _publish_event(run: WorkflowRun, ev: WorkflowEvent) -> None:
+    print(f"[NEXI_AGENCY] {run.run_id} {ev.type} {ev.message}", flush=True)
     if EVENT_SINK is not None:
         try:
             EVENT_SINK(run.run_id, asdict(ev))
@@ -95,30 +106,174 @@ def _emit(run: WorkflowRun, etype: str, message: str, data: dict | None = None) 
             pass
 
 
+def _emit(run: WorkflowRun, etype: str, message: str, data: dict | None = None) -> None:
+    ev = WorkflowEvent(ts=_now(), type=etype, message=message, data=data or {})
+    run.events.append(ev)
+    run.updated_at = ev.ts
+    _publish_event(run, ev)
+
+
 def _log(run: WorkflowRun, msg: str) -> None:
     run.logs.append(msg)
     run.updated_at = _now()
 
 
-def _persist(run: WorkflowRun) -> None:
+def _persist(run: WorkflowRun) -> bool:
     try:
-        _STORE.parent.mkdir(parents=True, exist_ok=True)
-        with _STORE.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(run.to_dict()) + "\n")
+        with _LOCK:
+            _STORE.parent.mkdir(parents=True, exist_ok=True)
+            with _STORE.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(run.to_dict()) + "\n")
+        return True
     except Exception:
-        pass
+        return False
 
 
-def _load(limit: int = 50) -> None:
+def checkpoint_run(
+    run: WorkflowRun,
+    *,
+    status: str | None = None,
+    current_agent: str | None = None,
+    waiting_for: str | None | object = _UNSET,
+    result: str | None | object = _UNSET,
+    metadata: dict[str, Any] | None = None,
+    event_type: str = "",
+    message: str = "",
+    event_data: dict[str, Any] | None = None,
+    expected_statuses: set[str] | None = None,
+) -> bool:
+    """Update and durably checkpoint a run at a workflow boundary."""
+    with _LOCK:
+        if expected_statuses is not None and run.status not in expected_statuses:
+            return False
+        previous = (
+            run.status,
+            run.current_agent,
+            run.waiting_for,
+            run.result,
+            copy.deepcopy(run.metadata),
+            run.updated_at,
+            len(run.events),
+        )
+        if status is not None:
+            run.status = status
+        if current_agent is not None:
+            run.current_agent = current_agent
+        if waiting_for is not _UNSET:
+            run.waiting_for = waiting_for
+        if result is not _UNSET:
+            run.result = result
+        if metadata:
+            run.metadata.update(metadata)
+        event = None
+        if event_type:
+            event = WorkflowEvent(ts=_now(), type=event_type, message=message or event_type, data=event_data or {})
+            run.events.append(event)
+            run.updated_at = event.ts
+        else:
+            run.updated_at = _now()
+        if _persist(run):
+            if event is not None:
+                _publish_event(run, event)
+            return True
+        run.status, run.current_agent, run.waiting_for, run.result = previous[:4]
+        run.metadata = previous[4]
+        run.updated_at = previous[5]
+        del run.events[previous[6]:]
+        return False
+
+
+def register_workflow_type(
+    name: str,
+    runner: Callable[[WorkflowRun], None],
+    *,
+    continuer: Callable[[WorkflowRun, str], None] | None = None,
+    canceller: Callable[[WorkflowRun], bool | None] | None = None,
+    restart_policy: str = "fail",
+) -> None:
+    """Register an application workflow without coupling it to the built-in passes."""
+    workflow_type = str(name or "").strip()
+    if not workflow_type or not callable(runner):
+        raise ValueError("A workflow name and runner are required.")
+    if restart_policy not in {"fail", "pause_for_resume"}:
+        raise ValueError("restart_policy must be 'fail' or 'pause_for_resume'.")
+    with _LOCK:
+        WORKFLOW_TYPES.add(workflow_type)
+        _WORKFLOW_DEFINITIONS[workflow_type] = WorkflowDefinition(
+            runner,
+            continuer,
+            canceller,
+            restart_policy,
+        )
+        interrupted = [
+            run for run in _RUNS.values()
+            if run.workflow_type == workflow_type and run.status in {"pending", "running", "cancelling"}
+        ]
+    for run in interrupted:
+        if restart_policy == "pause_for_resume":
+            reconciliation = {
+                "code": "interrupted_by_restart",
+                "required": True,
+                "external_side_effects_replayed": False,
+                "message": "The workflow was interrupted. Fresh authorization and repository reconciliation are required.",
+            }
+            metadata_update: dict[str, Any] = {"restart_reconciliation": reconciliation}
+            studio = copy.deepcopy(run.metadata.get("studio") or {})
+            if studio:
+                stage = str(studio.get("current_stage") or studio.get("stage") or "")
+                for gate in (studio.get("gates") or {}).values():
+                    if gate.get("stage") == stage:
+                        gate.update({"state": "BLOCKED", "status": "BLOCKED", "reason": "restart_reconciliation_required"})
+                        break
+                studio["blocker"] = {
+                    "stage": stage,
+                    "reason": "restart_reconciliation_required",
+                    "questions": [reconciliation["message"]],
+                }
+                studio["status"] = "waiting_for_input"
+                metadata_update["studio"] = studio
+            checkpoint_run(
+                run,
+                status="waiting_for_input",
+                current_agent="",
+                waiting_for=reconciliation["message"],
+                result=reconciliation["message"],
+                metadata=metadata_update,
+                event_type="workflow_paused_for_reconciliation",
+                message=reconciliation["message"],
+                event_data=reconciliation,
+                expected_statuses={"pending", "running", "cancelling"},
+            )
+            continue
+        failure = {"code": "interrupted_by_restart", "message": "The workflow was interrupted by a restart."}
+        checkpoint_run(
+            run,
+            status="failed",
+            current_agent="",
+            result=failure["message"],
+            metadata={"failure": failure},
+            event_type="workflow_failed",
+            message=failure["message"],
+            event_data=failure,
+            expected_statuses={"pending", "running", "cancelling"},
+        )
+
+
+def _load() -> None:
+    """Restore the latest valid snapshot for every run from the complete JSONL."""
     try:
         if not _STORE.exists():
             return
-        for line in _STORE.read_text(encoding="utf-8").splitlines()[-limit:]:
-            try:
-                run = WorkflowRun.from_dict(json.loads(line))
-                _RUNS[run.run_id] = run  # last snapshot wins
-            except Exception:
-                continue
+        latest: dict[str, WorkflowRun] = {}
+        with _STORE.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    run = WorkflowRun.from_dict(json.loads(line))
+                    latest[run.run_id] = run
+                except Exception:
+                    continue
+        with _LOCK:
+            _RUNS.update(latest)
     except Exception:
         pass
 
@@ -229,11 +384,21 @@ def _finish(run: WorkflowRun) -> None:
     _persist(run)
 
 
+def _requests_user_input(goal: str) -> bool:
+    clauses = [part.strip().lower() for part in re.split(r"[,;.!?]", str(goal or ""))]
+    return any(
+        clause in {"ask me", "please ask me", "need user", "need more"}
+        or clause.startswith(("ask me ", "please ask me ", "need user input", "need more input",
+                              "need more context", "need more details"))
+        for clause in clauses
+    )
+
+
 def _run_passes(run: WorkflowRun) -> None:
     run.status = "running"
     _emit(run, "workflow_started", f"{run.workflow_type}: {run.goal}")
     _plan(run)
-    if any(p in run.goal.lower() for p in ("ask me", "need user", "need more")):
+    if _requests_user_input(run.goal):
         run.status = "waiting_for_input"
         run.waiting_for = "additional_user_context"
         _emit(run, "human_input_required", "need more detail")
@@ -242,32 +407,96 @@ def _run_passes(run: WorkflowRun) -> None:
     _finish(run)
 
 
+def _run_registered(run: WorkflowRun, definition: WorkflowDefinition, *, resumed: bool = False) -> None:
+    if not checkpoint_run(
+        run,
+        status="running",
+        current_agent="",
+        waiting_for=None,
+        event_type="workflow_resumed" if resumed else "workflow_started",
+        message=f"{run.workflow_type}: {run.goal}",
+        expected_statuses={"pending"},
+    ):
+        return
+    try:
+        definition.runner(run)
+    except Exception as exc:
+        failure = {"code": "runner_exception", "message": f"{type(exc).__name__}: {exc}"}
+        checkpoint_run(
+            run,
+            status="failed",
+            current_agent="",
+            result=failure["message"],
+            metadata={"failure": failure},
+            event_type="workflow_failed",
+            message=failure["message"],
+            event_data=failure,
+            expected_statuses={"running"},
+        )
+        return
+    if run.status == "running":
+        failure = {"code": "runner_incomplete", "message": "The workflow runner exited without a terminal state."}
+        checkpoint_run(
+            run,
+            status="failed",
+            current_agent="",
+            result=failure["message"],
+            metadata={"failure": failure},
+            event_type="workflow_failed",
+            message=failure["message"],
+            event_data=failure,
+            expected_statuses={"running"},
+        )
+
+
 # ── Public API ───────────────────────────────────────────────────────────────
-def create_run(workflow_type: str, goal: str, background: bool = False) -> WorkflowRun:
+def create_run(
+    workflow_type: str,
+    goal: str,
+    background: bool = False,
+    *,
+    metadata: dict[str, Any] | None = None,
+    run_id: str | None = None,
+) -> WorkflowRun:
     wtype = (workflow_type or "").strip()
     if wtype not in WORKFLOW_TYPES:
         raise ValueError(f"Unsupported workflow_type: {wtype!r} (allowed: {sorted(WORKFLOW_TYPES)})")
-    run = WorkflowRun(run_id=f"wf_{uuid.uuid4().hex[:12]}", workflow_type=wtype,
+    selected_run_id = str(run_id or f"wf_{uuid.uuid4().hex[:12]}").strip()
+    if not selected_run_id or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for character in selected_run_id):
+        raise ValueError("Invalid workflow run ID.")
+    run = WorkflowRun(run_id=selected_run_id, workflow_type=wtype,
                       goal=str(goal or "").strip(), mode=autonomy_mode(),
-                      created_at=_now(), updated_at=_now())
-    _RUNS[run.run_id] = run
+                      created_at=_now(), updated_at=_now(), metadata=dict(metadata or {}))
+    with _LOCK:
+        if run.run_id in _RUNS:
+            raise ValueError(f"Workflow run already exists: {run.run_id}")
+        _RUNS[run.run_id] = run
+    if not _persist(run):
+        with _LOCK:
+            _RUNS.pop(run.run_id, None)
+        raise RuntimeError("Could not persist the workflow run.")
+    definition = _WORKFLOW_DEFINITIONS.get(wtype)
+    target = (lambda: _run_registered(run, definition)) if definition else (lambda: _run_passes(run))
     if background:
-        threading.Thread(target=_run_passes, args=(run,), daemon=True).start()
+        threading.Thread(target=target, daemon=True).start()
     else:
-        _run_passes(run)
+        target()
     return run
 
 
 def get_run(run_id: str) -> WorkflowRun | None:
-    return _RUNS.get(run_id)
+    with _LOCK:
+        return _RUNS.get(run_id)
 
 
 def list_runs() -> list[WorkflowRun]:
-    return list(_RUNS.values())
+    with _LOCK:
+        return list(_RUNS.values())
 
 
 def latest_run() -> WorkflowRun | None:
-    return max(_RUNS.values(), key=lambda r: r.created_at) if _RUNS else None
+    with _LOCK:
+        return max(_RUNS.values(), key=lambda r: r.created_at) if _RUNS else None
 
 
 def current_activity() -> dict[str, Any]:
@@ -281,17 +510,85 @@ def current_activity() -> dict[str, Any]:
 
 
 def cancel_run(run_id: str) -> WorkflowRun | None:
-    run = _RUNS.get(run_id)
-    if run and run.status not in _TERMINAL:
-        run.status = "cancelled"
-        _emit(run, "workflow_cancelled", "cancelled by user")
-        _persist(run)
+    with _LOCK:
+        run = _RUNS.get(run_id)
+        definition = _WORKFLOW_DEFINITIONS.get(run.workflow_type) if run else None
+        if not run or run.status in _TERMINAL:
+            return run
+        if run.status == "cancelling":
+            requested = True
+        else:
+            requested = checkpoint_run(
+                run,
+                status="cancelling",
+                current_agent="",
+                metadata={"cancel_requested": True},
+                event_type="workflow_cancelling",
+                message="cancellation requested by user",
+                expected_statuses={"pending", "running", "waiting_for_input"},
+            )
+    if not requested:
+        return run
+    stopped = True
+    if definition and definition.canceller:
+        try:
+            stopped = definition.canceller(run) is not False
+        except Exception:
+            stopped = False
+    if stopped:
+        checkpoint_run(
+            run,
+            status="cancelled",
+            current_agent="",
+            metadata={"cancel_failed": False},
+            event_type="workflow_cancelled",
+            message="cancelled by user",
+            expected_statuses={"cancelling"},
+        )
+    else:
+        checkpoint_run(
+            run,
+            status="cancelling",
+            metadata={"cancel_failed": True},
+            event_type="workflow_cancel_failed",
+            message="Cancellation was requested but process termination was not confirmed.",
+            expected_statuses={"cancelling"},
+        )
     return run
 
 
 def continue_run(run_id: str, user_input: str) -> WorkflowRun | None:
-    run = _RUNS.get(run_id)
-    if not run or run.status != "waiting_for_input":
+    with _LOCK:
+        run = _RUNS.get(run_id)
+        definition = _WORKFLOW_DEFINITIONS.get(run.workflow_type) if run else None
+        if not run or run.status != "waiting_for_input":
+            return run
+        if definition:
+            previous_metadata = copy.deepcopy(run.metadata)
+            if definition.continuer:
+                definition.continuer(run, str(user_input or "").strip())
+            resumed = checkpoint_run(
+                run,
+                status="pending",
+                current_agent="",
+                waiting_for=None,
+                event_type="human_input_received",
+                message="got it",
+                expected_statuses={"waiting_for_input"},
+            )
+            if not resumed:
+                run.metadata = previous_metadata
+        else:
+            resumed = False
+    if definition:
+        if not resumed:
+            return run
+        threading.Thread(
+            target=_run_registered,
+            args=(run, definition),
+            kwargs={"resumed": True},
+            daemon=True,
+        ).start()
         return run
     run.status = "running"
     run.waiting_for = None
@@ -303,7 +600,8 @@ def continue_run(run_id: str, user_input: str) -> WorkflowRun | None:
 
 
 def clear() -> None:
-    _RUNS.clear()
+    with _LOCK:
+        _RUNS.clear()
 
 
 _load()  # restore prior runs so status/logs survive a restart

@@ -8,6 +8,14 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
+@pytest.fixture(autouse=True)
+def _stable_dsp_thresholds(monkeypatch):
+    monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.030")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.10")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "4.0")
+    monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.30")
+
+
 class TestClapBackendFallbackOrder:
     def test_dsp_clap_fallback_when_clap_nn_missing(self, monkeypatch):
         monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
@@ -21,6 +29,7 @@ class TestClapBackendFallbackOrder:
     def test_fallback_order_used_when_primary_not_ready(self, monkeypatch):
         monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
         from engine.clap_backend_manager import ClapBackendManager
+        monkeypatch.setattr(ClapBackendManager, "_build_clap_nn", lambda self: (None, False))
         mgr = ClapBackendManager(cooldown_ms=5000)
         assert mgr.primary_name == "clap_nn"
         assert mgr.primary_ready is False
@@ -32,17 +41,14 @@ class TestClapBackendFallbackOrder:
         monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
         monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.clap_backend_manager import ClapBackendManager
+        monkeypatch.setattr(ClapBackendManager, "_build_clap_nn", lambda self: (None, False))
         mgr = ClapBackendManager(cooldown_ms=5000)
 
         samples = [0] * 800
-        for i in range(5):
+        for i in range(10):
             idx = 400 + i
             if idx < len(samples):
-                samples[idx] = 20000
-        for i in range(5):
-            idx = 405 + i
-            if idx < len(samples):
-                samples[idx] = -18000
+                samples[idx] = 20000 if i % 2 == 0 else -18000
         clap_bytes = struct.pack(f"<{len(samples)}h", *samples)
 
         r = mgr.process_audio_chunk(clap_bytes)
@@ -52,6 +58,7 @@ class TestClapBackendFallbackOrder:
     def test_all_backends_fail_does_not_crash(self, monkeypatch):
         monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "yamnet,clap_nn")
         from engine.clap_backend_manager import ClapBackendManager
+        monkeypatch.setattr(ClapBackendManager, "_build_clap_nn", lambda self: (None, False))
         mgr = ClapBackendManager(cooldown_ms=5000)
         assert mgr.primary_ready is False
         assert mgr.fallback_ready is False

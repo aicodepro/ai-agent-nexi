@@ -4,12 +4,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 from unittest.mock import patch, MagicMock
-from src.orin.brain.intent_brain import IntentBrain
-from src.orin.brain.bilingual_normalizer import BilingualNormalizer
-from src.orin.brain.speech_recovery import SpeechRecovery
-from src.orin.brain.action_planner import ActionPlanner
-from src.orin.brain.action_verifier import ActionVerifier
-from src.orin.control.safety import EmergencyStop
+from engine.brain.intent_brain import IntentBrain
+from engine.brain.bilingual_normalizer import BilingualNormalizer
+from engine.brain.speech_recovery import SpeechRecovery
+from engine.brain.action_planner import ActionPlanner
+from engine.brain.action_verifier import ActionVerifier
+from engine.control.safety import EmergencyStop
 
 
 class TestIntentBrainEnglish(unittest.TestCase):

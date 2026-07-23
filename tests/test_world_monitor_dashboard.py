@@ -10,7 +10,7 @@ def test_world_monitor_dashboard_returns_json_safe_state():
     state = WorldMonitorDashboard().get_dashboard_state()
     json.dumps(state)
     ids = {panel["id"] for panel in state["panels"]}
-    assert {"system", "memory", "active", "tools", "commands", "routes", "brain", "wake"}.issubset(ids)
+    assert {"system", "memory", "active", "tools", "capabilities", "commands", "routes", "brain", "wake"}.issubset(ids)
     assert state["panel_count"] == len(state["panels"])
 
 
@@ -27,3 +27,12 @@ def test_command_exposes_dashboard_state():
     payload = json.loads(command.getDashboardState())
     assert "panels" in payload
     assert payload["version"] == 1
+
+
+def test_world_monitor_dashboard_capabilities_panel():
+    from engine.world_monitor_dashboard import WorldMonitorDashboard
+
+    panel = WorldMonitorDashboard().get_panel("capabilities")
+    assert panel is not None
+    assert panel.data["total"] >= 8
+    assert any(item["key"] == "conscious_hud" for item in panel.data["items"])

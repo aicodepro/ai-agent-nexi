@@ -2,6 +2,7 @@ import threading
 import os
 import socket
 import subprocess
+import time
 import eel
 from engine.features import *
 from engine.command import *
@@ -218,7 +219,7 @@ def _bring_window_to_front(pid: int, timeout: float = 10.0) -> None:
         print(f"[UI] bring_to_front_error reason={type(e).__name__}", flush=True)
 
 
-def start_nexi(command_queue=None, stop_event=None):
+def start_nexi(command_queue=None, stop_event=None, control_queue=None):
     print(f"[RUN] ui start_nexi pid={os.getpid()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     init_eel_ui(eel)
     try:
@@ -229,9 +230,14 @@ def start_nexi(command_queue=None, stop_event=None):
     if command_queue is not None:
         try:
             from engine.runtime_bridge import start_ui_bridge_pump
-            start_ui_bridge_pump(command_queue, stop_event)
+            start_ui_bridge_pump(command_queue, stop_event, control_queue=control_queue)
         except Exception as e:
             print(f"[BRIDGE] pump start failed: {e}")
+    try:
+        from engine.world_model import start_world_sampler
+        start_world_sampler()
+    except Exception as e:
+        print(f"[WORLD] sampler start failed: {e}")
     requested_port = _env_int("NEXI_UI_PORT", 8000)
     host = "localhost"
     try:
@@ -269,7 +275,7 @@ def greet_user():
         speak("Good Evening!")
     speak("I am Nexi. How may I help you, sir?")
 
-def main(command_queue=None, stop_event=None):
+def main(command_queue=None, stop_event=None, control_queue=None):
     auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "false").lower() == "true"
     if face_recognition_enabled and auth_gate:
         print("[FACE] auth_gate was already handled by run.py gate — proceeding immediately")
@@ -289,7 +295,7 @@ def main(command_queue=None, stop_event=None):
         print(f"[startup] two_phase fallback: {e}", flush=True)
         if greet:
             greet()
-    start_nexi(command_queue=command_queue, stop_event=stop_event)
+    start_nexi(command_queue=command_queue, stop_event=stop_event, control_queue=control_queue)
 
 if __name__ == "__main__":
     main()

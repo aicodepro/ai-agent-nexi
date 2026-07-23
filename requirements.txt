@@ -20,6 +20,11 @@ pywin32
 hugchat
 playsound
 
+# Master intent router — local semantic tier (Tier 0).
+# Optional: without it the router auto-falls back to a numpy-only lexical
+# embedder (works, but the e5 model understands paraphrase/style far better).
+sentence-transformers
+
 # Testing
 pytest
 

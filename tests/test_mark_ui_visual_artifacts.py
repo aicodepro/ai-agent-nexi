@@ -43,13 +43,24 @@ class TestMarkUiVisualArtifacts:
         assert "updateNexiState" in text
         assert "senderText" in text
 
+    # Binary assets are not text and never will be. The list was images-only until
+    # the HUD gained media/hud_bg.mp4 + dna.mp4, which failed this as "not UTF-8".
+    # Exempt by category so the next asset type added doesn't re-break it.
+    BINARY_SUFFIXES = {
+        ".ico", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif",
+        ".mp4", ".webm", ".mov", ".mp3", ".wav", ".ogg",
+        ".woff", ".woff2", ".ttf", ".otf", ".eot", ".pdf", ".zip",
+    }
+
     def test_all_files_utf8(self):
+        checked = 0
         for f in WWW_MARK.glob("**/*"):
-            if not f.is_file():
-                continue
-            if f.suffix in (".ico", ".png", ".jpg"):
+            if not f.is_file() or f.suffix.lower() in self.BINARY_SUFFIXES:
                 continue
             try:
                 f.read_text(encoding="utf-8")
             except UnicodeDecodeError:
                 assert False, f"{f.name} is not valid UTF-8"
+            checked += 1
+        # guard against the skip list quietly growing until this tests nothing
+        assert checked >= 5, f"only {checked} text files checked — skip list too broad?"

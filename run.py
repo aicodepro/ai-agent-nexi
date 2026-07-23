@@ -165,10 +165,10 @@ def _fatal_pipeline_failure(reason: str, stop_event=None):
     return False
 
 
-def startNexi(command_queue=None, stop_event=None):
+def startNexi(command_queue=None, stop_event=None, control_queue=None):
     print(f"[RUN] ui_process starting pid={os.getpid()} cwd={os.getcwd()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     from main import main
-    main(command_queue=command_queue, stop_event=stop_event)
+    main(command_queue=command_queue, control_queue=control_queue, stop_event=stop_event)
 
 
 def _signal_audio_ready(audio_ready, reason: str) -> None:
@@ -182,7 +182,7 @@ def _signal_audio_ready(audio_ready, reason: str) -> None:
         audio_ready.set()
 
 
-def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
+def listenHotword(command_queue=None, stop_event=None, audio_ready=None, control_queue=None):
     print(f"[RUN] audio_process starting pid={os.getpid()} cwd={os.getcwd()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     backend = (os.getenv("VOICE_WAKE_BACKEND", "") or "").lower().strip()
     legacy_fallback_disabled = _env_bool("DISABLE_LEGACY_HOTWORD_FALLBACK", False)
@@ -198,7 +198,7 @@ def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
                 get_last_start_error,
             )
             print("[WAKE] pipeline start requested", flush=True)
-            start_audio_wake_pipeline(command_queue=command_queue)
+            start_audio_wake_pipeline(command_queue=command_queue, control_queue=control_queue)
             if is_pipeline_running():
                 print("[WAKEPROC] pipeline running blocking=True", flush=True)
                 # Voice recognition (openWakeWord model, Silero VAD, mic) is now
@@ -237,12 +237,13 @@ if __name__ == '__main__':
     os.environ["FACE_RECOGNITION_ON_STARTUP"] = "false"
 
     command_queue = multiprocessing.Queue()
+    control_queue = multiprocessing.Queue()
     stop_event = multiprocessing.Event()
     audio_ready = multiprocessing.Event()
     print(f"[BRIDGE] queue created id={id(command_queue)} pid={os.getpid()}", flush=True)
 
-    p1 = multiprocessing.Process(target=startNexi, args=(command_queue, stop_event))
-    p2 = multiprocessing.Process(target=listenHotword, args=(command_queue, stop_event, audio_ready))
+    p1 = multiprocessing.Process(target=startNexi, args=(command_queue, stop_event, control_queue))
+    p2 = multiprocessing.Process(target=listenHotword, args=(command_queue, stop_event, audio_ready, control_queue))
 
     p3 = None
     p4 = None

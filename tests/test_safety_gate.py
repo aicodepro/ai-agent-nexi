@@ -1,7 +1,18 @@
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
+@pytest.fixture(autouse=True)
+def _enable_safety_gate(monkeypatch):
+    """conftest defaults SAFETY_GATE_ENABLED=false for the suite (the gate is a live
+    network classifier). This file tests the gate itself, so turn it on."""
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "true")
+
+
 
 
 def test_safety_gate_triggers_on_risky_actions():

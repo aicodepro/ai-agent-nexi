@@ -35,7 +35,10 @@ def should_interrupt() -> bool:
 
 
 def clear_interrupt() -> None:
-    _interrupt.clear()
+    global _source
+    with _lock:
+        _source = ""
+        _interrupt.clear()
 
 
 def is_speaking() -> bool:

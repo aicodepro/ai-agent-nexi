@@ -3,16 +3,16 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-from src.orin.brain.model_client import (
+from engine.brain.model_client import (
     ModelClient, MockModelClient, BlockedModelClient,
     make_request, make_success_response, make_error_response,
     validate_request,
 )
-from src.orin.brain.provider_factory import (
+from engine.brain.provider_factory import (
     create_client, create_client_for_decision, execute_via_router,
     execute_with_client,
 )
-from src.orin.brain.provider_registry import ProviderRegistry
+from engine.brain.provider_registry import ProviderRegistry
 
 
 class TestModelRequestResponseContracts(unittest.TestCase):

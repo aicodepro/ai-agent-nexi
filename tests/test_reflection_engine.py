@@ -25,3 +25,23 @@ def test_reflection_stores_user_correction(monkeypatch, tmp_path):
     monkeypatch.setattr(ReflectionMemory, "PATH", tmp_path / "reflection_memory.json")
     result = reflection.reflect_after_turn("that's wrong, next time open youtube", {}, {}, "Understood.")
     assert any(event["type"] == "user_correction" for event in result["events"])
+
+
+def test_reflection_write_is_atomic(monkeypatch, tmp_path):
+    import os
+    import engine.reflection_engine as reflection
+
+    target = tmp_path / "reflection.json"
+    monkeypatch.setattr(reflection, "REFLECTION_PATH", target)
+    real_replace = os.replace
+    calls = []
+
+    def replace(source, destination):
+        calls.append((source, destination))
+        real_replace(source, destination)
+
+    monkeypatch.setattr(os, "replace", replace)
+    reflection._save([])
+
+    assert calls
+    assert target.read_text(encoding="utf-8")

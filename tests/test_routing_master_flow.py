@@ -80,9 +80,12 @@ DATASET = [
     ("build a tool that watches my downloads", "tool", "request_feature"),
     ("create a github issue monitor", "tool", "request_feature"),
     ("i need an automation that backs up my files", "tool", "request_feature"),
-    # no feature matched -> brain (handles chat/planning, asks its own clarifying question)
-    ("close this", "brain", "general_qa"),
-    ("do that thing", "brain", "general_qa"),
+    # no feature matched: hand to the brain ONLY when it reads as conversation/planning.
+    # A bare action request with no matching tool must clarify -- routed to the brain, Nexi
+    # answers as though it performed an action it never performed ("close this" -> "closed
+    # it"). See _BRAIN_SIGNAL_RE in groq_intent_router_v2.
+    ("close this", "clarify", "unknown"),
+    ("do that thing", "clarify", "unknown"),
     ("lets plan something", "brain", "general_qa"),
     # lone unmatched token = ASR noise -> clarify; explicit missing-slot -> clarify
     ("blorp", "clarify", "unknown"),
@@ -135,12 +138,29 @@ def test_interrupts_handled_by_pre_router(phrase, expected):
     ("browser_click", {"target": "Login"}),
     ("browser_fill", {"field": "q", "value": "x"}),
 ])
-def test_critical_actions_require_approval(name, slots):
+def test_critical_actions_require_approval(monkeypatch, name, slots):
+    # Disable the LLM safety gate so this tests the APPROVAL contract only. The gate calls
+    # the Groq safety model over the network and fails closed without GROQ_API_KEY, which
+    # blocks the action before it ever reaches the approval queue. This test used to pass
+    # only because engine/command.py's import-time load_dotenv() leaked the real key into
+    # os.environ — i.e. it was making a live safety-API call on every run.
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "false")
     aq.clear()
     r = execute_tool(name, slots)
     assert r.get("requires_approval") is True, f"{name} executed without approval: {r}"
     assert r.get("verified") is not True
     aq.clear()
+
+
+def test_safety_gate_fails_closed_without_a_provider(monkeypatch):
+    """No key must mean blocked, never silently allowed."""
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "true")
+    from engine.safety_gate import execution_is_safe
+
+    decision = execution_is_safe("click_ui_element", {"target": "OK"}, user_text="click ok")
+    assert decision["allowed"] is False
+    assert decision["category"] == "safety_unavailable"
 
 
 def test_feature_gap_creates_request_not_refusal():

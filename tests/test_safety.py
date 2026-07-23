@@ -1,10 +1,22 @@
 import sys
+
+import pytest
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-from src.orin.control.safety import EmergencyStop, SandboxPolicy, AuditLog
-from src.orin.control.base import ControlResult
+from unittest.mock import patch
+from engine.control.safety import EmergencyStop, SandboxPolicy, AuditLog
+from engine.control.base import ControlResult
+
+
+@pytest.fixture(autouse=True)
+def _enable_safety_gate(monkeypatch):
+    """conftest defaults SAFETY_GATE_ENABLED=false for the suite (the gate is a live
+    network classifier). This file tests the gate itself, so turn it on."""
+    monkeypatch.setenv("SAFETY_GATE_ENABLED", "true")
+
+
 
 
 class TestEmergencyStop(unittest.TestCase):
@@ -92,6 +104,50 @@ class TestAuditLog(unittest.TestCase):
         AuditLog.log("test")
         AuditLog.clear_log()
         self.assertEqual(len(AuditLog.get_log()), 0)
+
+
+class TestSafetyProviderFailures(unittest.TestCase):
+    def test_missing_provider_key_fails_closed_for_action_route(self):
+        from engine.safety_gate import execution_is_safe
+
+        with patch.dict(os.environ, {"GROQ_API_KEY": ""}):
+            decision = execution_is_safe("create_folder", {"folder_name": "test"})
+
+        self.assertFalse(decision["allowed"])
+        self.assertEqual(decision["risk"], "blocked")
+
+    def test_provider_error_fails_closed_for_action_route(self):
+        from engine.safety_gate import execution_is_safe
+
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-key"}), patch(
+            "engine.safety_gate.requests.post", side_effect=TimeoutError("timeout")
+        ):
+            decision = execution_is_safe("create_folder", {"folder_name": "test"})
+
+        self.assertFalse(decision["allowed"])
+        self.assertEqual(decision["risk"], "blocked")
+
+    def test_true_qa_does_not_require_action_confirmation_without_provider(self):
+        from engine.safety_gate import classify_safety
+
+        with patch.dict(os.environ, {"GROQ_API_KEY": ""}):
+            decision = classify_safety("What is an API key?", context={"route": "brain"})
+
+        self.assertTrue(decision["allowed"])
+        self.assertFalse(decision["requires_confirmation"])
+
+    def test_malformed_provider_decision_fails_closed_for_action_route(self):
+        from engine.safety_gate import execution_is_safe
+
+        response = unittest.mock.MagicMock(status_code=200)
+        response.json.return_value = {"choices": [{"message": {"content": "{}"}}]}
+        with patch.dict(os.environ, {"GROQ_API_KEY": "test-key"}), patch(
+            "engine.safety_gate.requests.post", return_value=response
+        ):
+            decision = execution_is_safe("create_folder", {"folder_name": "test"})
+
+        self.assertFalse(decision["allowed"])
+        self.assertEqual(decision["risk"], "blocked")
 
 
 if __name__ == "__main__":

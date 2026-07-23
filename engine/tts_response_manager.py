@@ -14,9 +14,11 @@ def build_spoken_text(display_text: str, max_chars: int = 700) -> str:
         return value
     lowered = value.lower()
     kind = "recipe" if "recipe" in lowered else "answer"
-    if kind == "recipe":
-        return "Here's the short version. I've put the full recipe on screen."
-    return "Here's the short version. I've put the full answer on screen."
+    prefix = "Here's the short version. "
+    suffix = f" I've put the full {kind} on screen."
+    excerpt_limit = min(220, max_chars - len(prefix) - len(suffix) - 3)
+    excerpt = value[:excerpt_limit].rsplit(" ", 1)[0].rstrip(".,;: ")
+    return f"{prefix}{excerpt}...{suffix}"
 
 
 def split_tts_chunks(text: str, max_chars: int = 260) -> list[str]:

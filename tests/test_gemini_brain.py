@@ -38,7 +38,9 @@ def test_ask_gemini_posts_to_flash_and_extracts_text(monkeypatch):
     assert result == "Two plus two is four."
     args, kwargs = mock_post.call_args
     assert "gemini-test-flash:generateContent" in args[0]
-    assert kwargs["params"] == {"key": "test-key"}
+    # The API key rides in a header, not a ?key= query param, so it never
+    # leaks into URLs or request logs (see gemini_brain.ask_gemini comment).
+    assert kwargs["headers"]["x-goog-api-key"] == "test-key"
     sent_text = kwargs["json"]["contents"][0]["parts"][0]["text"]
     assert "Saved memories: demo" in sent_text
 

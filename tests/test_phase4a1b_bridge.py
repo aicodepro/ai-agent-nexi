@@ -4,13 +4,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 import threading
+from unittest import mock
 
-from src.orin.app.phase3_command_bridge import Phase3CommandBridge
-from src.orin.app.runtime_context import get_conversation_buffer, reset_runtime
-from src.orin.vision.screen_trust import ScreenTrust
-from src.orin.vision.screen_observer import ScreenObserver
-from src.orin.control.safety import EmergencyStop
-from src.orin.memory.conversation_buffer import ConversationBuffer
+from engine.app.phase3_command_bridge import Phase3CommandBridge
+from engine.app.runtime_context import get_conversation_buffer, reset_runtime
+from vision.screen_trust import ScreenTrust
+from vision.screen_observer import ScreenObserver
+from engine.control.safety import EmergencyStop
+from engine.memory.conversation_buffer import ConversationBuffer
 
 
 class TestConversationBufferStore(unittest.TestCase):
@@ -218,8 +219,19 @@ class TestScreenObservationTrustedFlow(unittest.TestCase):
         reset_runtime()
         ScreenTrust.reset_to_ask()
         ScreenTrust.set_owner_trusted(False)
-        observer = Phase3CommandBridge._get_screen_observer()
-        observer.reset()
+        self.observer = Phase3CommandBridge._get_screen_observer()
+        self.observer.reset()
+        self.observer._screenshot_service.capture_real = mock.Mock(return_value={
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"jpeg",
+            "mime": "image/jpeg", "visible_text": "Visual Studio Code window",
+            "width": 1920, "height": 1080, "error": None,
+        })
+        self.observer._vision_analyzer.analyze = mock.Mock(return_value={
+            "ok": True, "summary": "The screen shows Visual Studio Code.",
+            "detected_context": "code", "sensitive_content_detected": False,
+            "requires_confirmation_before_action": True,
+            "source": "deterministic_test_analyzer", "error": None,
+        })
 
     def test_screen_dekho_without_trust_needs_permission(self):
         result = Phase3CommandBridge.try_handle("screen dekho")
@@ -239,6 +251,15 @@ class TestScreenObservationTrustedFlow(unittest.TestCase):
         result = Phase3CommandBridge.try_handle("screen dekho")
         self.assertTrue(result["handled"])
         self.assertTrue(result["result"]["ok"])
+        observation = result["result"]["data"]["observation"]
+        self.assertEqual(observation["status"], "completed")
+        self.assertEqual(observation["screenshot_method"], "pil_imagegrab")
+        self.assertFalse(observation["sensitive_content_detected"])
+        self.assertFalse(observation["store_screenshot"])
+        self.assertFalse(observation["allow_cloud_analysis"])
+        self.observer._vision_analyzer.analyze.assert_called_once_with(
+            mock.ANY, allow_cloud=False
+        )
 
     def test_trusted_flow_returns_error_on_failure(self):
         ScreenTrust.set_mode("trusted_session_read_only")
@@ -295,22 +316,18 @@ class TestScreenObservationTrustedFlow(unittest.TestCase):
         msg = result["result"]["message"]
         self.assertIn("Using trusted local read-only access.", msg)
 
-    def test_trusted_screen_response_includes_result_or_fallback(self):
+    def test_trusted_screen_response_includes_analysis(self):
         ScreenTrust.set_mode("trusted_session_read_only")
         result = Phase3CommandBridge.try_handle("screen dekho")
         msg = result["result"]["message"]
-        self.assertTrue(
-            "Current analyzer result:" in msg
-            or "could not classify" in msg
-            or "Mock screen analysis" in msg
-        )
+        self.assertIn("Current analyzer result: The screen shows Visual Studio Code.", msg)
 
-    def test_trusted_screen_response_includes_mock_phase_fallback(self):
+    def test_trusted_screen_response_omits_obsolete_capture_wording(self):
         ScreenTrust.set_mode("trusted_session_read_only")
         result = Phase3CommandBridge.try_handle("screen dekho")
         msg = result["result"]["message"]
-        self.assertIn("Mock screen analysis is active. Real screen capture is not enabled yet.", msg)
-        self.assertIn("real screen capture/OCR vision is not enabled in this phase", msg)
+        self.assertNotIn("Real screen capture is not enabled yet", msg)
+        self.assertNotIn("real screen capture/OCR vision is not enabled", msg)
 
     def test_trusted_screen_formatter_preserves_observation_data(self):
         msg = Phase3CommandBridge._format_trusted_screen_message({
@@ -322,7 +339,7 @@ class TestScreenObservationTrustedFlow(unittest.TestCase):
                 "observation": {
                     "summary": "Observation summary.",
                     "detected_context": "code",
-                    "screenshot_method": "mock",
+                    "screenshot_method": "pil_imagegrab",
                 }
             },
             "error": "non-blocking warning",
@@ -352,13 +369,25 @@ class TestScreenObservationTrustedFlow(unittest.TestCase):
         result = Phase3CommandBridge.try_handle("screen dekho")
         data = result["result"]["data"]
         self.assertFalse(data.get("requires_permission", True))
-        self.assertIn("Current analyzer result:", result["result"]["message"])
+        self.assertTrue(result["result"]["ok"])
+        self.assertIn("Trusted owner access:", result["result"]["message"])
 
 
 class TestRequestTrustedReadOnly(unittest.TestCase):
     def setUp(self):
         EmergencyStop.clear()
         self.observer = ScreenObserver()
+        self.observer._screenshot_service.capture_real = mock.Mock(return_value={
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"jpeg",
+            "mime": "image/jpeg", "visible_text": "Visual Studio Code window",
+            "width": 1920, "height": 1080, "error": None,
+        })
+        self.observer._vision_analyzer.analyze = mock.Mock(return_value={
+            "ok": True, "summary": "The screen shows Visual Studio Code.",
+            "detected_context": "code", "sensitive_content_detected": False,
+            "requires_confirmation_before_action": True,
+            "source": "deterministic_test_analyzer", "error": None,
+        })
 
     def test_emergency_stop_blocks_capture(self):
         EmergencyStop.engage(reason="test")
@@ -374,6 +403,15 @@ class TestRequestTrustedReadOnly(unittest.TestCase):
         self.assertIsNotNone(result["request_id"])
         self.assertIn("summary", result)
         self.assertIn("analysis", result)
+        observation = result["data"]["observation"]
+        self.assertEqual(observation["status"], "completed")
+        self.assertEqual(observation["screenshot_method"], "pil_imagegrab")
+        self.assertFalse(observation["sensitive_content_detected"])
+        self.assertFalse(observation["store_screenshot"])
+        self.assertFalse(observation["allow_cloud_analysis"])
+        self.observer._vision_analyzer.analyze.assert_called_once_with(
+            mock.ANY, allow_cloud=False
+        )
 
     def test_no_permission_required(self):
         result = self.observer.request_trusted_read_only("test screen")
@@ -413,34 +451,34 @@ class TestUnknownCommandFallback(unittest.TestCase):
 
 class TestExistingTestsStillPass(unittest.TestCase):
     def test_conversation_buffer_import(self):
-        from src.orin.memory.conversation_buffer import ConversationBuffer
+        from engine.memory.conversation_buffer import ConversationBuffer
         buf = ConversationBuffer()
         buf.append_turn("test", "ok")
         self.assertEqual(buf.count(), 1)
 
     def test_screen_trust_import(self):
-        from src.orin.vision.screen_trust import ScreenTrust
+        from vision.screen_trust import ScreenTrust
         ScreenTrust.reset_to_ask()
         self.assertEqual(ScreenTrust.get_mode(), "ask_each_time")
 
     def test_screen_observer_import(self):
-        from src.orin.vision.screen_observer import ScreenObserver
+        from vision.screen_observer import ScreenObserver
         observer = ScreenObserver()
         req = observer.request_observation("test")
         self.assertTrue(req["requires_permission"])
 
     def test_screen_context_import(self):
-        from src.orin.vision.screen_context import detect_screen_command
+        from vision.screen_context import detect_screen_command
         self.assertTrue(detect_screen_command("screen dekho"))
         self.assertFalse(detect_screen_command("open chrome"))
 
     def test_phase3_bridge_import(self):
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge
+        from engine.app.phase3_command_bridge import Phase3CommandBridge
         result = Phase3CommandBridge.try_handle("")
         self.assertFalse(result["handled"])
 
     def test_runtime_context_import(self):
-        from src.orin.app.runtime_context import get_conversation_buffer, get_screen_trust
+        from engine.app.runtime_context import get_conversation_buffer, get_screen_trust
         buf = get_conversation_buffer()
         self.assertIsInstance(buf, ConversationBuffer)
         trust = get_screen_trust()

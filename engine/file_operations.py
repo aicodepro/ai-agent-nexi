@@ -55,9 +55,15 @@ def speak_pyttsx3(text):
         
         engine = pyttsx3.init('sapi5')
         voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[0].id)
+        voice_id = voices[0].id
+        for v in voices:
+            vl = (v.name or "").lower()
+            if "zira" in vl or "natural" in vl or "neural" in vl:
+                voice_id = v.id
+                break
+        engine.setProperty('voice', voice_id)
         engine.setProperty('volume', 1.0)
-        engine.setProperty('rate', 174)
+        engine.setProperty('rate', 160)
         engine.say(text)
         eel.receiverText(text)
         engine.runAndWait()

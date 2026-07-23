@@ -176,7 +176,22 @@ class UIStateManager:
         # command-acceptance gate always reflects the real lifecycle.
         try:
             from engine.voice_state_machine import get_voice_state_machine
-            _vsm_event = {
+            _status_event = {
+                "wake_detected": "wake_detected",
+                "listening": "listening_started",
+                "listening_started": "listening_started",
+                "waiting_for_speech": "listening_started",
+                "speech_started": "speech_started",
+                "speech_ended": "speech_ended",
+                "asr_started": "asr_started",
+                "asr_result": "asr_result",
+                "speaking_started": "tts_started",
+                "idle": "session_finish",
+                "sleeping": "session_finish",
+            }.get(safe_status.lower())
+            if safe_status.lower() == "asr_result" and canonical == "recognising":
+                _status_event = "asr_started"
+            _vsm_event = _status_event or {
                 "online": "wake_detected",
                 "listening": "listening_started",
                 "waiting_for_speech": "listening_started",

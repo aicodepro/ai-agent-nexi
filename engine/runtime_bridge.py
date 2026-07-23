@@ -43,6 +43,8 @@ EVENT_DASHBOARD_UPDATE = "dashboard_update"
 EVENT_DIAGNOSTICS_REQUEST = "diagnostics_request"
 EVENT_DIAGNOSTICS_RESULT = "diagnostics_result"
 EVENT_TRANSCRIPT = "transcript"
+CONTROL_FINISH_SESSION = "finish_session"
+CONTROL_CAPTURE_FOLLOWUP = "capture_followup"
 
 # Status-to-UI-state mapping with source-aware differentiation
 STATUS_TO_UI_STATE = {
@@ -51,7 +53,7 @@ STATUS_TO_UI_STATE = {
     "listening": "listening",
     EVENT_WAITING_FOR_SPEECH: "waiting_for_speech",
     "waiting_for_speech": "waiting_for_speech",
-    EVENT_SPEECH_STARTED: "listening",
+    EVENT_SPEECH_STARTED: "recognising",
     EVENT_SPEECH_ENDED: "recognising",
     EVENT_ASR_STARTED: "recognising",
     EVENT_ASR_RESULT: "thinking",
@@ -94,6 +96,13 @@ class BridgeEvent:
         if sid:
             data["session_id"] = sid
         return data
+
+
+_bridge_context = threading.local()
+
+
+def current_bridge_session_id() -> str:
+    return str(getattr(_bridge_context, "session_id", "") or "")
    
 
 def _safe_log(msg: str) -> None:
@@ -172,6 +181,62 @@ def post_error(queue, error: str, source: str = "", session_id: str = "") -> boo
     return _put_event(queue, BridgeEvent(type=EVENT_ERROR, error=error, source=source, session_id=session_id))
 
 
+def post_session_finish(control_queue, session_id: str, reason: str = "complete") -> bool:
+    if control_queue is None or not session_id:
+        return False
+    try:
+        control_queue.put_nowait({
+            "type": CONTROL_FINISH_SESSION,
+            "session_id": session_id,
+            "reason": reason or "complete",
+            "created_at": time.time(),
+        })
+        return True
+    except Exception:
+        return False
+
+
+def post_followup_capture(
+    control_queue,
+    session_id: str,
+    *,
+    source: str,
+    reason: str,
+    delay_ms: int = 0,
+) -> bool:
+    if control_queue is None or not session_id:
+        return False
+    try:
+        control_queue.put_nowait({
+            "type": CONTROL_CAPTURE_FOLLOWUP,
+            "session_id": session_id,
+            "source": (source or "voice").strip() or "voice",
+            "reason": (reason or "assistant_question").strip() or "assistant_question",
+            "not_before": time.time() + (max(0, int(delay_ms)) / 1000.0),
+            "created_at": time.time(),
+        })
+        return True
+    except Exception:
+        return False
+
+
+def request_followup_capture(*, source: str, reason: str) -> bool:
+    try:
+        from engine.post_tts_cleanup import get_cooldown_remaining_ms
+        delay_ms = get_cooldown_remaining_ms()
+    except Exception:
+        delay_ms = 0
+    if delay_ms > 0:
+        delay_ms += 50
+    return post_followup_capture(
+        _control_queue,
+        current_bridge_session_id(),
+        source=source,
+        reason=reason,
+        delay_ms=delay_ms,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Consuming (called in Process 1 — UI/Eel)
 # ---------------------------------------------------------------------------
@@ -189,6 +254,8 @@ def handle_bridge_event(event: dict) -> None:
         if not text:
             return
         _safe_log(f"[BRIDGE] received command_text source={source} chars={len(text)} pid={os.getpid()}")
+        previous_session_id = current_bridge_session_id()
+        _bridge_context.session_id = event_session_id
         try:
             _set_ui_state("thinking", source=source, text=text[:80], status=EVENT_THINKING_STARTED, session_id=event_session_id)
             _safe_log("[BRIDGE] dispatch command_bus started")
@@ -205,22 +272,24 @@ def handle_bridge_event(event: dict) -> None:
                 except Exception as speak_err:
                     _safe_log(f"[BRIDGE] fallback_speak_failed reason={type(speak_err).__name__}")
             try:
-                auto_followup = (os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "false") or "").strip().lower() in {"1", "true", "yes", "on"}
+                auto_followup = (os.getenv("NEXI_AUTO_FOLLOWUP_AFTER_TTS", "true") or "").strip().lower() in {"1", "true", "yes", "on"}
                 from engine.followup_manager import has_pending_followup
                 from engine.clarification_manager import has_pending_clarification
                 if auto_followup and (has_pending_followup() or has_pending_clarification()):
-                    _set_ui_state("listening", source="clarification", status="auto_followup", session_id=event_session_id)
+                    _safe_log("[BRIDGE] followup_capture_pending owner=audio_process")
                 else:
                     _set_ui_state("sleep", source="ready", status=EVENT_IDLE, session_id=event_session_id)
-                    _finish_session()
+                    _finish_session(event_session_id)
             except Exception:
                 _set_ui_state("sleep", source="ready", status=EVENT_IDLE, session_id=event_session_id)
-                _finish_session()
+                _finish_session(event_session_id)
         except Exception as e:
             _safe_log(f"[BRIDGE] error reason={type(e).__name__}")
             _set_ui_state("error", source=source, text=type(e).__name__, status=EVENT_ERROR, session_id=event_session_id)
             _set_ui_state("sleep", source="ready", status=EVENT_IDLE, session_id=event_session_id)
-            _finish_session()
+            _finish_session(event_session_id)
+        finally:
+            _bridge_context.session_id = previous_session_id
     elif etype == EVENT_STATUS:
         _handle_status_event(event)
     elif etype == EVENT_WAKE_DETECTED:
@@ -250,6 +319,7 @@ def handle_bridge_event(event: dict) -> None:
             _safe_log("[BRIDGE] asr_result empty — no speech captured")
             _append_log("warn", "SYS: No speech detected. Please try again.")
             _set_ui_state("sleep", source=event.get("source", ""), status=EVENT_IDLE, session_id=event_session_id)
+            _finish_session(event_session_id)
     elif etype == EVENT_ERROR:
         _safe_log(f"[BRIDGE] error reason={event.get('error', '')}")
         _set_ui_state("error", source=event.get("source", "system"), text=event.get("error", ""), status=EVENT_ERROR, session_id=event_session_id)
@@ -280,6 +350,7 @@ def _handle_status_event(event: dict) -> None:
             _safe_log("[BRIDGE] asr_result empty — saving to artifacts/last_empty_asr.wav if applicable")
             _append_log("warn", "SYS: No speech detected. Please try again.")
             _set_ui_state("sleep", source=source, status=EVENT_IDLE, session_id=session_id)
+            _finish_session(session_id)
         return
     state = STATUS_TO_UI_STATE.get(status, "idle")
     if state == "online":
@@ -313,7 +384,8 @@ def _sender_text(text: str) -> bool:
         return False
 
 
-def _finish_session() -> None:
+def _finish_session(session_id: str = "") -> None:
+    post_session_finish(_control_queue, session_id)
     try:
         from engine.wake_session_manager import finish_session
         finish_session("complete")
@@ -388,21 +460,23 @@ def _set_ui_state(state: str, *, source: str = "system", text: str = "", status:
 
 _pump_thread: Optional[threading.Thread] = None
 _pump_running = False
+_control_queue = None
 
 
-def start_ui_bridge_pump(queue, stop_event=None) -> None:
+def start_ui_bridge_pump(queue, stop_event=None, control_queue=None) -> None:
     """Start a daemon thread in the UI process that consumes bridge events.
 
     Must be called BEFORE eel.start(). The thread is a daemon so it dies
     when the process exits; no explicit join needed.
     """
-    global _pump_thread, _pump_running
+    global _pump_thread, _pump_running, _control_queue
     if queue is None:
         _safe_log("[BRIDGE] no queue provided — pump not started")
         return
     if _pump_running:
         return
 
+    _control_queue = control_queue
     _pump_running = True
     _safe_log(f"[BRIDGE] ui pump started pid={os.getpid()} queue=yes")
 

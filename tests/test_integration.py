@@ -5,12 +5,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.orin.control import (
+from engine.control import (
     execute_control_action, match_control_action, list_control_actions,
     EmergencyStop, registry
 )
-from src.orin.control.safety import SandboxPolicy
-from src.orin.control.base import ControlResult
+from engine.control.safety import SandboxPolicy
+from engine.control.base import ControlResult
 
 
 class TestIntegration(unittest.TestCase):
@@ -90,7 +90,7 @@ class TestIntegration(unittest.TestCase):
                           f"{action['name']} has invalid risk level: {action['risk_level']}")
 
     def test_open_app_executes(self):
-        with patch("src.orin.control.process_controller.os.system") as mock_sys:
+        with patch("engine.control.process_controller.os.system") as mock_sys:
             mock_sys.return_value = 0
             result = execute_control_action("open_app", {"app_name": "notepad"})
             self.assertTrue(result.ok)
