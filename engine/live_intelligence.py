@@ -153,6 +153,76 @@ class TavilySearchProvider:
         ][:max_results]
 
 
+def _ddg_result_url(href: str) -> str:
+    parsed = urlparse(href)
+    redirected = parse_qs(parsed.query).get("uddg", [])
+    return unquote(redirected[0]) if redirected else href
+
+
+def _parse_ddg_html(html: str, provider_name: str, max_results: int) -> list[Citation]:
+    """Parse a DuckDuckGo HTML results page into Citations."""
+    soup = BeautifulSoup(html, "html.parser")
+    now = time.time()
+    results: list[Citation] = []
+    for node in soup.select(".result"):
+        link = node.select_one(".result__a")
+        if link is None or not link.get("href"):
+            continue
+        snippet = node.select_one(".result__snippet")
+        results.append(Citation(
+            title=link.get_text(" ", strip=True) or "Untitled",
+            url=_ddg_result_url(str(link.get("href"))),
+            snippet=snippet.get_text(" ", strip=True) if snippet else "",
+            provider=provider_name,
+            retrieved_at=now,
+        ))
+        if len(results) >= max_results:
+            break
+    return results
+
+
+class Crawl4AISearchProvider:
+    """Search via Crawl4AI: renders the results page in a real browser, so
+    JS/lazy-loaded content and light anti-scraping don't blank the results.
+
+    Needs a Chromium install (`python -m playwright install chromium`). If the
+    browser stack is missing, search() raises and LiveSearchService falls
+    through to the plain-HTTP DuckDuckGo provider.
+    """
+
+    name = "crawl4ai"
+
+    def search(self, query: str, *, mode: str, max_results: int) -> list[Citation]:
+        from urllib.parse import quote_plus
+        html = self._fetch_html(f"https://html.duckduckgo.com/html/?q={quote_plus(query)}")
+        return _parse_ddg_html(html, self.name, max_results) if html else []
+
+    @staticmethod
+    def _fetch_html(url: str) -> str:
+        import asyncio
+        from crawl4ai import AsyncWebCrawler
+
+        async def _run() -> str:
+            async with AsyncWebCrawler(verbose=False) as crawler:
+                result = await crawler.arun(url=url)
+                return getattr(result, "html", "") or ""
+
+        try:
+            return asyncio.run(_run())
+        except RuntimeError:
+            # already inside an event loop - run in a dedicated one
+            import threading
+            box: dict[str, str] = {}
+
+            def _worker() -> None:
+                box["html"] = asyncio.new_event_loop().run_until_complete(_run())
+
+            thread = threading.Thread(target=_worker, daemon=True)
+            thread.start()
+            thread.join(timeout=_timeout() * 3)
+            return box.get("html", "")
+
+
 class DuckDuckGoSearchProvider:
     name = "duckduckgo"
 
@@ -161,9 +231,7 @@ class DuckDuckGoSearchProvider:
 
     @staticmethod
     def _result_url(href: str) -> str:
-        parsed = urlparse(href)
-        redirected = parse_qs(parsed.query).get("uddg", [])
-        return unquote(redirected[0]) if redirected else href
+        return _ddg_result_url(href)
 
     def search(self, query: str, *, mode: str, max_results: int) -> list[Citation]:
         response = self.session.get(
@@ -173,24 +241,7 @@ class DuckDuckGoSearchProvider:
             timeout=_timeout(),
         )
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        now = time.time()
-        results: list[Citation] = []
-        for node in soup.select(".result"):
-            link = node.select_one(".result__a")
-            if link is None or not link.get("href"):
-                continue
-            snippet = node.select_one(".result__snippet")
-            results.append(Citation(
-                title=link.get_text(" ", strip=True) or "Untitled",
-                url=self._result_url(str(link.get("href"))),
-                snippet=snippet.get_text(" ", strip=True) if snippet else "",
-                provider=self.name,
-                retrieved_at=now,
-            ))
-            if len(results) >= max_results:
-                break
-        return results
+        return _parse_ddg_html(response.text, self.name, max_results)
 
 
 def configured_providers(session=requests) -> list[Any]:
@@ -206,6 +257,11 @@ def configured_providers(session=requests) -> list[Any]:
     if preferred:
         keyed.sort(key=lambda provider: provider.name != preferred)
     providers.extend(keyed)
+    # Crawl4AI renders the results page in a real browser. Opt-in, because it
+    # costs a browser launch per search; DuckDuckGo stays as the fast fallback.
+    crawl4ai_on = os.getenv("NEXI_CRAWL4AI_SEARCH", "").strip().lower() in {"1", "true", "yes", "on"}
+    if preferred == "crawl4ai" or crawl4ai_on:
+        providers.append(Crawl4AISearchProvider())
     providers.append(DuckDuckGoSearchProvider(session))
     return providers
 
