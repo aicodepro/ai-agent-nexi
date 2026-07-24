@@ -115,7 +115,8 @@ def _capture_console(target: dict[str, Any], window_ms: int = 1200) -> list[str]
 def read_current_page(slots: dict | None = None) -> dict[str, Any]:
     targets = _safe_targets()
     if not targets:
-        return _fail(_NO_BROWSER_MSG, "read_current_page", available=False, title="", url="", text="", partial=True)
+        # No browser open is a valid observation, not a tool failure.
+        return _ok(_NO_BROWSER_MSG, tool="read_current_page", available=False, title="", url="", text="")
     target = targets[0]
     title = target.get("title") or "(untitled)"
     url = target.get("url") or ""
@@ -132,7 +133,7 @@ def list_browser_tabs(slots: dict | None = None) -> dict[str, Any]:
     targets = _safe_targets()
     tabs = [{"title": t.get("title", ""), "url": t.get("url", "")} for t in targets]
     if not tabs:
-        return _fail(_NO_BROWSER_MSG, "list_browser_tabs", available=False, tab_count=0, tabs=[], partial=True)
+        return _ok(_NO_BROWSER_MSG, tool="list_browser_tabs", available=False, tab_count=0, tabs=[])
     preview = "; ".join(t["title"] for t in tabs[:5] if t["title"])
     msg = f"You have {len(tabs)} browser tab{'s' if len(tabs) != 1 else ''} open" + (f": {preview}." if preview else ".")
     return _ok(msg, tool="list_browser_tabs", available=True, tab_count=len(tabs), tabs=tabs)
@@ -141,7 +142,7 @@ def list_browser_tabs(slots: dict | None = None) -> dict[str, Any]:
 def read_browser_console(slots: dict | None = None) -> dict[str, Any]:
     targets = _safe_targets()
     if not targets:
-        return _fail(_NO_BROWSER_MSG, "read_browser_console", available=False, errors=[], partial=True)
+        return _ok(_NO_BROWSER_MSG, tool="read_browser_console", available=False, errors=[])
     try:
         errors = _capture_console(targets[0]) or []
     except Exception:

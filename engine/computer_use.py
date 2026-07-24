@@ -104,8 +104,9 @@ def _perform_type(text: str) -> bool:
 def screen_read(slots: dict | None = None) -> dict[str, Any]:
     text = _capture_screen_text()
     if not text:
-        return _fail("I couldn't read anything on the screen right now.", "screen_read",
-                     available=False, text="", partial=True)
+        # Nothing readable on screen is a valid observation, not a tool failure.
+        return _ok("I couldn't read anything on the screen right now.",
+                   tool="screen_read", available=False, text="")
     excerpt = " ".join(text.split())[:300]
     return _ok(f"On screen: {excerpt}", tool="screen_read", available=True, text=text)
 

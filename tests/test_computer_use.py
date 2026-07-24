@@ -72,7 +72,10 @@ def test_click_executes_after_approval(monkeypatch):
     monkeypatch.setattr(cu, "_perform_click", lambda target: clicked.append(target) or True)
     queued = execute_tool("click_ui_element", {"target": "Submit"})
     assert queued.get("requires_approval") is True
-    done = execute_tool("approve_action", {})
+    # click_ui_element is 'critical' risk: a bare "approve" is intentionally
+    # refused so a stray "yes" cannot fire it. Approve by explicit id.
+    approval_id = aq.list_pending()[0]["id"]
+    done = execute_tool("approve_action", {"id": approval_id})
     assert done["success"] is True and done["verified"] is True
     assert clicked == ["Submit"]
 
