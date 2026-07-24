@@ -52,10 +52,12 @@ def _clean_text(text: str, limit: int = 600) -> str:
     value = str(text or "")
     try:
         from engine.memory_safety import is_safe_to_store, redact_sensitive
-        value = redact_sensitive(value)
+        # check BEFORE redacting: redaction erases the very markers the gate
+        # looks for, so the old order let every secret through.
         safe, _reason = is_safe_to_store(value)
         if not safe:
             return ""
+        value = redact_sensitive(value)
     except Exception:
         pass
     value = re.sub(r"\s+", " ", value).strip()

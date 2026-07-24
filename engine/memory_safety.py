@@ -29,9 +29,23 @@ _OTP_PATTERN = re.compile(
     r'(?i)(otp|one[ -]?time[ -]?pin|verification[ -]?code)\s*[=:]\s*\S+'
 )
 _BEARER_PATTERN = re.compile(r"(?i)Bearer\s+[A-Za-z0-9._\-]{12,}")
-_KEY_LABEL_PATTERN = re.compile(r"(?i)(api[_ -]?key|token|password|secret|cookie)\s*[:=]\s*\S+")
+_KEY_LABEL_PATTERN = re.compile(
+    # separator may be ':', '=' or natural language ("my api key is abc123"),
+    # otherwise spoken/typed secrets slip past is_safe_to_store().
+    r"(?i)(api[_ -]?key|apikey|token|password|passwd|pwd|secret|cookie)"
+    r"(?:\s*[:=]\s*|\s+is\s+|\s+was\s+)\S+"
+)
+
+# Bare mention of a high-signal secret word is enough to refuse storage, even
+# without a "key: value" separator (e.g. "api key leaked"). 'token'/'cookie' are
+# deliberately excluded here - too common in ordinary speech - and still match
+# via _KEY_LABEL_PATTERN when they carry a value.
+_SECRET_WORD_PATTERN = re.compile(
+    r"(?i)\b(api[_ -]?key|apikey|password|passwd|private[_ -]?key|credential[s]?)\b"
+)
 
 _SECRET_PATTERNS = [
+    _SECRET_WORD_PATTERN,
     _KEY_LABEL_PATTERN,
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----", re.I),
     _BEARER_PATTERN,
@@ -53,7 +67,9 @@ _REDACTIONS = [
 _REDACTED_PLACEHOLDER = "[REDACTED]"
 
 
-def redact_sensitive(text: str) -> str:
+def redact_sensitive(text: str) -> str | None:
+    if text is None:
+        return None
     value = str(text or "")
     t = value
     for pattern in _REDACTIONS:

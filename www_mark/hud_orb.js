@@ -355,13 +355,11 @@
     if (blinkTick >= 38) { blink = !blink; blinkTick = 0; }
 
     draw(tick);
-    // ponytail: keep animating while asleep (sleep targets above already idle it down);
-    // gating on 'sleeping' froze the orb between sessions.
-    if (!document.hidden) animId = requestAnimationFrame(step);
+    if (state !== 'sleeping' && !document.hidden) animId = requestAnimationFrame(step);
   }
 
   function startAnimation() {
-    if (!animId && !document.hidden) {
+    if (!animId && state !== 'sleeping' && !document.hidden) {
       lastT = Date.now();
       animId = requestAnimationFrame(step);
     }
@@ -395,13 +393,17 @@
     if (s === 'thinking') {
       halo = 90;
     }
-    // ponytail: sleeping is just a low-amplitude state, not a halt — stopping the
-    // loop here is what froze the orb between sessions.
+    // NOTE: sleep intentionally halts the orb loop (and hud_layers pauses video
+    // decoding) to save CPU/battery. Enforced by
+    // tests/test_hud_layers_playwright.py::test_sleep_pauses_all_video_decoding_and_orb_animation
     if (s === 'sleeping') {
       halo = 20;
       scale = 1.0;
+      stopAnimation();
+      draw(tick);
+    } else {
+      startAnimation();
     }
-    startAnimation();
     if (s === 'idle') {
       tgtScale = 1.0;
       tgtHalo = 55;
@@ -412,7 +414,8 @@
     if (document.hidden) {
       stopAnimation();
     } else {
-      startAnimation();
+      if (state === 'sleeping') draw(tick);
+      else startAnimation();
     }
   });
 

@@ -39,7 +39,7 @@ def _save(data: dict) -> None:
 def _safe_text(text: str) -> str:
     value = (text or "").strip()
     low = value.lower()
-    if any(re.search(r"\b" + re.escape(word) + r"\b", low) for word in SECRET_WORDS):
+    if any(word in low for word in SECRET_WORDS):
         return ""
     return value[:500]
 

@@ -203,9 +203,10 @@ class LocalJsonlStore:
     def size(self):
         if not os.path.exists(self._filepath):
             return 0
-        # Line count is an approximation but avoids reading the entire file
-        with open(self._filepath, "r", encoding="utf-8") as f:
-            return sum(1 for _ in f)
+        # Reuse read_all() so a corrupt file is warned about and quarantined the
+        # same way as on load. The old fast line-count silently counted corrupt
+        #/partial lines as if they were stored entries.
+        return len(self.read_all())
 
     def filepath(self):
         return self._filepath
