@@ -228,7 +228,7 @@ def test_empty_asr_result_finishes_session_once():
     ) as finish:
         handle_bridge_event(event)
 
-    finish.assert_called_once_with("sess-empty")
+    finish.assert_called_once_with("sess-empty", reason="asr_empty")
 
 
 def test_empty_asr_status_finishes_session_once():
@@ -245,7 +245,7 @@ def test_empty_asr_status_finishes_session_once():
     ) as finish:
         handle_bridge_event(event)
 
-    finish.assert_called_once_with("sess-empty-status")
+    finish.assert_called_once_with("sess-empty-status", reason="asr_empty")
 
 
 if __name__ == "__main__":
