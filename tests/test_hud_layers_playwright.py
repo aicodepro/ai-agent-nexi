@@ -41,30 +41,30 @@ _LOAD_ERRORS = []
 
 
 @pytest.fixture(scope="module")
-def page():
-    pw = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
-    with pw.sync_playwright() as p:
+def page(shared_playwright):
+    # Uses the session-wide sync_playwright() (tests/conftest.py) so a second
+    # sync_playwright() in another module can't raise "Sync API inside the
+    # asyncio loop" and cascade errors across the run.
+    p = shared_playwright
+    try:
+        browser = p.chromium.launch()
+    except Exception:
+        # `playwright install` was never run here; Edge is a Chromium channel.
         try:
-            browser = p.chromium.launch()
-        except Exception:
-            # `playwright install` was never run here; Edge is a Chromium channel.
-            try:
-                browser = p.chromium.launch(channel="msedge")
-            except Exception as exc:
-                pytest.skip(f"no chromium/edge available: {type(exc).__name__}")
-        pg = browser.new_page(viewport={"width": 1920, "height": 1080})
-        pg.add_init_script(EEL_MOCK)
-        pg.route("**/eel.js", lambda r: r.fulfill(
-            status=200, content_type="application/javascript", body=""))
-        # Attach BEFORE goto so first-paint errors are captured. One browser for the
-        # whole module — a second sync_playwright() inside the same process raises
-        # "Sync API inside the asyncio loop".
-        pg.on("console", lambda m: _LOAD_ERRORS.append(m.text) if m.type == "error" else None)
-        pg.on("pageerror", lambda e: _LOAD_ERRORS.append(str(e)))
-        pg.goto(INDEX.as_uri())
-        pg.wait_for_timeout(2500)
-        yield pg
-        browser.close()
+            browser = p.chromium.launch(channel="msedge")
+        except Exception as exc:
+            pytest.skip(f"no chromium/edge available: {type(exc).__name__}")
+    pg = browser.new_page(viewport={"width": 1920, "height": 1080})
+    pg.add_init_script(EEL_MOCK)
+    pg.route("**/eel.js", lambda r: r.fulfill(
+        status=200, content_type="application/javascript", body=""))
+    # Attach BEFORE goto so first-paint errors are captured.
+    pg.on("console", lambda m: _LOAD_ERRORS.append(m.text) if m.type == "error" else None)
+    pg.on("pageerror", lambda e: _LOAD_ERRORS.append(str(e)))
+    pg.goto(INDEX.as_uri())
+    pg.wait_for_timeout(2500)
+    yield pg
+    browser.close()
 
 
 def _set_state(page, state):

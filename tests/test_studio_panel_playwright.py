@@ -26,24 +26,25 @@ EEL_MOCK = """
 
 
 @pytest.fixture(scope="module")
-def page():
-    pw = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
-    with pw.sync_playwright() as p:
+def page(shared_playwright):
+    # Shared session sync_playwright() (tests/conftest.py) to avoid the
+    # "Sync API inside the asyncio loop" cascade across browser test modules.
+    p = shared_playwright
+    try:
+        browser = p.chromium.launch()
+    except Exception:
         try:
-            browser = p.chromium.launch()
-        except Exception:
-            try:
-                browser = p.chromium.launch(channel="msedge")
-            except Exception as exc:
-                pytest.skip(f"no chromium/edge: {type(exc).__name__}")
-        pg = browser.new_page(viewport={"width": 1600, "height": 900})
-        pg.add_init_script(EEL_MOCK)
-        pg.route("**/eel.js", lambda r: r.fulfill(
-            status=200, content_type="application/javascript", body=""))
-        pg.goto(INDEX.as_uri())
-        pg.wait_for_timeout(1200)
-        yield pg
-        browser.close()
+            browser = p.chromium.launch(channel="msedge")
+        except Exception as exc:
+            pytest.skip(f"no chromium/edge: {type(exc).__name__}")
+    pg = browser.new_page(viewport={"width": 1600, "height": 900})
+    pg.add_init_script(EEL_MOCK)
+    pg.route("**/eel.js", lambda r: r.fulfill(
+        status=200, content_type="application/javascript", body=""))
+    pg.goto(INDEX.as_uri())
+    pg.wait_for_timeout(1200)
+    yield pg
+    browser.close()
 
 
 def _emit(page, **payload):

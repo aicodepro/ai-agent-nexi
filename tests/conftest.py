@@ -109,3 +109,26 @@ def pytest_runtest_setup(item):
 def pytest_runtest_teardown(item, nextitem):
     os.environ.clear()
     os.environ.update(_PRISTINE_ENVIRON)
+
+
+import pytest
+
+
+@pytest.fixture(scope="session")
+def shared_playwright():
+    """One sync_playwright() per session, shared by every browser-UI test file.
+
+    Two separate hazards are handled here:
+    1. Playwright's sync API can't be started twice across modules in one process
+       ("Sync API inside the asyncio loop") - so we start it once and share it.
+    2. An earlier test (test_chrome_controller) leaves a *running* asyncio loop
+       registered on the main thread and never stops it; Playwright's sync API
+       then refuses to start. The running-loop flag is thread-local, so clearing
+       it here is safe and only affects this (the main) thread.
+    """
+    import asyncio
+    if asyncio.events._get_running_loop() is not None:
+        asyncio.events._set_running_loop(None)
+    pw = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
+    with pw.sync_playwright() as p:
+        yield p
