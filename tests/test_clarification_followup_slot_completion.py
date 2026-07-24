@@ -58,12 +58,16 @@ def test_open_then_youtube_executes_open_website(capsys):
 def test_search_then_ronaldo_executes_search():
     from engine.command_bus import submit_user_command
 
-    with patch("engine.command.speak"), patch("engine.command.safe_eel_call"), patch("engine.local_skills.webbrowser.open") as mock_open:
+    # search now runs through the live intelligence engine, not a browser open;
+    # the point of this test is that the "ronaldo" answer fills the pending slot.
+    with patch("engine.command.speak"), patch("engine.command.safe_eel_call"), \
+         patch("engine.live_intelligence.live_web_search") as mock_search:
+        mock_search.return_value = {"handled": True, "success": True, "message": "Live results"}
         submit_user_command("search", source="typed", mode="typed")
         submit_user_command("ronaldo", source="typed", mode="typed")
 
-    mock_open.assert_called_once()
-    assert "ronaldo" in mock_open.call_args.args[0].lower()
+    mock_search.assert_called_once()
+    assert "ronaldo" in str(mock_search.call_args[0][0]).lower()
 
 
 def test_pending_clarification_allows_single_word_answer(capsys):
