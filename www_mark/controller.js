@@ -2,6 +2,14 @@
   var MAX_LOG_ENTRIES = 300;
   var logEntries = [];
   var lastStateLog = { key: '', at: 0 };
+  var activeVoiceSession = '';
+  var activeVoiceEpoch = 0;
+  var activeVoiceLastAt = 0;
+  var latestVoiceEpoch = 0;
+  var VOICE_SESSION_EXPIRY_MS = 60000;
+  var lastSessionlessSequence = 0;
+  var voiceSessionSequences = Object.create(null);
+  var closedVoiceSessions = Object.create(null);
 
   var ALLOWED_STATES = {
     sleep: 'sleep', idle: 'sleep', sleeping: 'sleep', tts_done: 'sleep',
@@ -60,6 +68,48 @@
   function normalizeState(state) {
     var key = String(state || 'sleep').trim().toLowerCase();
     return ALLOWED_STATES[key] || 'sleep';
+  }
+
+  function positiveSequence(value) {
+    var sequence = Number(value);
+    return Number.isInteger(sequence) && sequence > 0 ? sequence : 0;
+  }
+
+  function acceptOrderedState(sessionId, sequence, rawState, sessionEpoch, createdAt) {
+    if (!sequence) return false;
+
+    if (!sessionId) {
+      if (activeVoiceSession || sequence <= lastSessionlessSequence) return false;
+      lastSessionlessSequence = sequence;
+      return true;
+    }
+
+    var eventCreatedAt = Number(createdAt || 0) * 1000;
+    if (!eventCreatedAt) eventCreatedAt = Date.now();
+    var eventEpoch = Number(sessionEpoch || 0) || (eventCreatedAt / 1000);
+    var authoritativeStart = rawState === 'online' && sequence === 1 && eventEpoch > 0;
+
+    if (activeVoiceSession && sessionId !== activeVoiceSession) {
+      var activeExpired = Date.now() - activeVoiceLastAt >= VOICE_SESSION_EXPIRY_MS;
+      if (!activeExpired || !authoritativeStart || eventEpoch <= activeVoiceEpoch) return false;
+      closedVoiceSessions[activeVoiceSession] = activeVoiceEpoch;
+      activeVoiceSession = '';
+      activeVoiceEpoch = 0;
+      activeVoiceLastAt = 0;
+    }
+    if (!activeVoiceSession) {
+      if (closedVoiceSessions[sessionId]) return false;
+      if (!authoritativeStart || eventEpoch <= latestVoiceEpoch) return false;
+      activeVoiceSession = sessionId;
+      activeVoiceEpoch = eventEpoch;
+      latestVoiceEpoch = eventEpoch;
+    }
+
+    var lastSequence = voiceSessionSequences[sessionId] || 0;
+    if (sequence <= lastSequence) return false;
+    voiceSessionSequences[sessionId] = sequence;
+    activeVoiceLastAt = eventCreatedAt;
+    return true;
   }
 
   function addLog(level, msg) {
@@ -270,10 +320,16 @@
 
   window.nexiApplyState = function (payload) {
     payload = parsePayload(payload);
-    var state = normalizeState(payload.state || payload.status || 'sleep');
+    var rawState = String(payload.state || payload.status || '').trim().toLowerCase();
+    var sessionId = String(payload.session_id || '');
+    var sequence = positiveSequence(payload.sequence);
+    var sessionEpoch = Number(payload.session_epoch || 0);
+    var createdAt = Number(payload.created_at || 0);
+    if (!acceptOrderedState(sessionId, sequence, rawState, sessionEpoch, createdAt)) return false;
+
+    var state = normalizeState(rawState);
     var label = payload.label || payload.message || STATE_LABELS[state] || state.toUpperCase();
     var source = payload.source || 'system';
-    var sessionId = payload.session_id || '';
 
     updateMainHudState(state, label);
     updateBottomState(state, label);
@@ -285,9 +341,17 @@
     applyToneClass(payload.tone || (payload.presence && payload.presence.tone));
     if (payload.presence) renderPresence(payload.presence);
 
-    window.__nexiLastState = { state: state, label: label, source: source, sessionId: sessionId, ts: Date.now() };
+    window.__nexiLastState = { state: state, rawState: rawState, label: label, source: source, sessionId: sessionId, sessionEpoch: sessionEpoch, sequence: sequence, ts: Date.now() };
 
-    try { eel.ui_state_ack(sessionId, state, label)(); } catch (e) {}
+    try { eel.ui_state_ack(sessionId, rawState, sequence, label)(); } catch (e) {}
+
+    if (sessionId && state === 'sleep') {
+      closedVoiceSessions[sessionId] = true;
+      activeVoiceSession = '';
+      activeVoiceEpoch = 0;
+      activeVoiceLastAt = 0;
+    }
+    return true;
   };
 
   window.updateNexiState = function (payload) {
@@ -364,8 +428,12 @@
   window.updateSpeechCapsule = function () {};
   window.hideSpeechCapsule = function () {};
   window.setContextIndicator = function () {};
-  window.DisplayMessage = function (m) { window.nexiApplyState({ state: 'saying', source: 'tts' }); };
-  window.ShowHood = function () { window.nexiApplyState({ state: 'sleep', source: 'ready' }); };
+  window.DisplayMessage = function (m) {
+    if (!m) return;
+    var el = document.getElementById('nexi-response');
+    if (el) el.textContent = 'NEXI: ' + String(m).slice(0, 300);
+  };
+  window.ShowHood = function () {};
   window.setStatus = function (t) {
     var text = String(t || '').trim();
     if (text) {

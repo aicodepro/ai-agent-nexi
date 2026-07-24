@@ -76,7 +76,17 @@ def _perform_click(target: str) -> bool:
 
 
 def _perform_type(text: str) -> bool:
-    """Type text into the focused field. False if no backend available."""
+    """Set the focused semantic value first; raw keyboard injection is fallback."""
+    try:
+        import uiautomation as auto
+
+        focused = auto.GetFocusedControl()
+        pattern = focused.GetValuePattern() if focused is not None else None
+        if pattern is not None:
+            pattern.SetValue(text)
+            return True
+    except Exception:
+        pass
     try:
         import pyautogui
         pyautogui.typewrite(text, interval=0.01)
@@ -94,8 +104,8 @@ def _perform_type(text: str) -> bool:
 def screen_read(slots: dict | None = None) -> dict[str, Any]:
     text = _capture_screen_text()
     if not text:
-        return _ok("I couldn't read anything on the screen right now.", tool="screen_read",
-                   available=False, text="")
+        return _fail("I couldn't read anything on the screen right now.", "screen_read",
+                     available=False, text="", partial=True)
     excerpt = " ".join(text.split())[:300]
     return _ok(f"On screen: {excerpt}", tool="screen_read", available=True, text=text)
 

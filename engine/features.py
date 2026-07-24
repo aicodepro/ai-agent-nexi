@@ -97,10 +97,10 @@ dictapp = {"commandprompt":"cmd","paint":"paint","word":"winword","excel":"excel
 def playAssistantSound():
     music_dir = "www\\assets\\audio\\start_sound.mp3"
     try:
-        from playsound import playsound as _ps
-        _ps(music_dir)
-    except ImportError:
-        print("[SOUND] playsound not available, skipping startup sound")
+        from engine.voice.speech_controller import play_audio_file
+        play_audio_file(music_dir)
+    except Exception as exc:
+        print(f"[SOUND] startup sound skipped reason={type(exc).__name__}")
 
     
 def openCommand(query):

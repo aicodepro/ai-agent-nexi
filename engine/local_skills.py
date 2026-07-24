@@ -7,7 +7,6 @@ import webbrowser
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote_plus
 
 from engine.workflow_state import start_workflow, get_workflow, update_workflow, clear_workflow
 
@@ -177,8 +176,7 @@ def _open_website(site: str) -> str:
 
 
 def _web_search(query: str) -> str:
-    webbrowser.open("https://www.google.com/search?q=" + quote_plus(query.strip()))
-    return f"Searching the web for {query.strip()}."
+    return str(web_search(query).get("message") or "I couldn't verify this with live sources right now.")
 
 
 def open_app(app_name: str) -> dict:
@@ -194,9 +192,10 @@ def open_website(url: str = "", site: str = "") -> dict:
     return {"success": True, "message": message, "tool": "open_website", "verified": True}
 
 
-def web_search(query: str) -> dict:
-    message = _web_search(query)
-    return {"success": True, "message": message, "tool": "web_search", "verified": True}
+def web_search(query: str, mode: str = "search") -> dict:
+    from engine.live_intelligence import live_web_search
+
+    return live_web_search(query, mode=mode)
 
 
 def _take_screenshot() -> str:

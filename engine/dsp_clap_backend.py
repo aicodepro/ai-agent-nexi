@@ -199,7 +199,8 @@ class DspClapBackend:
         elif hf_ratio < self._hf_ratio_threshold:
             reason = f"low_hf_{hf_ratio:.2f}"
         else:
-            # Check for sustained speech-like energy
+            # All threshold checks passed — this is a transient event.
+            # First, rule out sustained speech:
             if rms > self._rms_threshold * 0.5 and peak_ratio < self._peak_ratio_threshold * 0.8:
                 if self._speech_start_time is None:
                     self._speech_start_time = now
@@ -207,16 +208,9 @@ class DspClapBackend:
                 if speech_dur > self._speech_reject_ms:
                     reason = f"sustained_speech_like_{speech_dur:.0f}ms"
                 else:
-                    self._event_counter += 1
-                    is_clap = True
-                    confidence = min(1.0, (rms / self._rms_threshold) * 0.3 +
-                                    (peak_ratio / self._peak_ratio_threshold) * 0.3 +
-                                    (hf_ratio / self._hf_ratio_threshold) * 0.2 +
-                                    (peak_norm / self._peak_threshold) * 0.2)
-                    reason = f"clap_detected_id={self._event_counter}"
-                    self._last_event_time = now
-                    self._speech_start_time = None
+                    reason = f"tracking_speech_{speech_dur:.0f}ms"
             else:
+                # Not sustained speech. All thresholds met → genuine clap.
                 self._speech_start_time = None
                 self._event_counter += 1
                 is_clap = True

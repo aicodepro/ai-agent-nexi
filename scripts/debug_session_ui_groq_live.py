@@ -151,9 +151,18 @@ check("provider order is a list", isinstance(order, list) and len(order) > 0)
 header("9. UI State ACK module")
 from engine.ui_state_ack import on_ui_state_ack, get_last_ack, reset_acks
 reset_acks()
-on_ui_state_ack("online", "hotword", time.time())
+on_ui_state_ack(
+    session_id="hotword",
+    state="online",
+    sequence=1,
+    created_at=time.time(),
+)
 acks = get_last_ack()
-check("ACK stored for online|hotword", "online|hotword" in acks, f"keys={list(acks.keys())}")
+check(
+    "ACK stored for exact session/state/sequence",
+    "session|hotword|online|1" in acks,
+    f"keys={list(acks.keys())}",
+)
 reset_acks()
 
 header("10. Bridge events include session_id")

@@ -20,6 +20,7 @@ import time
 import requests
 import pyautogui
 import tempfile
+import uuid
 from bs4 import BeautifulSoup
 from typing import Union
 from os import getcwd
@@ -91,7 +92,7 @@ def _set_ui_state(state: str, source: str = "system", text: str = "") -> None:
     global _current_ui_state
     try:
         from engine.ui_state_manager import canonical_state, emit_state
-        from engine.runtime_bridge import current_bridge_session_id
+        from engine.runtime_bridge import current_bridge_session_epoch, current_bridge_session_id
         normalized_state = canonical_state(state)
         emit_state(
             normalized_state,
@@ -99,6 +100,7 @@ def _set_ui_state(state: str, source: str = "system", text: str = "") -> None:
             text=text,
             status=state,
             session_id=current_bridge_session_id(),
+            session_epoch=current_bridge_session_epoch(),
         )
     except Exception:
         allowed = {"sleep", "listening", "recognising", "thinking", "saying", "error"}
@@ -296,6 +298,30 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
     display_text, voice_text = _prepare_tts_texts(text)
     if spoken_override:
         voice_text = str(spoken_override)
+    try:
+        from engine.command_bus import current_request_id, current_source
+
+        request_id = current_request_id()
+        if request_id:
+            from engine.response_coordinator import get_response_coordinator
+            from engine.runtime_bridge import current_bridge_session_epoch, current_bridge_session_id
+
+            receipt = get_response_coordinator().accept(
+                display_text,
+                spoken_text=voice_text,
+                request_id=request_id,
+                session_id=current_bridge_session_id(),
+                session_epoch=current_bridge_session_epoch(),
+                source=current_source(),
+                metadata={"handler_reason": handler_reason},
+            )
+            if not receipt.accepted:
+                print(f"[RESPONSE] suppressed reason={receipt.reason} request={request_id}", flush=True)
+                return
+            display_text = str(receipt.response.get("display_text") or "")
+            voice_text = str(receipt.response.get("spoken_text") or display_text)
+    except Exception as exc:
+        print(f"[RESPONSE] coordinator_failed reason={type(exc).__name__}", flush=True)
     tone_config = None
     try:
         from engine.tone_manager import ToneManager, tone_for_reason
@@ -333,11 +359,55 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
     if not enabled:
         print("[TTS] disabled", flush=True)
         safe_eel_call("receiverText", display_text)
+        try:
+            from engine.runtime_bridge import current_bridge_session_id
+            disabled_voice_session = current_bridge_session_id()
+        except Exception:
+            disabled_voice_session = ""
         if expects_followup:
             _maybe_start_auto_followup()
-        else:
+        elif not disabled_voice_session:
             _set_ui_state("sleep", source="ready")
         return
+    lifecycle_session_id = ""
+    lifecycle_producer_id = uuid.uuid4().hex
+    lifecycle_global_lease_id = ""
+    lifecycle_started = False
+    lifecycle_heartbeat_stop = threading.Event()
+    lifecycle_heartbeat_thread = None
+    try:
+        from engine.runtime_bridge import current_bridge_session_id, notify_tts_started
+        lifecycle_session_id = current_bridge_session_id()
+        if lifecycle_session_id:
+            lifecycle_started = notify_tts_started(lifecycle_session_id, lifecycle_producer_id)
+        else:
+            from engine.runtime_bridge import notify_global_tts_started
+            lifecycle_global_lease_id = notify_global_tts_started()
+            lifecycle_started = bool(lifecycle_global_lease_id)
+        if lifecycle_started:
+            heartbeat_seconds = max(0.01, _env_float("NEXI_TTS_HEARTBEAT_SECONDS", 5.0))
+
+            def _heartbeat_tts_lease():
+                from engine.runtime_bridge import notify_global_tts_heartbeat, notify_tts_heartbeat
+                while not lifecycle_heartbeat_stop.wait(heartbeat_seconds):
+                    posted = (
+                        notify_tts_heartbeat(lifecycle_session_id, lifecycle_producer_id)
+                        if lifecycle_session_id
+                        else notify_global_tts_heartbeat(lifecycle_global_lease_id)
+                    )
+                    if not posted:
+                        print(f"[TTS] heartbeat_enqueue_failed session={lifecycle_session_id} lease={lifecycle_global_lease_id}", flush=True)
+                        return
+
+            lifecycle_heartbeat_thread = threading.Thread(
+                target=_heartbeat_tts_lease,
+                daemon=True,
+                name="tts-lifecycle-heartbeat",
+            )
+            lifecycle_heartbeat_thread.start()
+    except Exception:
+        lifecycle_session_id = ""
+        lifecycle_started = False
     set_speaking(True)
     try:
         from engine.turn_manager import mark_assistant_speaking
@@ -366,7 +436,8 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
             safe_eel_call("receiverText", display_text)
             print(f"[TTS] error={type(e).__name__}", flush=True)
     finally:
-        if should_interrupt():
+        was_interrupted = should_interrupt()
+        if was_interrupted:
             print(f"[TTS] interrupted source={get_interrupt_source() or 'unknown'}", flush=True)
             clear_interrupt()
         set_speaking(False)
@@ -380,12 +451,69 @@ def speak(text, voice="Matthew", *, handler_reason: str = ""):
             get_voice_state_machine().transition("tts_finished", source="tts")
         except Exception:
             pass
+        lifecycle_order_lock = threading.Lock()
+        lifecycle_finish_posted = False
+        lifecycle_cooldown_pending = False
+
+        def _notify_cooldown_in_order():
+            nonlocal lifecycle_cooldown_pending
+            with lifecycle_order_lock:
+                if not lifecycle_finish_posted:
+                    lifecycle_cooldown_pending = True
+                    return
+            if lifecycle_session_id:
+                from engine.runtime_bridge import notify_cooldown_complete
+                notify_cooldown_complete(lifecycle_session_id, lifecycle_producer_id)
+            else:
+                from engine.runtime_bridge import notify_global_cooldown_complete
+                notify_global_cooldown_complete(lifecycle_global_lease_id)
+
         try:
             from engine.post_tts_cleanup import post_tts_cleanup
-            post_tts_cleanup()
+            if lifecycle_started:
+                post_tts_cleanup(on_complete=_notify_cooldown_in_order)
+            else:
+                post_tts_cleanup()
         except Exception:
             pass
-        if not expects_followup:
+        if lifecycle_started:
+            try:
+                lifecycle_heartbeat_stop.set()
+                if lifecycle_heartbeat_thread is not None:
+                    lifecycle_heartbeat_thread.join(timeout=0.25)
+                if was_interrupted:
+                    if lifecycle_session_id:
+                        from engine.runtime_bridge import notify_tts_interrupted
+                        finish_posted = notify_tts_interrupted(lifecycle_session_id, lifecycle_producer_id)
+                    else:
+                        from engine.runtime_bridge import notify_global_tts_interrupted
+                        finish_posted = notify_global_tts_interrupted(lifecycle_global_lease_id)
+                else:
+                    if lifecycle_session_id:
+                        from engine.runtime_bridge import notify_tts_finished
+                        finish_posted = notify_tts_finished(lifecycle_session_id, lifecycle_producer_id)
+                    else:
+                        from engine.runtime_bridge import notify_global_tts_finished
+                        finish_posted = notify_global_tts_finished(lifecycle_global_lease_id)
+                with lifecycle_order_lock:
+                    lifecycle_finish_posted = finish_posted
+                    notify_pending_cooldown = finish_posted and lifecycle_cooldown_pending
+                if notify_pending_cooldown:
+                    _notify_cooldown_in_order()
+                if not finish_posted:
+                    print(f"[TTS] terminal_enqueue_failed session={lifecycle_session_id} lease={lifecycle_global_lease_id}", flush=True)
+                    if lifecycle_session_id:
+                        from engine.runtime_bridge import current_control_queue, post_session_finish
+                        if not post_session_finish(
+                            current_control_queue(),
+                            lifecycle_session_id,
+                            reason="tts_terminal_enqueue_failed",
+                            force=True,
+                        ):
+                            print(f"[TTS] finish_fallback_failed session={lifecycle_session_id} lease_expiry_pending=true", flush=True)
+            except Exception:
+                pass
+        if not expects_followup and not lifecycle_session_id:
             _set_ui_state("sleep", source="ready")
         safe_eel_call("hideSpeechCapsule")
         print("[TTS] speak_finished", flush=True)
@@ -826,16 +954,17 @@ def _should_try_output_command(query: str) -> bool:
 
 
 def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
+    """Compatibility name for the live Router V3 dispatch boundary."""
     if (os.getenv("NEXI_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
         return False
     try:
-        from engine.groq_intent_router_v2 import route_intent_v2
+        from engine.router_v3 import route_intent_v3
 
-        decision = route_intent_v2(query, source=command_source)
+        decision = route_intent_v3(query, source=command_source)
     except ImportError:
         return False
     except Exception as e:
-        print(f"[INTENT_V2] failed reason={type(e).__name__}", flush=True)
+        print(f"[INTENT_V3] failed reason={type(e).__name__}", flush=True)
         try:
             from engine.demo_mode import DemoMode
             if DemoMode.is_active():
@@ -853,7 +982,7 @@ def _handle_product_intelligence_v2(query: str, command_source: str) -> bool:
     route = str(decision.get("route") or "")
     intent = str(decision.get("intent") or "")
     slots = decision.get("slots") if isinstance(decision.get("slots"), dict) else {}
-    print(f"[INTENT_V2] dispatch route={route} intent={intent}", flush=True)
+    print(f"[INTENT_V3] dispatch route={route} intent={intent}", flush=True)
 
     if route in {"workflow", "system", "memory", "feature_gap"}:
         from engine.tool_registry import get_tool
@@ -2209,7 +2338,7 @@ except Exception:
 
 
 @eel.expose
-def ui_state_ack(session_id="", state="", label=""):
+def ui_state_ack(session_id="", state="", sequence=0, label="", created_at=0.0):
     """
     Called by Mark/legacy UI JavaScript after DOM state is actually updated.
 
@@ -2218,23 +2347,29 @@ def ui_state_ack(session_id="", state="", label=""):
     """
     session_id = session_id or ""
     state = state or ""
+    try:
+        sequence = int(sequence or 0)
+    except (TypeError, ValueError):
+        sequence = 0
     label = label or ""
 
     try:
         if _on_ui_state_ack is not None:
             import time
             _on_ui_state_ack(
+                session_id=session_id,
                 state=state,
-                source=session_id,
-                created_at=time.time(),
+                sequence=sequence,
+                created_at=float(created_at or time.time()),
                 label=label,
             )
 
-        print(f"[UI_ACK] session={session_id} state={state} label={label}")
+        print(f"[UI_ACK] session={session_id} state={state} sequence={sequence} label={label}")
         return {
             "ok": True,
             "session_id": session_id,
             "state": state,
+            "sequence": sequence,
             "label": label,
         }
 
@@ -2244,6 +2379,7 @@ def ui_state_ack(session_id="", state="", label=""):
             "ok": False,
             "session_id": session_id,
             "state": state,
+            "sequence": sequence,
             "label": label,
             "error": f"{type(exc).__name__}:{exc}",
         }

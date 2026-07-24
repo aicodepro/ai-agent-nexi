@@ -9,6 +9,7 @@ import importlib
 
 # (module, module-level reset function) — confirmed to exist.
 _RESETS = [
+    ("engine.wake_session_manager", "reset_transient_state"),
     ("engine.workflow_state", "clear_workflow"),
     ("engine.conversation_context", "clear_recent_context"),
     ("engine.app.runtime_context", "reset_runtime"),

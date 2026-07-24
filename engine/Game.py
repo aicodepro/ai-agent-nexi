@@ -1,25 +1,12 @@
-import pyttsx3
 import speech_recognition as sr
 import random
-import eel
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)
-engine.setProperty("rate", 170)
 
 def speak(text):
     try:
-        text = str(text)
-        engine = pyttsx3.init('sapi5')
-        voices = engine.getProperty('voices') 
-        engine.setProperty('voice', voices[0].id)
-        engine.setProperty('rate', 174)
-        eel.DisplayMessage(text)
-        engine.say(text)
-        eel.receiverText(text)
-        engine.runAndWait()
+        from engine.command import speak as authoritative_speak
+        authoritative_speak(str(text))
     except Exception as e:
-        speak(f"Error in speak function: {e}")
+        print(f"Error in game speak function: {e}")
 
 def takeCommand():
     r = sr.Recognizer()

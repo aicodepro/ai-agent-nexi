@@ -76,12 +76,17 @@ class LocalMemoryStore:
         self._lock = lock_for_path(self._filepath)
         self._data = {}
         self._load_error = ""
+        self._mtime = 0.0
         with self._lock:
             self._load()
 
     def _load(self):
         if os.path.exists(self._filepath):
             try:
+                mtime = os.path.getmtime(self._filepath)
+                if mtime <= self._mtime and self._data:
+                    return
+                self._mtime = mtime
                 with open(self._filepath, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 if not isinstance(data, dict):
@@ -96,6 +101,7 @@ class LocalMemoryStore:
 
     def _save(self):
         atomic_write_json(self._filepath, self._data)
+        self._mtime = os.path.getmtime(self._filepath) if os.path.exists(self._filepath) else 0
 
     def get(self, key, default=None):
         with self._lock:
@@ -195,7 +201,11 @@ class LocalJsonlStore:
         return entries[-limit:]
 
     def size(self):
-        return len(self.read_all())
+        if not os.path.exists(self._filepath):
+            return 0
+        # Line count is an approximation but avoids reading the entire file
+        with open(self._filepath, "r", encoding="utf-8") as f:
+            return sum(1 for _ in f)
 
     def filepath(self):
         return self._filepath

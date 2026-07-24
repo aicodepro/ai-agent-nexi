@@ -130,7 +130,11 @@ COMMAND_LISTEN_TIMEOUT_SECONDS = _env_float(
     "COMMAND_LISTEN_TIMEOUT_SECONDS",
     _env_float("ASR_MAX_RECORD_SECONDS", _env_float("VAD_MAX_COMMAND_SECONDS", _env_float("NEXI_COMMAND_MAX_SPEECH_MS", 30000) / 1000.0)),
 )
-NO_SPEECH_TIMEOUT_SECONDS = _env_float("NEXI_COMMAND_NO_SPEECH_TIMEOUT_MS", 20000) / 1000.0
+NO_SPEECH_TIMEOUT_SECONDS = _env_float("NEXI_COMMAND_NO_SPEECH_TIMEOUT_MS", 15000) / 1000.0
+_BARGE_IN_TRANSACTION_TIMEOUT_SECONDS = max(
+    1.0,
+    _env_float("NEXI_BARGE_IN_TRANSACTION_TIMEOUT_SECONDS", 15.0),
+)
 VAD_MAX_COMMAND_SECONDS = COMMAND_LISTEN_TIMEOUT_SECONDS
 ASR_MAX_RECORD_SECONDS = _env_float("ASR_MAX_RECORD_SECONDS", VAD_MAX_COMMAND_SECONDS)
 ASR_SILENCE_TIMEOUT_MS = _env_int("ASR_SILENCE_TIMEOUT_MS", VAD_SILENCE_END_MS)
@@ -291,10 +295,9 @@ def _save_asr_request_wav(audio_wav_bytes: bytes) -> None:
 
 
 def _is_speaking() -> bool:
-    """True while Nexi is producing TTS output (used for wake barge-in)."""
+    """Audio-process truth for active TTS, updated through the control queue."""
     try:
-        from engine.interrupt_controller import is_speaking
-        return bool(is_speaking())
+        return bool(get_session_manager().is_tts_active())
     except Exception:
         return False
 
@@ -342,7 +345,14 @@ class AudioWakePipeline:
         self._last_start_error = ""
         self._capture_lock = threading.Lock()
         self._audio_received_logged = False
+        self._last_frame_time = 0.0
+        self._mic_disconnect_logged = False
+        self._mic_reconnect_attempts = 0
+        self._last_mic_retry = 0.0
         self._last_capture_stats: dict = {}
+        self._pending_session_finishes: dict[str, str] = {}
+        self._pending_barge_in: dict | None = None
+        self._pending_tts_watchdog: dict | None = None
 
         # Per-frame wake state
         self._consecutive_hits = 0
@@ -419,6 +429,73 @@ class AudioWakePipeline:
             return bool(self._enable_clap)
         return _clap_enabled_env() or self._clap_manager is not None
 
+    def _maybe_capture_pending_barge_in(self) -> bool:
+        pending = self._pending_barge_in
+        if not pending or not all(
+            pending.get(flag) for flag in ("acked", "terminal", "cooldown")
+        ):
+            return False
+        session_id = str(pending.get("session_id") or "")
+        self._pending_session_finishes.pop(session_id, None)
+        self._pending_barge_in = None
+        return bool(self._capture_barge_in(pending))
+
+    def _expire_pending_barge_in(self) -> bool:
+        pending = self._pending_barge_in
+        if not pending or time.time() < float(pending.get("deadline") or 0.0):
+            return False
+        session_id = str(pending.get("session_id") or "")
+        self._pending_barge_in = None
+        manager = get_session_manager()
+        _safe_log(f"[BARGE_IN] transaction_expired id={session_id}")
+        if session_id and manager.is_current(session_id):
+            if manager.is_tts_active() or manager.is_tts_cooldown_active():
+                self._pending_session_finishes[session_id] = "barge_in_transaction_timeout"
+            else:
+                finish_session("barge_in_transaction_timeout")
+        return True
+
+    def _dispatch_tts_watchdog_request(self) -> bool:
+        if self._pending_tts_watchdog is not None:
+            return False
+        manager = get_session_manager()
+        request = manager.take_tts_watchdog_request()
+        if request is None:
+            return False
+        if self._command_queue is None:
+            manager.retry_tts_watchdog_request(str(request.get("request_id") or ""))
+            return False
+        try:
+            self._command_queue.put_nowait(dict(request))
+        except Exception:
+            manager.retry_tts_watchdog_request(str(request.get("request_id") or ""))
+            return False
+        self._pending_tts_watchdog = {
+            **request,
+            "acked": False,
+            "terminal": False,
+            "cooldown": False,
+        }
+        return True
+
+    def _maybe_complete_tts_watchdog(self) -> bool:
+        pending = self._pending_tts_watchdog
+        if not pending or not all(
+            pending.get(flag) for flag in ("acked", "terminal", "cooldown")
+        ):
+            return False
+        manager = get_session_manager()
+        request_id = str(pending.get("request_id") or "")
+        if not manager.complete_tts_watchdog(request_id):
+            return False
+        self._pending_tts_watchdog = None
+        if pending.get("scope") == "voice":
+            session_id = str(pending.get("session_id") or "")
+            if session_id and manager.is_current(session_id):
+                self._pending_session_finishes.pop(session_id, None)
+                finish_session(str(pending.get("reason") or "tts_watchdog_stopped"))
+        return True
+
     def _drain_control_events(self) -> int:
         if self._control_queue is None:
             return 0
@@ -435,18 +512,135 @@ class AudioWakePipeline:
                 continue
             session_id = str(event.get("session_id") or "")
             manager = get_session_manager()
-            if event.get("type") == "capture_followup":
+            event_type = str(event.get("type") or "")
+            if event_type == "turn_progress":
+                if not manager.renew_turn_progress(session_id):
+                    _safe_log(f"[SESSION] stale_progress_ignored id={session_id}")
+                continue
+            if event_type == "barge_in_ack":
+                pending = self._pending_barge_in
+                try:
+                    session_epoch = float(event.get("session_epoch") or 0.0)
+                except (TypeError, ValueError):
+                    session_epoch = 0.0
+                if (
+                    pending
+                    and session_id == pending.get("session_id")
+                    and session_epoch == float(pending.get("session_epoch") or 0.0)
+                    and str(event.get("request_id") or "") == pending.get("request_id")
+                ):
+                    if bool(event.get("accepted", False)):
+                        continuation_token = str(event.get("continuation_token") or "")
+                        if continuation_token:
+                            pending["continuation_token"] = continuation_token
+                            pending["acked"] = True
+                            self._maybe_capture_pending_barge_in()
+                    else:
+                        self._pending_barge_in = None
+                continue
+            if event_type == "tts_watchdog_ack":
+                pending = self._pending_tts_watchdog
+                if pending and all(
+                    (
+                        str(event.get("request_id") or "") == str(pending.get("request_id") or ""),
+                        session_id == str(pending.get("session_id") or ""),
+                        float(event.get("session_epoch") or 0.0) == float(pending.get("session_epoch") or 0.0),
+                        str(event.get("lease_id") or "") == str(pending.get("lease_id") or ""),
+                        str(event.get("producer_id") or "") == str(pending.get("producer_id") or ""),
+                    )
+                ):
+                    pending["acked"] = bool(event.get("stopped", False))
+                    self._maybe_complete_tts_watchdog()
+                continue
+            if event_type in {"global_tts_started", "global_tts_heartbeat", "global_tts_finished", "global_tts_interrupted", "global_cooldown_complete"}:
+                lease_id = str(event.get("lease_id") or "")
+                try:
+                    sequence = int(event.get("sequence") or 0)
+                except (TypeError, ValueError):
+                    sequence = 0
+                if not manager.apply_global_tts_lifecycle(lease_id, event_type, sequence):
+                    _safe_log(f"[TTS] stale_global_lifecycle_ignored lease={lease_id} type={event_type} sequence={sequence}")
+                else:
+                    pending_watchdog = self._pending_tts_watchdog
+                    if (
+                        pending_watchdog
+                        and pending_watchdog.get("scope") == "global"
+                        and pending_watchdog.get("lease_id") == lease_id
+                    ):
+                        if event_type == "global_tts_interrupted":
+                            pending_watchdog["terminal"] = True
+                        elif event_type == "global_cooldown_complete":
+                            pending_watchdog["cooldown"] = True
+                        self._maybe_complete_tts_watchdog()
+                continue
+            if event_type in {"tts_started", "tts_heartbeat", "tts_finished", "tts_interrupted", "cooldown_complete"}:
+                if not session_id or not manager.is_current(session_id):
+                    if session_id:
+                        _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
+                    continue
+                try:
+                    sequence = int(event.get("sequence") or 0)
+                except (TypeError, ValueError):
+                    sequence = 0
+                producer_id = str(event.get("producer_id") or "")
+                if not manager.apply_tts_lifecycle(session_id, event_type, sequence, producer_id):
+                    _safe_log(f"[SESSION] stale_lifecycle_ignored id={session_id} type={event_type} sequence={sequence}")
+                    continue
+                _safe_log(f"[SESSION] lifecycle_applied id={session_id} type={event_type} sequence={sequence}")
+                if event_type == "tts_interrupted" and self._pending_barge_in:
+                    if self._pending_barge_in.get("session_id") == session_id:
+                        self._pending_barge_in["terminal"] = True
+                        self._maybe_capture_pending_barge_in()
+                if event_type == "tts_interrupted" and self._pending_tts_watchdog:
+                    pending_watchdog = self._pending_tts_watchdog
+                    if (
+                        pending_watchdog.get("scope") == "voice"
+                        and pending_watchdog.get("session_id") == session_id
+                        and str(pending_watchdog.get("producer_id") or "") == producer_id
+                    ):
+                        pending_watchdog["terminal"] = True
+                        self._maybe_complete_tts_watchdog()
+                if event_type == "cooldown_complete":
+                    pending_watchdog = self._pending_tts_watchdog
+                    if (
+                        pending_watchdog
+                        and pending_watchdog.get("scope") == "voice"
+                        and pending_watchdog.get("session_id") == session_id
+                        and str(pending_watchdog.get("producer_id") or "") == producer_id
+                    ):
+                        pending_watchdog["cooldown"] = True
+                        self._maybe_complete_tts_watchdog()
+                    pending = self._pending_barge_in
+                    if pending and pending.get("session_id") == session_id:
+                        pending["cooldown"] = True
+                        self._maybe_capture_pending_barge_in()
+                    else:
+                        reason = self._pending_session_finishes.pop(session_id, "")
+                        if reason:
+                            finish_session(reason)
+                continue
+            if event_type == "capture_followup":
                 if session_id and manager.is_current(session_id):
                     self._capture_followup(event)
                 elif session_id:
                     _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
                 continue
-            if event.get("type") != "finish_session":
+            if event_type != "finish_session":
                 continue
             if session_id and manager.is_current(session_id):
-                finish_session(str(event.get("reason") or "complete"))
+                reason = str(event.get("reason") or "complete")
+                if bool(event.get("force", False)):
+                    self._pending_session_finishes.pop(session_id, None)
+                    finish_session(reason)
+                elif manager.is_tts_active() or manager.is_tts_cooldown_active():
+                    self._pending_session_finishes[session_id] = reason
+                    _safe_log(f"[SESSION] finish_deferred id={session_id} reason=tts_lifecycle")
+                else:
+                    finish_session(reason)
             elif session_id:
                 _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
+        self._expire_pending_barge_in()
+        self._dispatch_tts_watchdog_request()
         return handled
 
     def _capture_followup(self, event: dict) -> bool:
@@ -496,6 +690,15 @@ class AudioWakePipeline:
             finish_session("followup_capture_failed")
             return False
 
+    def _capture_barge_in(self, pending: dict) -> bool:
+        return self._capture_followup({
+            "type": "capture_followup",
+            "session_id": str(pending.get("session_id") or ""),
+            "source": str(pending.get("source") or "hotword"),
+            "reason": "barge_in",
+            "not_before": 0.0,
+        })
+
     # ---- pure per-frame logic (testable) ----
 
     def _wake_frame_is_voice(self, frame_int16: bytes) -> bool:
@@ -524,21 +727,50 @@ class AudioWakePipeline:
         now = self._clock()
         result = {"wake": False, "source": None, "score": 0.0, "cooldown": False, "reason": "none"}
 
+        if get_session_manager().is_global_tts_active():
+            result["reason"] = "global_tts_active"
+            return result
+
         # --- Barge-in: a wake word spoken WHILE Nexi is talking interrupts
         # the TTS instead of being captured as a command. Checked before the
         # detectors-paused gate because detectors are paused during "saying".
         if _is_speaking():
-            score = self._wake_scorer.score(frame_int16) if self._wake_scorer is not None else 1.0
+            if self._pending_barge_in is not None:
+                return {"wake": False, "source": None, "reason": "barge_in_pending", "score": 0.0}
+            score = self._wake_scorer.score(frame_int16) if self._wake_scorer is not None else 0.0
             if score >= OWW_THRESHOLD:
                 self._consecutive_hits = 0
                 self._prev_hotword_score = 0.0
                 _safe_log(f"[BARGE_IN] hotword_during_speaking score={float(score):.3f}")
                 try:
-                    from engine.barge_in_manager import interrupt as _barge_in_interrupt
-                    _barge_in_interrupt(source="hotword", reason="hotword_during_speaking")
+                    from engine.runtime_bridge import post_barge_in_request
+                    manager = get_session_manager()
+                    session_id = str(manager.get_session_id() or "")
+                    session_epoch = manager.get_session_epoch()
+                    request_id = post_barge_in_request(
+                        self._command_queue,
+                        session_id,
+                        source="hotword",
+                        session_epoch=session_epoch,
+                    )
+                    if not request_id:
+                        raise RuntimeError("barge_in_request_enqueue_failed")
+                    self._pending_barge_in = {
+                        "session_id": session_id,
+                        "session_epoch": session_epoch,
+                        "request_id": request_id,
+                        "source": "hotword",
+                        "continuation_token": "",
+                        "acked": False,
+                        "terminal": False,
+                        "cooldown": False,
+                        "created_at": time.time(),
+                        "deadline": time.time() + _BARGE_IN_TRANSACTION_TIMEOUT_SECONDS,
+                    }
                 except Exception as e:
-                    _safe_log(f"[BARGE_IN] interrupt_failed reason={type(e).__name__}")
-                return {"wake": True, "source": "hotword", "reason": "hotword_during_speaking", "score": float(score)}
+                    _safe_log(f"[BARGE_IN] request_failed reason={type(e).__name__}")
+                    return {"wake": False, "source": None, "reason": "barge_in_request_failed", "score": float(score)}
+                return {"wake": False, "source": "hotword", "reason": "barge_in_requested", "score": float(score)}
             return {"wake": False, "source": None, "reason": "speaking", "score": float(score)}
 
         if get_session_manager().are_detectors_paused():
@@ -884,14 +1116,6 @@ class AudioWakePipeline:
                 return False
             source = decision.source
 
-        try:
-            from engine.barge_in_manager import interrupt as interrupt_speech
-            result = interrupt_speech(source=source, reason="wake_detected")
-            if result.interrupted:
-                self._post_status("interrupted", source=source)
-        except Exception:
-            pass
-
         session_id = start_session(source)
         if self._wake_signal_bus is not None:
             self._wake_signal_bus.emit_wake(
@@ -1197,6 +1421,9 @@ class AudioWakePipeline:
 
         def _callback(indata, frames, time_info, status):
             # Audio thread: do NOT block. Push int16 bytes to the queue.
+            self._last_frame_time = time.time()
+            if status:
+                _safe_log(f"[MIC] callback_status={status}")
             try:
                 pcm = (indata[:, 0] * 32767.0).clip(-32768, 32767).astype(np.int16).tobytes()
                 self._frame_queue.put_nowait(pcm)
@@ -1206,8 +1433,8 @@ class AudioWakePipeline:
                     self._frame_queue.put_nowait(pcm)
                 except Exception:
                     pass
-            except Exception:
-                pass
+            except Exception as exc:
+                _safe_log(f"[MIC] callback_error={type(exc).__name__}")
 
         kwargs = dict(
             samplerate=SAMPLE_RATE,
@@ -1240,10 +1467,46 @@ class AudioWakePipeline:
         _frame_count = 0
         while not self._stop_event.is_set():
             self._drain_control_events()
+            # Microphone disconnect detection
+            now = time.time()
+            if self._last_frame_time > 0 and (now - self._last_frame_time) > 5.0:
+                if not self._mic_disconnect_logged:
+                    _safe_log("[MIC] DISCONNECTED — no audio frames for 5+ seconds")
+                    self._mic_disconnect_logged = True
+                # ponytail: retry forever with backoff. The old code capped at 3 attempts
+                # and never reset the counter, so one unplug killed the mic (and hotword,
+                # and the whole assistant) permanently until restart.
+                backoff = min(30.0, 2.0 * (self._mic_reconnect_attempts + 1))
+                if (now - self._last_frame_time) > 15.0 and (now - self._last_mic_retry) > backoff:
+                    self._last_mic_retry = now
+                    self._mic_reconnect_attempts += 1
+                    _safe_log(f"[MIC] reconnect_attempt={self._mic_reconnect_attempts}")
+                    try:
+                        if self._stream is not None:
+                            try:
+                                self._stream.stop()
+                                self._stream.close()
+                            except Exception:
+                                pass
+                        self._stream = None
+                        self._open_stream()
+                        self._last_frame_time = time.time()
+                        self._mic_disconnect_logged = False
+                        _safe_log(f"[MIC] reconnected after {self._mic_reconnect_attempts} attempt(s)")
+                        self._mic_reconnect_attempts = 0
+                    except Exception as e:
+                        _safe_log(f"[MIC] reconnect_failed reason={type(e).__name__}")
+                time.sleep(0.2)  # ponytail: don't busy-spin while the mic is gone
+                continue
             try:
                 frame = self._frame_queue.get(timeout=0.2)
             except queue.Empty:
+                if self._last_frame_time > 0 and (time.time() - self._last_frame_time) > 3.0:
+                    if not self._mic_disconnect_logged:
+                        _safe_log("[MIC] possible_disconnect — no frames in queue for 3+ seconds")
+                        self._mic_disconnect_logged = True
                 continue
+            self._mic_disconnect_logged = False
             _frame_count += 1
             if WAKE_DEBUG and not self._audio_received_logged:
                 _safe_log("[HOTWORD] audio_chunk_received=true")
@@ -1282,7 +1545,7 @@ class AudioWakePipeline:
                     _last_debug = now_dbg
 
             if get_session_manager().check_timeout():
-                pass
+                self._dispatch_tts_watchdog_request()
             if not result.get("wake"):
                 continue
 

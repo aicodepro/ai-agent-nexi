@@ -1,0 +1,55 @@
+"""Nexi-owned Paperclip compatibility boundary."""
+
+from .compatibility import (
+    FULL_AUTO_REQUIREMENTS,
+    MAX_REPORT_AGE_SECONDS,
+    MODE_REQUIREMENTS,
+    MUTATION_BASE_REQUIREMENTS,
+    OPERATION_REQUIREMENTS,
+    READ_REQUIREMENTS,
+    RELEASE_REQUIREMENTS,
+    CompatibilityReportVerifier,
+    build_report,
+    envelope_to_dict,
+    parse_report,
+    parse_report_body,
+    parse_report_body_json,
+    parse_report_json,
+    report_to_dict,
+    sign_report,
+)
+from .contracts import (
+    CompatibilityCapability,
+    CompatibilityProbes,
+    PaperclipCompatibilityReport,
+    SignedCompatibilityEnvelope,
+    VerifiedCompatibility,
+)
+from .signing import HMACReportSigner, ReportSignatureVerifier, ReportSigner
+
+__all__ = [
+    "FULL_AUTO_REQUIREMENTS",
+    "MAX_REPORT_AGE_SECONDS",
+    "MODE_REQUIREMENTS",
+    "MUTATION_BASE_REQUIREMENTS",
+    "OPERATION_REQUIREMENTS",
+    "READ_REQUIREMENTS",
+    "RELEASE_REQUIREMENTS",
+    "CompatibilityCapability",
+    "CompatibilityProbes",
+    "CompatibilityReportVerifier",
+    "HMACReportSigner",
+    "PaperclipCompatibilityReport",
+    "ReportSignatureVerifier",
+    "ReportSigner",
+    "SignedCompatibilityEnvelope",
+    "VerifiedCompatibility",
+    "build_report",
+    "envelope_to_dict",
+    "parse_report",
+    "parse_report_body",
+    "parse_report_body_json",
+    "parse_report_json",
+    "report_to_dict",
+    "sign_report",
+]

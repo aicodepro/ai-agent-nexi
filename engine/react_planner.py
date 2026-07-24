@@ -147,6 +147,24 @@ class ReActPlanner:
 
     def plan(self, user_input: str, context: dict | None = None) -> ReActPlan:
         tools_schema = self._tools_schema()
+        # Capability allowlist from the Cognitive Admission Gate. Narrow the SCHEMA,
+        # not just the enforcement set, so the model never even sees a capability it
+        # was not admitted for -- a model shown 120 tools picks a near-miss.
+        # allowed_tool_names derives from this schema, so enforcement follows.
+        try:
+            from engine.admission_gate import allowed_for
+
+            admitted = allowed_for(user_input)
+            if admitted:
+                narrowed = [
+                    item for item in tools_schema
+                    if ((item.get("function") or {}).get("name") if isinstance(item, dict) else None) in admitted
+                ]
+                if narrowed:
+                    print(f"[REACT] capabilities {len(tools_schema)} -> {len(narrowed)} (admitted)", flush=True)
+                    tools_schema = narrowed
+        except Exception:
+            pass
         plan = ReActPlan(
             session_id=f"react_{uuid.uuid4().hex[:8]}",
             user_input=str(user_input or ""),

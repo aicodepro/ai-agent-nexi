@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import threading
+import uuid
 
 _local = threading.local()
 
@@ -27,6 +28,10 @@ def is_dispatching() -> bool:
 
 def current_source() -> str:
     return getattr(_local, "source", "ui")
+
+
+def current_request_id() -> str:
+    return str(getattr(_local, "request_id", "") or "")
 
 
 def _is_system_control_command(text: str) -> bool:
@@ -271,10 +276,16 @@ def submit_user_command(text: str, source: str = "ui", mode: str = "typed") -> b
     except Exception:
         active_workflow = False
     if (mode == "voice" or source in {"hotword", "clap", "double_clap", "hotkey", "ui_button", "mic_button", "voice"}) and not active_workflow:
-        from engine.transcript_filter import clean_transcript, is_gibberish_or_wrong_language
-        normalized = clean_transcript(normalized)
-        if not pending_short_answer and not studio_command and is_gibberish_or_wrong_language(normalized):
-            print(f"[TRANSCRIPT] rejected reason=non_english_or_gibberish preview={normalized[:40]}", flush=True)
+        from engine.transcript_filter import assess_transcript
+        transcript = assess_transcript(
+            normalized,
+            pending_followup=pending_short_answer or pending_clarification or pending_followup,
+        )
+        normalized = transcript.text
+        if not studio_command and not transcript.accepted:
+            print(f"[TRANSCRIPT] rejected reason={transcript.reason} confidence={transcript.confidence:.2f} preview={normalized[:40]}", flush=True)
+            if not transcript.should_clarify:
+                return True
             print("[VOICE] clarification_requested", flush=True)
             from engine.clarification_manager import ask_clarification
             from engine.command import speak
@@ -305,12 +316,15 @@ def dispatch_unified_command(text: str, source: str) -> None:
     print(f"[COMMAND_BUS] dispatch_started source={source}", flush=True)
     previous_dispatching = is_dispatching()
     previous_source = current_source()
+    previous_request_id = current_request_id()
     _local.dispatching = True
     _local.source = source
+    _local.request_id = uuid.uuid4().hex
     try:
         from engine.command import allCommands
         allCommands(text)
     finally:
         _local.dispatching = previous_dispatching
         _local.source = previous_source
+        _local.request_id = previous_request_id
         print(f"[COMMAND_BUS] dispatch_finished source={source}", flush=True)

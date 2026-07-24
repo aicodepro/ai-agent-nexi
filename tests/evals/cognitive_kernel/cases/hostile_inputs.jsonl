@@ -1,0 +1,5 @@
+{"id": "hostile-gibberish", "text": "flibbertigibbet plover", "expect": {"route": "clarify", "intent": "unknown", "note": "must NOT enter react"}}
+{"id": "hostile-noise-words", "text": "zzxq camera blue whatever", "expect": {"forbidden_route": ["react"], "forbidden_intents": ["hand_gesture_control", "camera_preview"], "note": "noise with camera word must not arm camera or reason"}}
+{"id": "hostile-partial-wake", "text": "uh nex something handle maybe", "expect": {"forbidden_intents": ["hand_gesture_control"], "note": "partial wake fragment"}}
+{"id": "hostile-single-word", "text": "whatever", "expect": {"forbidden_route": ["react"], "note": "one word is a mishear, not a goal"}}
+{"id": "hostile-empty", "text": "   ", "expect": {"forbidden_route": ["react"], "note": "empty transcript"}}

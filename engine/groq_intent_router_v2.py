@@ -338,6 +338,26 @@ def _inferred_build_match(text: str, *, source: str = "unknown") -> dict[str, An
     """
     if str(os.getenv("NEXI_INFER_BUILD_INTENT", "1")).strip().lower() in {"0", "false", "no", "off"}:
         return None
+    # A registered command is not an inferred build. detect_smart escalates zero-signal
+    # phrasing to the LLM on purpose ("the CSV thing is manual, sort it out for me"
+    # scores 0.0 and IS a build), but that also let the model claim plain tool commands:
+    # "start hand gesture control" came back confirm=0.9 on signals=['llm'] alone, with
+    # no deterministic build evidence at all. Its own comment assumes routine commands
+    # were "already rejected above" -- nothing actually checked that. Deterministic
+    # evidence of a real tool outranks an inference, and skipping early also saves the
+    # model call on the voice path.
+    # Only when the deterministic build scorer found NO evidence at all. "can you make
+    # me a tool that renames files" scores build_verb+software_artifact and must still
+    # reach the build path even though a file tool matches its wording.
+    try:
+        from engine.studio.intent_detect import detect
+
+        if not (detect(str(text or "")).get("signals") or []):
+            known = _deterministic_router(str(text or ""), {})
+            if _deterministic_is_confident(known) and str(known.get("route") or "") in {"tool", "output"}:
+                return None
+    except Exception:
+        pass
     try:
         from engine.studio.intent_detect import confirmation_question, detect_smart
         verdict = detect_smart(text)
@@ -553,6 +573,57 @@ def _has_word(text: str, *words: str) -> bool:
     return any(re.search(rf"\b{re.escape(word)}s?\b", text) for word in words)
 
 
+def _spotify_match(q: str, text: str) -> dict[str, Any] | None:
+    if "spotify" not in q:
+        return None
+    if q in {"connect spotify", "link spotify", "authorize spotify", "spotify connect"}:
+        return empty_result(route="tool", intent="spotify_connect", domain="web", confidence=1.0, reason="spotify_connect")
+    if any(phrase in q for phrase in ("what is playing", "what's playing", "whats playing", "now playing")):
+        return empty_result(route="tool", intent="spotify_now_playing", domain="web", confidence=0.98, reason="spotify_now_playing")
+    if "device" in q:
+        return empty_result(route="tool", intent="spotify_devices", domain="web", confidence=0.98, reason="spotify_devices")
+    controls = {
+        "pause": "spotify_pause",
+        "resume": "spotify_resume",
+        "continue": "spotify_resume",
+        "next": "spotify_next",
+        "skip": "spotify_next",
+        "previous": "spotify_previous",
+        "back": "spotify_previous",
+    }
+    for word, intent in controls.items():
+        if re.search(rf"\b{word}\b", q):
+            return empty_result(route="tool", intent=intent, domain="web", confidence=0.98, reason=intent)
+    if "play" not in q:
+        return None
+    raw = str(text or "").strip()
+    kind = "track"
+    for candidate in ("playlist", "album", "artist", "track"):
+        if re.search(rf"\b{candidate}\b", q):
+            kind = candidate
+            break
+    query = re.sub(r"^\s*(?:spotify\s+play|play)\s+", "", raw, flags=re.I)
+    query = re.sub(r"\s+(?:on|in)\s+spotify\s*$", "", query, flags=re.I)
+    query = re.sub(r"^\s*(?:a|the|my)?\s*(?:playlist|album|artist|track)\s+", "", query, flags=re.I).strip()
+    query = re.sub(r"^spotify\s+", "", query, flags=re.I).strip()
+    if not query:
+        return exact_schema(empty_result(
+            route="clarify",
+            intent="spotify_play",
+            domain="web",
+            confidence=0.98,
+            reason="spotify_missing_query",
+            clarification_question="What should I play on Spotify?",
+        ) | {"missing_slots": ["query"]})
+    return exact_schema(empty_result(
+        route="tool",
+        intent="spotify_play",
+        domain="web",
+        confidence=0.98,
+        reason="spotify_play",
+    ) | {"slots": {"query": query, "kind": kind}})
+
+
 def _deterministic_router(text: str, context: dict | None = None) -> dict[str, Any]:
     q = _norm(text)
     if not q:
@@ -579,7 +650,10 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if q in {"what did you understand", "why did you do that", "what rule did you use", "what tool did you choose"}:
         return empty_result(route="system", intent="what_did_you_understand" if q.startswith("what") else "why_did_you_do_that", domain="system", confidence=1.0, reason="intent_explain")
 
-    # ── Early guards: YouTube + browser-tab must beat generic open/search ────
+    # ── Early guards: media providers + browser-tab beat generic open/search ─
+    _spotify = _spotify_match(q, str(text or ""))
+    if _spotify:
+        return _spotify
     _yt = _youtube_match(q, str(text or ""))
     if _yt:
         return _yt
@@ -684,7 +758,9 @@ def _deterministic_router(text: str, context: dict | None = None) -> dict[str, A
     if _has_word(q, "eye") and ("mouse" in q or "control" in q or "tracking" in q):
         mode = "control" if ("enable" in q or "eye control" in q) and "preview" not in q else "preview"
         return exact_schema(empty_result(route="tool", intent="eye_mouse_control", domain="desktop", confidence=0.93, reason="eye_mouse_control") | {"slots": {"mode": mode}, "risk_level": "high" if mode == "control" else "low", "requires_confirmation": mode == "control"})
-    if _has_word(q, "hand", "gesture"):
+    # "gesture" alone is a strong signal; bare "hand" is not ("hand me", "on the
+    # other hand"), so it needs gesture/control/tracking context like the eye branch.
+    if _has_word(q, "gesture") or (_has_word(q, "hand") and any(w in q for w in ("gesture", "control", "tracking"))):
         mode = "preview" if "preview" in q else "control"
         return exact_schema(empty_result(route="tool", intent="hand_gesture_control", domain="desktop", confidence=0.93, reason="hand_gesture_control") | {"slots": {"mode": mode}, "risk_level": "high" if mode == "control" else "low", "requires_confirmation": mode == "control"})
     if "camera" in q and "preview" in q:
@@ -1204,38 +1280,25 @@ def _reasoning_available() -> bool:
 
 
 def _escalate_unknown_to_react(result: dict[str, Any], text: str) -> dict[str, Any]:
-    """Think instead of asking the user to rephrase.
+    """Admit an unresolved utterance to reasoning -- but only when it is bounded.
 
     Every path above that finds no confident single action terminates in
     clarify/unknown. That is the router reporting it has no one-shot answer --
-    which is exactly when the ReAct loop (reason -> act -> observe -> verify)
-    should take over, since it can inspect the world and try something.
+    often exactly when the ReAct loop (reason -> act -> observe -> verify) should
+    take over. But "unknown + a provider exists" is too blunt a licence: live
+    evaluation showed it escalating noise ("zzxq camera blue whatever") and
+    handing the loop all ~120 tools. The Cognitive Admission Gate makes that
+    decision instead, and returns the capability allowlist the loop may use.
 
     Deliberately narrow. A precise missing-slot clarify keeps its question
     (bare "open" still asks "open what?"), because those carry a KNOWN intent;
-    only a genuine `unknown` escalates. Applied at the public entry point, not in
-    _finalize, so react_planner's direct _finalize calls cannot re-enter this.
+    only a genuine `unknown` is considered. Applied at the public entry point,
+    not in _finalize, so react_planner's direct _finalize calls cannot re-enter.
     """
     if (os.getenv("NEXI_REACT_ON_UNKNOWN", "1") or "").strip().lower() in {"0", "false", "no", "off"}:
         return result
     if str(result.get("route") or "") != "clarify" or str(result.get("intent") or "") != "unknown":
         return result
-    if not _reasoning_available():
-        return result
-    # A one-word mystery is a misheard transcript, not a goal. Let it clarify.
-    if len(str(text or "").split()) < 2:
-        return result
-    # Gibberish has no goal to reason about ("flibbertigibbet plover"). Spending an
-    # LLM loop on it -- and giving a model tool choice over noise -- is strictly worse
-    # than asking again. command_bus applies this in voice mode only; escalation
-    # needs it on every source.
-    try:
-        from engine.transcript_filter import is_gibberish_or_wrong_language
-
-        if is_gibberish_or_wrong_language(text):
-            return result
-    except Exception:
-        pass
     # A short answer to a pending question must not spawn a reasoning loop.
     try:
         from engine.clarification_manager import has_pending_clarification
@@ -1245,6 +1308,24 @@ def _escalate_unknown_to_react(result: dict[str, Any], text: str) -> dict[str, A
             return result
     except Exception:
         pass
+
+    try:
+        from engine.admission_gate import admit, set_admission
+
+        admission = admit(text, reasoning_available=_reasoning_available())
+    except Exception:
+        return result  # fail closed: any gate failure keeps the clarify
+    print(
+        f"[ADMISSION] mode={admission.mode} reason={admission.reason} "
+        f"allowed={len(admission.allowed_capabilities)} blocked={len(admission.blocked_capabilities)}",
+        flush=True,
+    )
+    if not admission.admits_reasoning:
+        # REJECT_UNUSABLE_INPUT / ASK_TARGETED_QUESTION / REQUEST_APPROVAL all
+        # keep the existing clarify, which already asks the user something.
+        return result
+    # Hand the loop its bounded capability set.
+    set_admission(text, admission.allowed_capabilities)
 
     escalated = exact_schema(empty_result(
         route="react",

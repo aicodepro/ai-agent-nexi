@@ -1,0 +1,2176 @@
+........................................................................ [  2%]
+.........................................[HOTWORD] score=0.0000 rms=0.00205 hits=0/2 threshold=0.65 min_rms=0.01000 reason=low_rms_0.00205
+FF..[CLAP_MGR] configured_primary=dsp_clap
+[HOTWORD] score=0.0000 rms=0.00245 hits=0/2 threshold=0.65 min_rms=0.01000 reason=low_rms_0.00245
+......[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=1500 backend=dsp_clap
+..................... [  4%]
+............................[HOTWORD] score=0.0038 rms=0.00865 hits=0/2 threshold=0.65 min_rms=0.01000 reason=none
+............................................ [  6%]
+........................................................................ [  9%]
+...F..F................................................................. [ 11%]
+.................[HOTWORD] score=0.0036 rms=0.00191 hits=0/2 threshold=0.65 min_rms=0.01000 reason=low_rms_0.00191
+.............................s......................... [ 13%]
+..............................[HOTWORD] score=0.0037 rms=0.00388 hits=0/2 threshold=0.65 min_rms=0.01000 reason=low_rms_0.00388
+.......................................... [ 15%]
+..............[HOTWORD] score=0.0038 rms=0.02451 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+F...........F......F..................................FF.. [ 18%]
+.F...................................................................... [ 20%]
+.......................F...............................................[HOTWORD] score=0.0037 rms=0.00124 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00124
+. [ 22%]
+................[HOTWORD] score=0.0036 rms=0.00216 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00216
+FF.....FF..................................FF........... [ 25%]
+............F.F......................................FF................. [ 27%]
+................................[HOTWORD] score=0.0037 rms=0.00366 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+...F.............F.....FF............... [ 29%]
+................FF.......F...........F....FF.......................F.... [ 31%]
+.....F............FF........EEEEEEEEEEEEEEEEEEE................FFFFFFFFF [ 34%]
+[HOTWORD] score=0.0037 rms=0.00314 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00314
+FFFFFFFFFFFFFFFFFF...................................................... [ 36%]
+........................................................................ [ 38%]
+..................F...........................[HOTWORD] score=0.0037 rms=0.05366 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+.......................... [ 40%]
+.....................FF......................................[HOTWORD] score=0.0036 rms=0.00152 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+........... [ 43%]
+......[VAD] speech_started
+...F......[TTS] interrupted source=hotword
+[VAD] speech_started
+...................[WAKE] source=hotword emitted=false
+..................................... [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+....................................[HOTWORD] score=0.0037 rms=0.00400 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00400
+.................................... [ 56%]
+...................FF..F................................................ [ 59%]
+...............................................................F[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+.[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+.[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=760
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_finished current=sleeping
+[TTS] spoken_len=27
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=750
+[TTS] summary_mode=false
+[UI_STATE] set=sleep source=ready
+.[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] audio_output_finished
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=720
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_finished current=sleeping
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=690
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+. [ 61%]
+[EEL] missing_js_function name=updateSpeechCapsule
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=661
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+.[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+.[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[TURN] state=speaking
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TTS] speak_started
+[TURN] state=idle
+[TTS] audio_output_started
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[UI_STATE] set=saying source=tts
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=617
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[TTS] speak_started
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TTS] audio_output_started
+[TURN] state=idle
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=596
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_STATE] set=saying source=tts
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[SPEECH] progress last_words="screen now"
+.[EEL] missing_js_function name=updateSpeechCapsule
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+.[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[UI_SEND] state=saying label=SAYING source=tts session=
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[TURN] state=idle
+[UI_STATE] set=saying source=tts
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[EEL] missing_js_function name=updateSpeechCapsule
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=566
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+.[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+.[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=519
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_finished current=sleeping
+[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms=516
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+..............[POST_TTS] cooldown_started ms=800
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+................................................... [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 72%]
+......FF.FF.....................F..........FFFFFFFFFFFFFFFF............. [ 75%]
+.............................................F....[HOTWORD] score=0.0037 rms=0.00283 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+...................... [ 77%]
+.........EEEEEEEEE...[UI_BRIDGE] studio stage=closeout status=workflow_completed
+..F..[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=workflow_completed
+F.............[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=human_input_required
+F............[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=human_input_required
+F.FF............... [ 79%]
+........................................................................ [ 81%]
+..........................................s.........s................... [ 84%]
+........................................................................ [ 86%]
+................s[HOTWORD] score=0.0037 rms=0.00696 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+.........s.......................FF.................... [ 88%]
+.......F................................................FF.............. [ 90%]
+...................FFFF.......FF...FFFFF................................ [ 93%]
+...........................................FFF.......................... [ 95%]
+........................................................................ [ 97%]
+......................................................................   [100%][VAD] speech_started
+
+=================================== ERRORS ====================================
+___________ ERROR at setup of test_every_media_asset_actually_loads ___________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_each_state_shows_its_own_layer[error-hud_bg] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+___ ERROR at setup of test_each_state_shows_its_own_layer[listening-pulse] ____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+____ ERROR at setup of test_each_state_shows_its_own_layer[online-hud_bg] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+__ ERROR at setup of test_each_state_shows_its_own_layer[recognising-pulse] ___
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_each_state_shows_its_own_layer[saying-rings] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_each_state_shows_its_own_layer[sleep-hud_bg] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_each_state_shows_its_own_layer[thinking-dna] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_only_one_video_decodes_at_a_time[error] ________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_only_one_video_decodes_at_a_time[listening] ______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_only_one_video_decodes_at_a_time[online] _______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+____ ERROR at setup of test_only_one_video_decodes_at_a_time[recognising] _____
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_only_one_video_decodes_at_a_time[saying] _______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_only_one_video_decodes_at_a_time[sleep] ________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+______ ERROR at setup of test_only_one_video_decodes_at_a_time[thinking] ______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_portrait_clips_are_rails_not_backgrounds _______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+__ ERROR at setup of test_sleep_pauses_all_video_decoding_and_orb_animation ___
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+__________ ERROR at setup of test_collapsed_dashboard_does_not_poll ___________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+__________________ ERROR at setup of test_no_console_errors ___________________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_________ ERROR at setup of test_panel_is_hidden_until_a_build_starts _________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+________ ERROR at setup of test_panel_opens_on_the_first_studio_event _________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_it_says_what_nexi_is_handling_right_now ________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+___________ ERROR at setup of test_completed_stages_are_marked_done ___________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_________ ERROR at setup of test_the_active_stage_is_visibly_distinct _________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_______ ERROR at setup of test_failures_are_shown_as_failed_not_active ________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+____________ ERROR at setup of test_live_log_accumulates_messages _____________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+_____ ERROR at setup of test_stage_output_is_rendered_as_text_not_markup ______
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+______________ ERROR at setup of test_a_new_run_resets_the_board ______________
+E   playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead.
+================================== FAILURES ===================================
+E   assert True is False
+     +  where True = <engine.audio_wake_pipeline.AudioWakePipeline object at 0x000002118E1F2C90>.is_running
+---------------------------- Captured stdout call -----------------------------
+[OWW] model from path=hey_nexi.onnx
+[HOTWORD] enabled=true
+[HOTWORD] model_path=hey_nexi.onnx
+[HOTWORD] sample_rate=16000
+[HOTWORD] frame_ms=80
+[HOTWORD] threshold=0.65
+[VAD] backend=silero threshold=0.35
+[MIC] auto_selected device=Microphone Array (Intel® Smart  index=1 score=70
+[MIC] fallback_candidate device=Microphone Array (Intel® Smart Sound Technology (Intel® SST)) index=5
+[WAKE] audio stream starting device=Microphone Array (Intel® Smart  index=1 rate=16000 frame=1280
+[WAKE] audio stream started device=Microphone Array (Intel® Smart /1
+[NOISE_CAL] calibrating for 2.0s (25 frames) ...
+[NOISE_CAL] mean=0.00536 std=0.00570 p95=0.01726 floor=0.01392 max=0.01500
+[NOISE_CAL] 25 ambient samples collected
+[NOISE_CAL] HOTWORD_MIN_RMS 0.00300 -> 0.01392
+[WAKE] backend=openwakeword enabled=True
+[CLAP] enabled=false
+E:\ai-agnet-nexi\tests\test_audio_wake_pipeline.py:143: assert True is False
+E   AssertionError: assert True is False
+     +  where True = <function is_pipeline_running at 0x000002118FA58720>()
+     +    where <function is_pipeline_running at 0x000002118FA58720> = <module 'engine.audio_wake_pipeline' from 'E:\\ai-agnet-nexi\\engine\\audio_wake_pipeline.py'>.is_pipeline_running
+---------------------------- Captured stdout call -----------------------------
+[OWW] model from path=hey_nexi.onnx
+[HOTWORD] enabled=true
+[HOTWORD] model_path=hey_nexi.onnx
+[HOTWORD] sample_rate=16000
+[HOTWORD] frame_ms=80
+[HOTWORD] threshold=0.65
+[VAD] backend=silero threshold=0.35
+[MIC] auto_selected device=Microphone Array (Intel® Smart  index=1 score=70
+[MIC] fallback_candidate device=Microphone Array (Intel® Smart Sound Technology (Intel® SST)) index=5
+[WAKE] audio stream starting device=Microphone Array (Intel® Smart  index=1 rate=16000 frame=1280
+[WAKE] audio stream started device=Microphone Array (Intel® Smart /1
+[NOISE_CAL] calibrating for 2.0s (25 frames) ...
+[NOISE_CAL] mean=0.00195 std=0.00214 p95=0.00686 floor=0.00516 max=0.01500
+[NOISE_CAL] 25 ambient samples collected
+[NOISE_CAL] HOTWORD_MIN_RMS 0.00300 -> 0.00516
+[WAKE] backend=openwakeword enabled=True
+[CLAP] enabled=false
+[HOTKEY] disabled
+E:\ai-agnet-nexi\tests\test_audio_wake_pipeline.py:155: AssertionError: assert True is False
+E   assert (False is True)
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=browser_click
+[APPROVAL] queued id=act10 tool=browser_click risk=high
+[VERIFY] tool=browser_click verified=false reason=not_success
+[TOOL] failed name=browser_click reason=not_success
+[TOOL_AI] result_verified=false
+[TOOL] executing name=approve_action
+[TOOL] executing name=browser_click
+[APPROVAL] queued id=act11 tool=browser_click risk=high
+[VERIFY] tool=browser_click verified=false reason=not_success
+[TOOL] failed name=browser_click reason=not_success
+[TOOL_AI] result_verified=false
+[APPROVAL] failed id=act10 tool=browser_click
+[VERIFY] tool=approve_action verified=false reason=not_success
+[TOOL] failed name=approve_action reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_browser_write.py:47: assert (False is True)
+E   assert False is True
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=browser_fill
+[APPROVAL] queued id=act13 tool=browser_fill risk=high
+[VERIFY] tool=browser_fill verified=false reason=not_success
+[TOOL] failed name=browser_fill reason=not_success
+[TOOL_AI] result_verified=false
+[TOOL] executing name=approve_action
+[TOOL] executing name=browser_fill
+[APPROVAL] queued id=act14 tool=browser_fill risk=high
+[VERIFY] tool=browser_fill verified=false reason=not_success
+[TOOL] failed name=browser_fill reason=not_success
+[TOOL_AI] result_verified=false
+[APPROVAL] failed id=act13 tool=browser_fill
+[VERIFY] tool=approve_action verified=false reason=not_success
+[TOOL] failed name=approve_action reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_browser_write.py:68: assert False is True
+E   AssertionError: assert 'cooldown' == 'source_not_allowed'
+      
+      - source_not_allowed
+      + cooldown
+E:\ai-agnet-nexi\tests\test_combined_wake_sources.py:48: AssertionError: assert 'cooldown' == 'source_not_allowed'
+E   AssertionError: assert 'open_website' in 'I routed it as open_app through tool because open_app'
+---------------------------- Captured stdout call -----------------------------
+[CONTEXT] turn_added role=assistant source=brain
+[WORKING_MEMORY] turn_added role=assistant
+[SESSION_MEMORY] turn_added role=assistant source=assistant
+[EPISODIC_MEMORY] stored id=ep_1784446571_240c0997 outcome=success
+[REFLECTION] events=0
+[REFLECTION] stored=0
+E:\ai-agnet-nexi\tests\test_command_bus_cognitive.py:26: AssertionError: assert 'open_website' in 'I routed it as open_app through tool because open_app'
+E   AssertionError: assert 800 == 1500
+     +  where 800 = <module 'engine.audio_wake_pipeline' from 'E:\\ai-agnet-nexi\\engine\\audio_wake_pipeline.py'>.ASR_SILENCE_TIMEOUT_MS
+E:\ai-agnet-nexi\tests\test_command_capture_records_until_1800ms_silence.py:7: AssertionError: assert 800 == 1500
+E   assert (False is True)
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=click_ui_element
+[APPROVAL] queued id=act16 tool=click_ui_element risk=critical
+[VERIFY] tool=click_ui_element verified=false reason=not_success
+[TOOL] failed name=click_ui_element reason=not_success
+[TOOL_AI] result_verified=false
+[TOOL] executing name=approve_action
+[TOOL] executing name=click_ui_element
+[APPROVAL] queued id=act17 tool=click_ui_element risk=critical
+[VERIFY] tool=click_ui_element verified=false reason=not_success
+[TOOL] failed name=click_ui_element reason=not_success
+[TOOL_AI] result_verified=false
+[APPROVAL] failed id=act16 tool=click_ui_element
+[VERIFY] tool=approve_action verified=false reason=not_success
+[TOOL] failed name=approve_action reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_computer_use.py:63: assert (False is True)
+E   assert (False is True)
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=click_ui_element
+[APPROVAL] queued id=act18 tool=click_ui_element risk=critical
+[VERIFY] tool=click_ui_element verified=false reason=not_success
+[TOOL] failed name=click_ui_element reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_computer_use.py:70: assert (False is True)
+E   assert False is True
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=type_text
+[APPROVAL] queued id=act21 tool=type_text risk=high
+[VERIFY] tool=type_text verified=false reason=not_success
+[TOOL] failed name=type_text reason=not_success
+[TOOL_AI] result_verified=false
+[TOOL] executing name=approve_action
+[TOOL] executing name=type_text
+[APPROVAL] queued id=act22 tool=type_text risk=high
+[VERIFY] tool=type_text verified=false reason=not_success
+[TOOL] failed name=type_text reason=not_success
+[TOOL_AI] result_verified=false
+[APPROVAL] failed id=act21 tool=type_text
+[VERIFY] tool=approve_action verified=false reason=not_success
+[TOOL] failed name=approve_action reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_computer_use.py:101: assert False is True
+E   AssertionError: assert '' == 'clap_nn'
+      
+      - clap_nn
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=5000 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_default_clap_backend_is_clap_nn.py:18: AssertionError: assert '' == 'clap_nn'
+E   assert (False is True)
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=950.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=160.0 max_gap_ms=4500.0 cooldown_ms=1800 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_double_clap_gap_window.py:45: assert (False is True)
+E   assert (False is True)
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=1800 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_double_clap_not_blocked_by_cooldown.py:41: assert (False is True)
+E   AssertionError: assert False is True
+     +  where False = <built-in method get of dict object at 0x00000211B24C2A00>('clap')
+     +    where <built-in method get of dict object at 0x00000211B24C2A00> = {'wake': False, 'clap': False, 'source': None, 'backend': 'none', ...}.get
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=5000 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_double_clap_requires_two_events_fast_backends.py:37: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = <built-in method get of dict object at 0x00000211B2481980>('clap')
+     +    where <built-in method get of dict object at 0x00000211B2481980> = {'wake': False, 'clap': False, 'source': None, 'backend': 'none', ...}.get
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=5000 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_double_clap_requires_two_events_fast_backends.py:55: AssertionError: assert False is True
+E   AssertionError: assert 'low_ratio' in 'low_peak_0.1526'
+     +  where 'low_peak_0.1526' = DspClapResult(is_clap=False, confidence=0.0, timestamp=1784446629.2399364, rms=0.152587890625, peak_ratio=1.0, hf_ratio=0.0, duration_ms=50.0, reason='low_peak_0.1526').reason
+E:\ai-agnet-nexi\tests\test_dsp_clap_rejects_low_peak_noise.py:21: AssertionError: assert 'low_ratio' in 'low_peak_0.1526'
+E   AssertionError: assert 'low_ratio' in 'low_peak_0.1221'
+     +  where 'low_peak_0.1221' = DspClapResult(is_clap=False, confidence=0.0, timestamp=1784446629.3040833, rms=0.1220703125, peak_ratio=1.0, hf_ratio=0.0, duration_ms=50.0, reason='low_peak_0.1221').reason
+E:\ai-agnet-nexi\tests\test_dsp_clap_rejects_low_peak_noise.py:31: AssertionError: assert 'low_ratio' in 'low_peak_0.1221'
+E   AssertionError: assert {'DisplayMess...sResult', ...} == set()
+      
+      Extra items in the left set:
+      'updatePresence'
+      'DisplayMessage'
+      'receiverText'
+      'appendLog'
+      'claude_code_event'...
+      
+      ...Full output truncated (16 lines hidden), use '-vv' to show
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0037 rms=0.00727 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00727
+E:\ai-agnet-nexi\tests\test_eel_contract.py:80: AssertionError: assert {'DisplayMess...sResult', ...} == set()
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   KeyError: 'params'
+---------------------------- Captured stdout call -----------------------------
+[CONTEXT] recent_turns_built count=1
+[CONTEXT] recent_turns_built count=1
+[WORKING_MEMORY] context_built turns=1
+[BRAIN] cognitive_context chars=387
+[BRAIN] working_turns=1
+[BRAIN] training_rules=0
+[BRAIN] user_model=true
+[CONTEXT] recent_turns_built count=1
+[CONTEXT] recent_turns_built count=1
+[MEMORY] context_built items=8
+[BRAIN] memory_context chars=2472 turns=1 memories=8
+[BRAIN] provider=gemini model=gemini-test-flash request_started
+[BRAIN] provider=gemini model=gemini-test-flash success
+E:\ai-agnet-nexi\tests\test_gemini_brain.py:41: KeyError: 'params'
+E   AssertionError: assert '' == 'two plus two is four'
+      
+      - two plus two is four
+---------------------------- Captured stdout call -----------------------------
+[ASR] audio_gate fail reason=duration_too_short duration_ms=0 min_ms=500
+[ASR] provider=groq failed reason=audio_gate_rejected
+E:\ai-agnet-nexi\tests\test_groq_asr.py:86: AssertionError: assert '' == 'two plus two is four'
+E   AttributeError: 'NoneType' object has no attribute 'kwargs'
+---------------------------- Captured stdout call -----------------------------
+[ASR] audio_gate fail reason=duration_too_short duration_ms=0 min_ms=500
+[ASR] provider=groq failed reason=audio_gate_rejected
+E:\ai-agnet-nexi\tests\test_groq_asr.py:168: AttributeError: 'NoneType' object has no attribute 'kwargs'
+E   AssertionError: assert '' == 'chrome'
+      
+      - chrome
+---------------------------- Captured stdout call -----------------------------
+[ASR] audio_gate fail reason=duration_too_short duration_ms=100 min_ms=500
+[ASR] provider=groq failed reason=audio_gate_rejected
+E:\ai-agnet-nexi\tests\test_groq_asr_config.py:19: AssertionError: assert '' == 'chrome'
+E   assert None is not None
+---------------------------- Captured stdout call -----------------------------
+[HOTKEY] disabled
+E:\ai-agnet-nexi\tests\test_hotkey_wake.py:35: assert None is not None
+E   AssertionError: assert '[HOTKEY] win+j unavailable' in '[HOTKEY] disabled\n'
+E:\ai-agnet-nexi\tests\test_hotkey_wake.py:54: AssertionError: assert '[HOTKEY] win+j unavailable' in '[HOTKEY] disabled\n'
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.9, threshold=0.5, latency_ms=1.0287761688232422, reason='need_more_hits').detected
+E:\ai-agnet-nexi\tests\test_hotword_audio_preprocessing.py:30: AssertionError: assert False is True
+E   AssertionError: assert False == True
+     +  where False = <built-in method get of dict object at 0x00000211B25B7B80>('wake')
+     +    where <built-in method get of dict object at 0x00000211B25B7B80> = {'wake': False, 'source': None, 'score': 0.0, 'cooldown': False, ...}.get
+---------------------------- Captured stdout call -----------------------------
+[CLAP_MGR] configured_primary=dsp_clap
+[CLAP_MGR] active_backend=dsp_clap reason=
+[CLAP_CONFIG] legacy_max_gap_ms=3500.0 raised_to_ms=4500.0
+[CLAP_CONFIG] min_gap_ms=100.0 max_gap_ms=4500.0 cooldown_ms=1500 backend=dsp_clap
+E:\ai-agnet-nexi\tests\test_hotword_barge_in_integration.py:96: AssertionError: assert False == True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.4, threshold=0.25, latency_ms=0.0, reason='need_more_hits').detected
+     +    where HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.4, threshold=0.25, latency_ms=0.0, reason='need_more_hits') = process_audio_chunk(b'\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84...84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03', 16000)
+     +      where process_audio_chunk = <engine.hotword_engine_manager.HotwordEngineManager object at 0x00000211B249A450>.process_audio_chunk
+     +      and   b'\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84...84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03' = frame()
+E:\ai-agnet-nexi\tests\test_hotword_cooldown_rising_edge.py:35: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.5, threshold=0.25, latency_ms=0.0, reason='need_more_hits').detected
+     +    where HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.5, threshold=0.25, latency_ms=0.0, reason='need_more_hits') = process_audio_chunk(b'\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84...84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03', 16000)
+     +      where process_audio_chunk = <engine.hotword_engine_manager.HotwordEngineManager object at 0x00000211B249A090>.process_audio_chunk
+     +      and   b'\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84...84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03\x84\x03' = frame()
+E:\ai-agnet-nexi\tests\test_hotword_cooldown_rising_edge.py:48: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.5, threshold=0.35, latency_ms=0.0, reason='need_more_hits').detected
+     +    where HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.5, threshold=0.35, latency_ms=0.0, reason='need_more_hits') = process_audio_chunk((b'\x00\x00' * 1280), 16000)
+     +      where process_audio_chunk = <engine.hotword_engine_manager.HotwordEngineManager object at 0x00000211B25D4E50>.process_audio_chunk
+E:\ai-agnet-nexi\tests\test_hotword_engine_manager.py:44: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.9, threshold=0.25, latency_ms=0.0, reason='need_more_hits').detected
+E:\ai-agnet-nexi\tests\test_hotword_frame_contract.py:30: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.82, threshold=0.25, latency_ms=1.0209083557128906, reason='need_more_hits').detected
+E:\ai-agnet-nexi\tests\test_hotword_prediction_key_mapping.py:23: AssertionError: assert False is True
+E   AssertionError: assert False is True
+     +  where False = HotwordResult(detected=False, engine='openwakeword', phrase='hey nexi', score=0.7, threshold=0.25, latency_ms=0.0, reason='need_more_hits').detected
+E:\ai-agnet-nexi\tests\test_hotword_rms_gate_realistic_signal.py:19: AssertionError: assert False is True
+E   ModuleNotFoundError: No module named 'brain.gemini'
+E:\ai-agnet-nexi\tests\test_imports.py:2: ModuleNotFoundError: No module named 'brain.gemini'
+E   ModuleNotFoundError: No module named 'core.config'
+E:\ai-agnet-nexi\tests\test_imports.py:5: ModuleNotFoundError: No module named 'core.config'
+E   ModuleNotFoundError: No module named 'core.dispatcher'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0036 rms=0.00192 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00192
+E:\ai-agnet-nexi\tests\test_imports.py:8: ModuleNotFoundError: No module named 'core.dispatcher'
+E   ModuleNotFoundError: No module named 'core.ui_state'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0037 rms=0.00194 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00194
+E:\ai-agnet-nexi\tests\test_imports.py:11: ModuleNotFoundError: No module named 'core.ui_state'
+E   ModuleNotFoundError: No module named 'core.tts'
+E:\ai-agnet-nexi\tests\test_imports.py:14: ModuleNotFoundError: No module named 'core.tts'
+E   ModuleNotFoundError: No module named 'intent.router'
+E:\ai-agnet-nexi\tests\test_imports.py:17: ModuleNotFoundError: No module named 'intent.router'
+E   ModuleNotFoundError: No module named 'intent.taxonomy'
+E:\ai-agnet-nexi\tests\test_imports.py:20: ModuleNotFoundError: No module named 'intent.taxonomy'
+E   ModuleNotFoundError: No module named 'intent.safety_gate'
+E:\ai-agnet-nexi\tests\test_imports.py:23: ModuleNotFoundError: No module named 'intent.safety_gate'
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_imports.py:26: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.web'
+E:\ai-agnet-nexi\tests\test_imports.py:29: ModuleNotFoundError: No module named 'skills.web'
+E   ModuleNotFoundError: No module named 'skills.files'
+E:\ai-agnet-nexi\tests\test_imports.py:32: ModuleNotFoundError: No module named 'skills.files'
+E   ModuleNotFoundError: No module named 'skills.browser'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0037 rms=0.01412 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+E:\ai-agnet-nexi\tests\test_imports.py:35: ModuleNotFoundError: No module named 'skills.browser'
+E   ModuleNotFoundError: No module named 'skills.system'
+E:\ai-agnet-nexi\tests\test_imports.py:38: ModuleNotFoundError: No module named 'skills.system'
+E   ModuleNotFoundError: No module named 'skills.communication'
+E:\ai-agnet-nexi\tests\test_imports.py:41: ModuleNotFoundError: No module named 'skills.communication'
+E   ModuleNotFoundError: No module named 'skills.dispatch'
+E:\ai-agnet-nexi\tests\test_imports.py:44: ModuleNotFoundError: No module named 'skills.dispatch'
+E   ModuleNotFoundError: No module named 'memory.context'
+E:\ai-agnet-nexi\tests\test_imports.py:47: ModuleNotFoundError: No module named 'memory.context'
+E   ModuleNotFoundError: No module named 'memory.rules'
+E:\ai-agnet-nexi\tests\test_imports.py:50: ModuleNotFoundError: No module named 'memory.rules'
+E   ModuleNotFoundError: No module named 'memory.manager'
+E:\ai-agnet-nexi\tests\test_imports.py:53: ModuleNotFoundError: No module named 'memory.manager'
+E   ModuleNotFoundError: No module named 'tools.mcp'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0036 rms=0.01077 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0038 rms=0.05549 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+E:\ai-agnet-nexi\tests\test_imports.py:56: ModuleNotFoundError: No module named 'tools.mcp'
+E   ModuleNotFoundError: No module named 'ui.adapter'
+E:\ai-agnet-nexi\tests\test_imports.py:59: ModuleNotFoundError: No module named 'ui.adapter'
+E   ModuleNotFoundError: No module named 'wake.vad'
+E:\ai-agnet-nexi\tests\test_imports.py:62: ModuleNotFoundError: No module named 'wake.vad'
+E   ModuleNotFoundError: No module named 'wake.hotword'
+E:\ai-agnet-nexi\tests\test_imports.py:65: ModuleNotFoundError: No module named 'wake.hotword'
+E   ModuleNotFoundError: No module named 'control.registry'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0036 rms=0.00076 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+E:\ai-agnet-nexi\tests\test_imports.py:68: ModuleNotFoundError: No module named 'control.registry'
+E   ModuleNotFoundError: No module named 'control.gate'
+E:\ai-agnet-nexi\tests\test_imports.py:71: ModuleNotFoundError: No module named 'control.gate'
+E   ModuleNotFoundError: No module named 'control.desktop'
+---------------------------- Captured stdout call -----------------------------
+[HOTWORD] score=0.0037 rms=0.00569 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00569
+E:\ai-agnet-nexi\tests\test_imports.py:74: ModuleNotFoundError: No module named 'control.desktop'
+E   ModuleNotFoundError: No module named 'control.file_control'
+E:\ai-agnet-nexi\tests\test_imports.py:77: ModuleNotFoundError: No module named 'control.file_control'
+E   ModuleNotFoundError: No module named 'brain.planner'
+E:\ai-agnet-nexi\tests\test_imports.py:80: ModuleNotFoundError: No module named 'brain.planner'
+E   AssertionError: 'why is the weather so unpredictable' misrouted to tool/weather_lookup
+    assert 'tool' in {'brain', 'clarify'}
+---------------------------- Captured stdout call -----------------------------
+[INTENT_DETECT] llm_tier_skipped reason=RuntimeError
+[CONTEXT] recent_turns_built count=4
+[SEMANTIC_MEMORY] context_built items=4
+[INTENT_CONTEXT] built pending=false workflow=false training=true memory=true
+[TOOL_MANIFEST] loaded valid=14 invalid=0
+[CONFIDENCE] score=0.98 route=tool
+[CONFIDENCE] clarify=false reason=none
+[INTENT_V2] route=tool intent=weather_lookup confidence=0.98
+E:\ai-agnet-nexi\tests\test_intent_misroute_regressions.py:40: AssertionError: 'why is the weather so unpredictable' misrouted to tool/weather_lookup
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+E   AssertionError: Legacy www/ UI directory must exist
+    assert (False)
+     +  where False = exists()
+     +    where exists = WindowsPath('E:/ai-agnet-nexi/www').exists
+E:\ai-agnet-nexi\tests\test_mark_style_ui_command_bus_integration.py:34: AssertionError: Legacy www/ UI directory must exist
+E   AssertionError: 'trusted' not found in 'the user is viewing a google chrome browser window, specifically a google search results page'
+---------------------------- Captured stdout call -----------------------------
+[OUTPUT] route=main reason=short
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] listening -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=listening next=saying
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[HOTWORD] score=0.0037 rms=0.01288 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[VISION] provider=gemini model=gemini-2.5-flash request_started img_kb=93
+[VISION] provider=gemini model=gemini-2.5-flash success
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\unittest\case.py:703: AssertionError: 'trusted' not found in 'the user is viewing a google chrome browser window, specifically a google search results page'
+E   AssertionError: True is not false
+---------------------------- Captured stdout call -----------------------------
+[OUTPUT] route=main reason=short
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_started current=speaking
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[HOTWORD] score=0.0037 rms=0.00661 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[VISION] provider=gemini model=gemini-2.5-flash request_started img_kb=93
+[AUDIO_BUFFER] flushed_all_buffers
+[POST_TTS] cooldown_started ms=800
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[POST_TTS] cooldown_complete
+[VISION] provider=gemini model=gemini-2.5-flash success
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\unittest\case.py:709: AssertionError: True is not false
+E   AssertionError: 'trusted' not found in 'the user is viewing a google chrome browser window, specifically a google search'
+---------------------------- Captured stdout call -----------------------------
+[OUTPUT] route=main reason=short
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[HOTWORD] score=0.0037 rms=0.00250 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00250
+[VISION] provider=gemini model=gemini-2.5-flash request_started img_kb=93
+[AUDIO_BUFFER] flushed_all_buffers
+[POST_TTS] cooldown_started ms=800
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[POST_TTS] cooldown_complete
+[HOTWORD] score=0.0036 rms=0.00200 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00200
+[VISION] provider=gemini model=gemini-2.5-flash success
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\unittest\case.py:703: AssertionError: 'trusted' not found in 'the user is viewing a google chrome browser window, specifically a google search'
+E   AssertionError: True is not false
+---------------------------- Captured stdout call -----------------------------
+[OUTPUT] route=main reason=short
+[TTS] display_len=27
+[TTS] spoken_len=27
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=27
+[TTS] enabled=true
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] sleeping -> speaking event=tts_started source=tts
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] conflict_resolved previous=sleep next=saying
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="screen now"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] speaking -> cooldown event=tts_finished source=tts
+[VISION] provider=gemini model=gemini-2.5-flash request_started img_kb=93
+[AUDIO_BUFFER] flushed_all_buffers
+[POST_TTS] cooldown_started ms=800
+[VOICE_STATE] cooldown -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] conflict_resolved previous=saying next=sleep
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[POST_TTS] cooldown_complete
+[HOTWORD] score=0.0036 rms=0.00183 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00183
+[VISION] provider=gemini model=gemini-2.5-flash success
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\unittest\case.py:709: AssertionError: True is not false
+E   AttributeError: 'dict' object has no attribute 'lower'
+E:\ai-agnet-nexi\tests\test_session_summary_manager.py:20: AttributeError: 'dict' object has no attribute 'lower'
+E   AttributeError: 'dict' object has no attribute 'strip'
+E:\ai-agnet-nexi\tests\test_session_summary_manager.py:29: AttributeError: 'dict' object has no attribute 'strip'
+E   ImportError: cannot import name 'to_context' from 'engine.session_summary_manager' (E:\ai-agnet-nexi\engine\session_summary_manager.py)
+E:\ai-agnet-nexi\tests\test_session_summary_manager.py:40: ImportError: cannot import name 'to_context' from 'engine.session_summary_manager' (E:\ai-agnet-nexi\engine\session_summary_manager.py)
+E   ImportError: cannot import name 'get_summary_manager' from 'engine.session_summary_manager' (E:\ai-agnet-nexi\engine\session_summary_manager.py)
+E:\ai-agnet-nexi\tests\test_session_summary_manager.py:48: ImportError: cannot import name 'get_summary_manager' from 'engine.session_summary_manager' (E:\ai-agnet-nexi\engine\session_summary_manager.py)
+E   AssertionError: WindowsPath('E:/ai-agnet-nexi/.opencode/skills/karpathy-debugging/SKILL.md')
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('E:/ai-agnet-nexi/.opencode/skills/karpathy-debugging/SKILL.md').exists
+E:\ai-agnet-nexi\tests\test_skill_files_exist.py:20: AssertionError: WindowsPath('E:/ai-agnet-nexi/.opencode/skills/karpathy-debugging/SKILL.md')
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:35: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:41: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:47: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:52: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.apps'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:57: ModuleNotFoundError: No module named 'skills.apps'
+E   ModuleNotFoundError: No module named 'skills.web'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:68: ModuleNotFoundError: No module named 'skills.web'
+E   ModuleNotFoundError: No module named 'skills.web'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:75: ModuleNotFoundError: No module named 'skills.web'
+E   ModuleNotFoundError: No module named 'skills.web'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:82: ModuleNotFoundError: No module named 'skills.web'
+E   ModuleNotFoundError: No module named 'skills.web'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:87: ModuleNotFoundError: No module named 'skills.web'
+E   ModuleNotFoundError: No module named 'skills.files'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:96: ModuleNotFoundError: No module named 'skills.files'
+E   ModuleNotFoundError: No module named 'skills.files'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:101: ModuleNotFoundError: No module named 'skills.files'
+E   ModuleNotFoundError: No module named 'skills.files'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:106: ModuleNotFoundError: No module named 'skills.files'
+E   ModuleNotFoundError: No module named 'skills.system'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:114: ModuleNotFoundError: No module named 'skills.system'
+E   ModuleNotFoundError: No module named 'skills.system'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:131: ModuleNotFoundError: No module named 'skills.system'
+E   ModuleNotFoundError: No module named 'skills.system'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:143: ModuleNotFoundError: No module named 'skills.system'
+E   ModuleNotFoundError: No module named 'skills.system'
+E:\ai-agnet-nexi\tests\test_skills_basic.py:154: ModuleNotFoundError: No module named 'skills.system'
+E   AssertionError: assert ('low_ratio' in 'low_peak_0.1526' or 'too_long' in 'low_peak_0.1526')
+     +  where 'low_peak_0.1526' = DspClapResult(is_clap=False, confidence=0.0, timestamp=1784446824.3796382, rms=0.152587890625, peak_ratio=1.0, hf_ratio=0.0, duration_ms=200.0, reason='low_peak_0.1526').reason
+     +  and   'low_peak_0.1526' = DspClapResult(is_clap=False, confidence=0.0, timestamp=1784446824.3796382, rms=0.152587890625, peak_ratio=1.0, hf_ratio=0.0, duration_ms=200.0, reason='low_peak_0.1526').reason
+E:\ai-agnet-nexi\tests\test_speech_not_clap_fast_backends.py:46: AssertionError: assert ('low_ratio' in 'low_peak_0.1526' or 'too_long' in 'low_peak_0.1526')
+E   assert True is False
+---------------------------- Captured stdout setup ----------------------------
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=workflow_completed
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[VERIFY] tool=nexi_start_studio_build verified=false reason=not_success
+[TOOL] failed name=nexi_start_studio_build reason=not_success
+[TOOL_AI] result_verified=false
+[TOOL] executing name=nexi_start_studio_build
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 workflow_started studio_build: build with prompt only runtime
+[TOOL_AI] result_verified=true
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:374: assert True is False
+E   AssertionError: assert 'reversible_manager_judgement' == 'reversible_e...oject_default'
+      
+      - reversible_existing-project_default
+      + reversible_manager_judgement
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 read_only_baseline_captured project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 agent_task_started project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_started
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 agent_task_finished project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_finished
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 internal_substage_completed project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=internal_substage_completed
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_df6e140e1475 workflow_started studio_build: build a manager supervised app
+[TOOL_AI] result_verified=true
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_finished
+[NEXI_AGENCY] wf_fbbbb0ddbfe3 workflow_blocked Nexi agent runtime provider 'antigravity' has been disabled.
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=workflow_blocked
+[NEXI_AGENCY] wf_df6e140e1475 internal_substage_completed project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=internal_substage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 manager_questions_resolved requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=manager_questions_resolved
+[NEXI_AGENCY] wf_df6e140e1475 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_finished
+[HOTWORD] score=0.0037 rms=0.01463 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured developer_tests_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured qa_objective_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_finished
+[HOTWORD] score=0.0037 rms=0.01965 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured integration_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 stage_started closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_started
+[NEXI_AGENCY] wf_df6e140e1475 read_only_baseline_captured closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=read_only_baseline_captured
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_started closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_started
+[NEXI_AGENCY] wf_df6e140e1475 agent_task_finished closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_finished
+[NEXI_AGENCY] wf_df6e140e1475 project_memory_write_started wf_df6e140e1475
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_write_started
+[NEXI_AGENCY] wf_df6e140e1475 project_memory_document_written project-profile.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_df6e140e1475 project_memory_document_written decisions.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_df6e140e1475 project_memory_document_written architecture-index.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_df6e140e1475 project_memory_document_written product-defaults.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_df6e140e1475 stage_completed closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_completed
+[NEXI_AGENCY] wf_df6e140e1475 workflow_completed Studio run wf_df6e140e1475 closed at LOCAL_VERIFIED.
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:464: AssertionError: assert 'reversible_manager_judgement' == 'reversible_e...oject_default'
+E   AssertionError: assert 1 == 2
+     +  where 1 = len([{'id': 'G1-Q1', 'gate': 'G1', 'stage': 'requirements', 'question': '- Which payment provider?', ...}])
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_d23b7c513a36 workflow_started studio_build: build a paid newsletter
+[TOOL_AI] result_verified=true
+[NEXI_AGENCY] wf_d23b7c513a36 read_only_baseline_captured project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_d23b7c513a36 agent_task_started project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_started
+[NEXI_AGENCY] wf_d23b7c513a36 agent_task_finished project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_finished
+[NEXI_AGENCY] wf_d23b7c513a36 internal_substage_completed project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=internal_substage_completed
+[NEXI_AGENCY] wf_d23b7c513a36 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[HOTWORD] score=0.0036 rms=0.01714 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[NEXI_AGENCY] wf_d23b7c513a36 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_d23b7c513a36 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_d23b7c513a36 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_d23b7c513a36 manager_questions_resolved requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=manager_questions_resolved
+[NEXI_AGENCY] wf_d23b7c513a36 human_input_required 1. - Which payment provider?
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:529: AssertionError: assert 1 == 2
+E   TypeError: 'NoneType' object is not subscriptable
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_09f9355e3957 workflow_started studio_build: an overflow app
+[TOOL_AI] result_verified=true
+[NEXI_AGENCY] wf_09f9355e3957 read_only_baseline_captured project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_09f9355e3957 agent_task_started project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_started
+[NEXI_AGENCY] wf_09f9355e3957 agent_task_finished project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_finished
+[NEXI_AGENCY] wf_09f9355e3957 internal_substage_completed project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=internal_substage_completed
+[NEXI_AGENCY] wf_09f9355e3957 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_09f9355e3957 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_09f9355e3957 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_09f9355e3957 agent_task_finished requirements
+[WAKE] detected source=hotword model=hey_nexi.onnx
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[HOTWORD] detected=true
+[SESSION_MEMORY] cleared=true
+[SESSION] start id=cdd78335 source=hotword
+[SESSION] detectors_paused=true id=cdd78335
+[WAKE] internal_wake source=hotword
+[VAD] listening_for_command source=hotword
+[VAD] post_wake_delay_ms=300 source=hotword
+[VAD] speech_started
+[NEXI_AGENCY] wf_09f9355e3957 manager_questions_resolved requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=manager_questions_resolved
+[NEXI_AGENCY] wf_09f9355e3957 human_input_required 1. Four?
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:820: TypeError: 'NoneType' object is not subscriptable
+E   AssertionError: assert 'not_waiting' == 'reconciliation_failed'
+      
+      - reconciliation_failed
+      + not_waiting
+---------------------------- Captured stdout setup ----------------------------
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=workflow_failed
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_3635856f9db5 workflow_started studio_build: a digest app
+[TOOL_AI] result_verified=true
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=project_strategy status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 internal_substage_completed project_strategy
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=internal_substage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 manager_questions_resolved requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=manager_questions_resolved
+[NEXI_AGENCY] wf_3635856f9db5 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[BRAIN] provider=gemini model=gemini-2.5-flash success
+[OUTPUT] route=main reason=short
+[TTS] display_len=33
+[TTS] spoken_len=33
+[TTS] summary_mode=false
+[EEL] missing_js_function name=updateTranscript
+[TTS] requested text_len=33
+[TTS] enabled=true
+[FOLLOWUP] set type=generic
+[ASSISTANT] question_detected source=typed
+[TURN] waiting_for_user followup_type=generic
+[TURN] state=waiting_for_user reason=assistant_question
+[TURN] auto_listen requested reason=assistant_question
+[TURN] state=speaking
+[TTS] speak_started
+[TTS] audio_output_started
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_started current=recording_utterance
+[UI_SEND] state=saying label=SAYING source=tts session=
+[UI_STATE] set=saying source=tts
+[SPEECH] progress last_words="referring to"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=DisplayMessage
+[EEL] missing_js_function name=receiverText
+[SPEECH] progress last_words="referring to"
+[EEL] missing_js_function name=updateSpeechCapsule
+[EEL] missing_js_function name=receiverText
+[TTS] error=RuntimeError
+[TURN] state=idle
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_finished current=recording_utterance
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[AUDIO_BUFFER] flushed_all_buffers
+[POST_TTS] cooldown_started ms=800
+[VOICE_STATE] transition_failed reason=no_valid_transition event=listening_started current=recording_utterance
+[UI_SEND] state=listening label=LISTENING source=assistant_question session=
+[UI_STATE] conflict_resolved previous=saying next=listening
+[UI_STATE] set=listening source=assistant_question
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+[CONTEXT] turn_added role=assistant source=brain
+[WORKING_MEMORY] turn_added role=assistant
+[MEMORY] stored type=preferences
+[SESSION_MEMORY] turn_added role=assistant source=assistant
+[EPISODIC_MEMORY] stored id=ep_1784446940_9f2ebda9 outcome=success
+[REFLECTION] events=1
+[REFLECTION_MEMORY] stored id=ref_7ead2d1994e9 count=1
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed requirements
+[REFLECTION] stored=1
+[EEL] missing_js_function name=ShowHood
+[COMMAND_BUS] dispatch_finished source=typed
+[SESSION_MEMORY] cleared=true
+[FOLLOWUP] cleared reason=sleep:command_complete
+[SESSION] finish id=cdd78335 reason=command_complete
+[SLEEP] entering_sleep hotword_rearmed=true reason=command_complete
+[SESSION] detectors_resumed=true
+[COMMAND_CAPTURE] command_complete — session finished
+[WAKE] source=hotword emitted=true
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_completed
+[WAKE] post_turn_flush drained=6 frames — detection re-armed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started research
+[WAKE_SUPPRESS] reason=post_session score=0.9343 ignored=true
+[HOTWORD] score=0.9343 rms=0.00815 hits=0/1 threshold=0.5 min_rms=0.01000 reason=post_session_suppressed
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=stage_started
+[WAKE_SUPPRESS] reason=post_session score=0.9724 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9947 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9959 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9957 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9943 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.8956 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9643 ignored=true
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured research
+[WAKE_SUPPRESS] reason=post_session score=0.9952 ignored=true
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=read_only_baseline_captured
+[WAKE_SUPPRESS] reason=post_session score=0.9946 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9905 ignored=true
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started research
+[WAKE_SUPPRESS] reason=post_session score=0.9935 ignored=true
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished research
+[WAKE_SUPPRESS] reason=post_session score=0.9954 ignored=true
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=agent_task_finished
+[POST_TTS] cooldown_complete
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured developer_tests_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured qa_objective_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished qa
+[HOTWORD] score=0.0037 rms=0.00315 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured integration_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 stage_started closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_started
+[NEXI_AGENCY] wf_3635856f9db5 read_only_baseline_captured closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_started closeout
+[HOTWORD] score=0.0608 rms=0.00043 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_started
+[NEXI_AGENCY] wf_3635856f9db5 agent_task_finished closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_finished
+[NEXI_AGENCY] wf_3635856f9db5 project_memory_write_started wf_3635856f9db5
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_write_started
+[NEXI_AGENCY] wf_3635856f9db5 project_memory_document_written project-profile.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3635856f9db5 project_memory_document_written decisions.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3635856f9db5 project_memory_document_written architecture-index.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3635856f9db5 project_memory_document_written product-defaults.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[WAKE] detected source=hotword model=hey_nexi.onnx
+[HOTWORD] detected=true
+[SESSION_MEMORY] cleared=true
+[SESSION] start id=c1afcc24 source=hotword
+[SESSION] detectors_paused=true id=c1afcc24
+[WAKE] internal_wake source=hotword
+[VAD] listening_for_command source=hotword
+[NEXI_AGENCY] wf_3635856f9db5 stage_completed closeout
+[VAD] post_wake_delay_ms=300 source=hotword
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_completed
+[NEXI_AGENCY] wf_3635856f9db5 workflow_completed Studio run wf_3635856f9db5 closed at LOCAL_VERIFIED.
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=workflow_completed
+[VAD] speech_started
+[VAD] speech_ended duration_ms=960 speech_ms=160
+[COMMAND_CAPTURE] no_speech_timeout reached
+[SESSION_MEMORY] cleared=true
+[SESSION] finish id=c1afcc24 reason=no_speech_timeout
+[SLEEP] entering_sleep hotword_rearmed=true reason=no_speech_timeout
+[SESSION] detectors_resumed=true
+[WAKE] source=hotword emitted=false
+[WAKE_SUPPRESS] reason=post_session score=0.7100 ignored=true
+[HOTWORD] score=0.0035 rms=0.00281 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0037 rms=0.01028 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0036 rms=0.00040 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00040
+[HOTWORD] score=0.0036 rms=0.00732 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0048 rms=0.00173 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0037 rms=0.00148 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00148
+[HOTWORD] score=0.0036 rms=0.00421 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0036 rms=0.00003 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00003
+[HOTWORD] score=0.0036 rms=0.01281 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[TOOL] executing name=nexi_continue_studio_build
+[VERIFY] tool=nexi_continue_studio_build verified=false reason=not_success
+[TOOL] failed name=nexi_continue_studio_build reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:854: AssertionError: assert 'not_waiting' == 'reconciliation_failed'
+E   AssertionError: assert 'head_sha changed' in 'there is no paused studio build waiting for an answer or reconciliation.'
+     +  where 'there is no paused studio build waiting for an answer or reconciliation.' = <built-in method lower of str object at 0x00000211B07D03B0>()
+     +    where <built-in method lower of str object at 0x00000211B07D03B0> = 'There is no paused Studio build waiting for an answer or reconciliation.'.lower
+---------------------------- Captured stdout call -----------------------------
+[TOOL] executing name=nexi_start_studio_build
+[HOTWORD] score=0.0036 rms=0.00087 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00087
+[VERIFY] tool=nexi_start_studio_build verified=true reason=explicit_verified
+[TOOL] success name=nexi_start_studio_build
+[NEXI_AGENCY] wf_3766a2c0b969 workflow_started studio_build: change the app
+[TOOL_AI] result_verified=true
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 manager_questions_resolved requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=manager_questions_resolved
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed requirements
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=requirements status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_not_applicable research
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=research status=stage_not_applicable
+[HOTWORD] score=0.0037 rms=0.00099 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00099
+[NEXI_AGENCY] wf_3766a2c0b969 stage_not_applicable architecture
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=architecture status=stage_not_applicable
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed sprint_plan
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=sprint_plan status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=agent_task_finished
+[HOTWORD] score=0.0037 rms=0.00115 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed implementation
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=implementation status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured developer_tests_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed developer_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=developer_tests status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured qa_objective_tests
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[HOTWORD] score=0.0036 rms=0.00158 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00158
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed qa
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=qa status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed security_review
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=security_review status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_started
+[HOTWORD] score=0.0035 rms=0.00149 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00149
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured integration_objective
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed integration
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=integration status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_started
+[HOTWORD] score=0.0038 rms=0.00250 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed release
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=release status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 stage_started closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_started
+[NEXI_AGENCY] wf_3766a2c0b969 read_only_baseline_captured closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=read_only_baseline_captured
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_started closeout
+[HOTWORD] score=0.0035 rms=0.00284 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_started
+[NEXI_AGENCY] wf_3766a2c0b969 agent_task_finished closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=agent_task_finished
+[NEXI_AGENCY] wf_3766a2c0b969 project_memory_write_started wf_3766a2c0b969
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_write_started
+[NEXI_AGENCY] wf_3766a2c0b969 project_memory_document_written project-profile.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3766a2c0b969 project_memory_document_written decisions.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3766a2c0b969 project_memory_document_written architecture-index.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3766a2c0b969 project_memory_document_written product-defaults.md
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=project_memory_document_written
+[NEXI_AGENCY] wf_3766a2c0b969 stage_completed closeout
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=stage_completed
+[NEXI_AGENCY] wf_3766a2c0b969 workflow_completed Studio run wf_3766a2c0b969 closed at LOCAL_VERIFIED.
+[UI_BRIDGE] eel.studioEvent not exposed
+[UI_BRIDGE] studio stage=closeout status=workflow_completed
+[HOTWORD] score=0.0039 rms=0.04089 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[WAKE] detected source=hotword model=hey_nexi.onnx
+[HOTWORD] detected=true
+[SESSION_MEMORY] cleared=true
+[SESSION] start id=adcfb39d source=hotword
+[SESSION] detectors_paused=true id=adcfb39d
+[WAKE] internal_wake source=hotword
+[VAD] listening_for_command source=hotword
+[VAD] post_wake_delay_ms=300 source=hotword
+[VAD] speech_started
+[VAD] trimmed_leading_silence_ms=5520 kept_ms=1840
+[VAD] speech_ended duration_ms=1840 speech_ms=160
+[ASR] request_audio_saved path=artifacts\last_asr_request.wav bytes=58924
+[ASR] audio_gate fail reason=rms_too_low rms=0.00372 min_rms=0.01
+[ASR] provider=groq failed reason=audio_gate_rejected
+[ASR] provider=groq success chars=0
+[ASR] empty_audio_saved path=artifacts\last_empty_asr.wav bytes=58880
+[SESSION_MEMORY] cleared=true
+[SESSION] finish id=adcfb39d reason=asr_empty
+[SLEEP] entering_sleep hotword_rearmed=true reason=asr_empty
+[SESSION] detectors_resumed=true
+[COMMAND_CAPTURE] asr_empty — session finished
+[WAKE] source=hotword emitted=false
+[WAKE] post_turn_flush drained=1 frames — detection re-armed
+[HOTWORD] score=0.0504 rms=0.00074 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0038 rms=0.00195 hits=0/1 threshold=0.5 min_rms=0.01000 reason=low_rms_0.00195
+[HOTWORD] score=0.0038 rms=0.01555 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[HOTWORD] score=0.0037 rms=0.00252 hits=0/1 threshold=0.5 min_rms=0.01000 reason=none
+[TOOL] executing name=nexi_continue_studio_build
+[VERIFY] tool=nexi_continue_studio_build verified=false reason=not_success
+[TOOL] failed name=nexi_continue_studio_build reason=not_success
+[TOOL_AI] result_verified=false
+E:\ai-agnet-nexi\tests\test_studio_supervisor.py:884: AssertionError: assert 'head_sha changed' in 'there is no paused studio build waiting for an answer or reconciliation.'
+E   KeyError: 'expects_user_reply'
+---------------------------- Captured stdout call -----------------------------
+[TOOL] selected name=hand_gesture_control confidence=0.90
+[TOOL] executing name=hand_gesture_control
+[CAMERA] torch CUDA available: NVIDIA GeForce GTX 1650
+[WAKE] detected source=hotword model=hey_nexi.onnx
+[HOTWORD] detected=true
+[SESSION_MEMORY] cleared=true
+[SESSION] start id=71266266 source=hotword
+[SESSION] detectors_paused=true id=71266266
+[WAKE] internal_wake source=hotword
+[VAD] listening_for_command source=hotword
+[VAD] post_wake_delay_ms=300 source=hotword
+[VAD] speech_started
+[VAD] speech_ended duration_ms=1200 speech_ms=240
+[COMMAND_CAPTURE] no_speech_timeout reached
+[SESSION_MEMORY] cleared=true
+[SESSION] finish id=71266266 reason=no_speech_timeout
+[SLEEP] entering_sleep hotword_rearmed=true reason=no_speech_timeout
+[SESSION] detectors_resumed=true
+[WAKE] source=hotword emitted=false
+[WAKE_SUPPRESS] reason=post_session score=0.7118 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9378 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.8175 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.6867 ignored=true
+[WAKE_SUPPRESS] reason=post_session score=0.9830 ignored=true
+[WAKE] detected source=hotword model=hey_nexi.onnx
+[HOTWORD] detected=true
+[SESSION_MEMORY] cleared=true
+[SESSION] start id=c7fb9cc1 source=hotword
+[SESSION] detectors_paused=true id=c7fb9cc1
+[WAKE] internal_wake source=hotword
+[VAD] listening_for_command source=hotword
+[VAD] post_wake_delay_ms=300 source=hotword
+[CAMERA] MediaPipe GPU delegate: UNAVAILABLE (CPU-only pip build)
+[CAMERA] Using XNNPACK CPU delegate for optimized inference
+[CAMERA] torch_cuda=True but mediapipe_gpu=False — forcing CPU delegate
+[CAMERA] mediapipe_gpu=False backend=torch device=NVIDIA GeForce GTX 1650
+[CAMERA] mode=hand press ESC to stop
+[CAMERA] started mode=hand
+[GESTURE] control_started mode=hand
+[VERIFY] tool=hand_gesture_control verified=true reason=explicit_verified
+[TOOL] success name=hand_gesture_control
+[TOOL_AI] result_verified=true
+E:\ai-agnet-nexi\tests\test_tool_registry.py:43: KeyError: 'expects_user_reply'
+E   assert False is True
+E:\ai-agnet-nexi\tests\test_tool_registry.py:49: assert False is True
+E   AssertionError: assert '' == 'hello'
+      
+      - hello
+---------------------------- Captured stdout call -----------------------------
+[ASR] audio_gate fail reason=duration_too_short duration_ms=0 min_ms=500
+[ASR] provider=groq failed reason=audio_gate_rejected
+E:\ai-agnet-nexi\tests\test_transcript_filter.py:13: AssertionError: assert '' == 'hello'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\style.css'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\main.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\main.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\main.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\main.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\index.html'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+E   FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+C:\Users\marke\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py:1044: FileNotFoundError: [Errno 2] No such file or directory: 'E:\\ai-agnet-nexi\\www\\controller.js'
+E   AssertionError: assert False
+     +  where False = BargeInResult(interrupted=False, reason='not_speaking', level='none').interrupted
+E:\ai-agnet-nexi\tests\test_voice_barge_in_upgrade.py:57: AssertionError: assert False
+E   AssertionError: assert False
+     +  where False = BargeInResult(interrupted=False, reason='debounced', level='none').interrupted
+E:\ai-agnet-nexi\tests\test_voice_barge_in_upgrade.py:72: AssertionError: assert False
+E   AssertionError: assert False
+     +  where False = BargeInResult(interrupted=False, reason='debounced', level='none').interrupted
+E:\ai-agnet-nexi\tests\test_voice_barge_in_upgrade.py:86: AssertionError: assert False
+=========================== short test summary info ===========================
+FAILED tests/test_audio_wake_pipeline.py::test_pipeline_disabled_does_not_start
+FAILED tests/test_audio_wake_pipeline.py::test_module_level_start_stop_works_when_disabled
+FAILED tests/test_browser_write.py::test_browser_click_after_approval - asser...
+FAILED tests/test_browser_write.py::test_browser_fill_after_approval - assert...
+FAILED tests/test_combined_wake_sources.py::test_hotword_and_double_clap_candidates_share_arbitration
+FAILED tests/test_command_bus_cognitive.py::test_why_did_you_do_that_explains_route
+FAILED tests/test_command_capture_records_until_1800ms_silence.py::test_command_capture_records_until_1800ms_silence
+FAILED tests/test_computer_use.py::test_click_executes_after_approval - asser...
+FAILED tests/test_computer_use.py::test_click_direct_with_internal_token - as...
+FAILED tests/test_computer_use.py::test_type_text_after_approval - assert Fal...
+FAILED tests/test_default_clap_backend_is_clap_nn.py::test_default_clap_backend_order_is_dsp_clap
+FAILED tests/test_double_clap_gap_window.py::test_double_clap_gap_window - as...
+FAILED tests/test_double_clap_not_blocked_by_cooldown.py::test_double_clap_not_blocked_by_dsp_cooldown
+FAILED tests/test_double_clap_requires_two_events_fast_backends.py::TestDoubleClapFastBackends::test_single_clap_no_wake_with_dsp_backend
+FAILED tests/test_double_clap_requires_two_events_fast_backends.py::TestDoubleClapFastBackends::test_two_claps_within_gap_triggers_wake
+FAILED tests/test_dsp_clap_rejects_low_peak_noise.py::TestDspClapRejectsLowPeakNoise::test_low_peak_noise_is_not_clap
+FAILED tests/test_dsp_clap_rejects_low_peak_noise.py::TestDspClapRejectsLowPeakNoise::test_no_transient_no_clap_even_with_moderate_rms
+FAILED tests/test_eel_contract.py::test_python_js_called_functions_defined_or_guarded
+FAILED tests/test_eel_contract.py::test_ui_has_sleeping_and_listening_states
+FAILED tests/test_floating_output_workspace_ui.py::test_ui_has_draggable_workspace
+FAILED tests/test_floating_output_workspace_ui.py::test_ui_workspace_has_copy_save_buttons
+FAILED tests/test_gemini_brain.py::test_ask_gemini_posts_to_flash_and_extracts_text
+FAILED tests/test_groq_asr.py::test_groq_success_returns_text - AssertionErro...
+FAILED tests/test_groq_asr.py::test_uses_configured_model - AttributeError: '...
+FAILED tests/test_groq_asr_config.py::test_asr_language_english_temperature_zero
+FAILED tests/test_hotkey_wake.py::test_hotkey_uses_internal_wake - assert Non...
+FAILED tests/test_hotkey_wake.py::test_win_j_fallback_registered_when_primary_unavailable
+FAILED tests/test_hotword_audio_preprocessing.py::test_hotword_manager_uses_int16_pcm_bytes
+FAILED tests/test_hotword_barge_in_integration.py::test_next_utterance_after_hotword_barge_in_is_routed
+FAILED tests/test_hotword_cooldown_rising_edge.py::test_first_valid_detection_not_blocked_by_rising_edge
+FAILED tests/test_hotword_cooldown_rising_edge.py::test_repeated_stuck_high_is_blocked_until_cooldown_expires
+FAILED tests/test_hotword_engine_manager.py::test_hotword_manager_respects_cooldown
+FAILED tests/test_hotword_frame_contract.py::test_hotword_accepts_80ms_pcm16_frame_with_realistic_rms
+FAILED tests/test_hotword_prediction_key_mapping.py::test_hotword_prediction_key_matches_configured_phrase
+FAILED tests/test_hotword_rms_gate_realistic_signal.py::test_rms_gate_allows_realistic_voice_like_signal
+FAILED tests/test_imports.py::test_import_brain_gemini - ModuleNotFoundError:...
+FAILED tests/test_imports.py::test_import_core_config - ModuleNotFoundError: ...
+FAILED tests/test_imports.py::test_import_core_dispatcher - ModuleNotFoundErr...
+FAILED tests/test_imports.py::test_import_core_ui_state - ModuleNotFoundError...
+FAILED tests/test_imports.py::test_import_core_tts - ModuleNotFoundError: No ...
+FAILED tests/test_imports.py::test_import_intent_router - ModuleNotFoundError...
+FAILED tests/test_imports.py::test_import_intent_taxonomy - ModuleNotFoundErr...
+FAILED tests/test_imports.py::test_import_intent_safety_gate - ModuleNotFound...
+FAILED tests/test_imports.py::test_import_skills_apps - ModuleNotFoundError: ...
+FAILED tests/test_imports.py::test_import_skills_web - ModuleNotFoundError: N...
+FAILED tests/test_imports.py::test_import_skills_files - ModuleNotFoundError:...
+FAILED tests/test_imports.py::test_import_skills_browser - ModuleNotFoundErro...
+FAILED tests/test_imports.py::test_import_skills_system - ModuleNotFoundError...
+FAILED tests/test_imports.py::test_import_skills_communication - ModuleNotFou...
+FAILED tests/test_imports.py::test_import_skills_dispatch - ModuleNotFoundErr...
+FAILED tests/test_imports.py::test_import_memory_context - ModuleNotFoundErro...
+FAILED tests/test_imports.py::test_import_memory_rules - ModuleNotFoundError:...
+FAILED tests/test_imports.py::test_import_memory_manager - ModuleNotFoundErro...
+FAILED tests/test_imports.py::test_import_tools_mcp - ModuleNotFoundError: No...
+FAILED tests/test_imports.py::test_import_ui_adapter - ModuleNotFoundError: N...
+FAILED tests/test_imports.py::test_import_wake_vad - ModuleNotFoundError: No ...
+FAILED tests/test_imports.py::test_import_wake_hotword - ModuleNotFoundError:...
+FAILED tests/test_imports.py::test_import_control_registry - ModuleNotFoundEr...
+FAILED tests/test_imports.py::test_import_control_gate - ModuleNotFoundError:...
+FAILED tests/test_imports.py::test_import_control_desktop - ModuleNotFoundErr...
+FAILED tests/test_imports.py::test_import_control_file_control - ModuleNotFou...
+FAILED tests/test_imports.py::test_import_brain_planner - ModuleNotFoundError...
+FAILED tests/test_intent_misroute_regressions.py::test_questions_are_not_hijacked_into_tools[why is the weather so unpredictable]
+FAILED tests/test_jarvis_boot_animation.py::test_startup_animation_classes_exist
+FAILED tests/test_jarvis_boot_animation.py::test_state_animation_selectors_exist
+FAILED tests/test_mark_style_ui_command_bus_integration.py::TestMarkStyleUiCommandBusIntegration::test_legacy_ui_dir_exists
+FAILED tests/test_owner_trusted_mode.py::TestBridgeScreenDekhoOwnerTrusted::test_screen_dekho_owner_trusted_message
+FAILED tests/test_owner_trusted_mode.py::TestBridgeScreenDekhoOwnerTrusted::test_screen_dekho_owner_trusted_no_permission_needed
+FAILED tests/test_owner_trusted_mode.py::TestBridgeScreenTrustWithOwnerMode::test_trusted_screen_access_with_owner_mode
+FAILED tests/test_phase4a1b_bridge.py::TestScreenObservationTrustedFlow::test_owner_trusted_screen_uses_trusted_observation
+FAILED tests/test_session_summary_manager.py::test_keeps_plans_and_decisions
+FAILED tests/test_session_summary_manager.py::test_drops_small_talk - Attribu...
+FAILED tests/test_session_summary_manager.py::test_to_context_bounded - Impor...
+FAILED tests/test_session_summary_manager.py::test_dedupe_points - ImportErro...
+FAILED tests/test_skill_files_exist.py::test_requested_skill_files_exist_and_are_compact
+FAILED tests/test_skills_basic.py::TestSkillsApps::test_open_chrome - ModuleN...
+FAILED tests/test_skills_basic.py::TestSkillsApps::test_open_unknown - Module...
+FAILED tests/test_skills_basic.py::TestSkillsApps::test_close_known - ModuleN...
+FAILED tests/test_skills_basic.py::TestSkillsApps::test_close_unknown - Modul...
+FAILED tests/test_skills_basic.py::TestSkillsApps::test_app_map_has_common - ...
+FAILED tests/test_skills_basic.py::TestSkillsWeb::test_open_website_known - M...
+FAILED tests/test_skills_basic.py::TestSkillsWeb::test_open_website_unknown
+FAILED tests/test_skills_basic.py::TestSkillsWeb::test_web_search - ModuleNot...
+FAILED tests/test_skills_basic.py::TestSkillsWeb::test_sites_contains_common
+FAILED tests/test_skills_basic.py::TestSkillsFiles::test_safe_name_strips_invalid
+FAILED tests/test_skills_basic.py::TestSkillsFiles::test_resolve_location_desktop
+FAILED tests/test_skills_basic.py::TestSkillsFiles::test_resolve_location_documents
+FAILED tests/test_skills_basic.py::TestSkillsSystem::test_get_time - ModuleNo...
+FAILED tests/test_skills_basic.py::TestSkillsSystem::test_get_weather_no_city
+FAILED tests/test_skills_basic.py::TestSkillsSystem::test_read_clipboard_returns_dict
+FAILED tests/test_skills_basic.py::TestSkillsSystem::test_copy_to_clipboard
+FAILED tests/test_speech_not_clap_fast_backends.py::TestSpeechNotClapFastBackends::test_dsp_backend_rejects_sustained_noise
+FAILED tests/test_studio_supervisor.py::test_studio_rejects_unavailable_or_policy_ineligible_provider
+FAILED tests/test_studio_supervisor.py::test_nexi_manager_answers_safe_reversible_question_before_escalating
+FAILED tests/test_studio_supervisor.py::test_grouped_questions_assumptions_and_same_stage_resume
+FAILED tests/test_studio_supervisor.py::test_question_overflow_is_resumable_at_same_gate
+FAILED tests/test_studio_supervisor.py::test_non_git_workspace_mutation_blocks_resume
+FAILED tests/test_studio_supervisor.py::test_git_head_drift_and_parent_repository_scope_escape_are_rejected
+FAILED tests/test_tool_registry.py::test_start_camera_missing_mode_asks_preview_or_control
+FAILED tests/test_tool_registry.py::test_safety_required_for_mouse_control - ...
+FAILED tests/test_transcript_filter.py::test_groq_asr_sends_language_en - Ass...
+FAILED tests/test_ui_chat_layout.py::test_chat_offcanvas_scrolls_and_does_not_replace_main_ui
+FAILED tests/test_ui_chat_layout.py::test_main_ui_keeps_single_input_bar - Fi...
+FAILED tests/test_ui_restore_clean_layout.py::test_orb_size_limited - FileNot...
+FAILED tests/test_ui_restore_clean_layout.py::test_input_bar_near_bottom - Fi...
+FAILED tests/test_ui_same_path.py::test_ui_button_uses_internal_wake - FileNo...
+FAILED tests/test_ui_same_path.py::test_typed_chat_uses_command_bus_endpoint
+FAILED tests/test_ui_state_bridge.py::test_core_ui_functions_exist_in_js - Fi...
+FAILED tests/test_ui_state_bridge.py::test_idle_hint_mentions_hey_nexi_and_double_clap
+FAILED tests/test_ui_state_single_badge.py::test_only_one_status_badge_visible
+FAILED tests/test_ui_state_single_badge.py::test_tts_does_not_show_listening_badge
+FAILED tests/test_ui_state_single_badge.py::test_context_active_not_main_badge
+FAILED tests/test_ui_state_single_badge.py::test_idle_state_clean - FileNotFo...
+FAILED tests/test_ui_state_single_badge.py::test_speaking_state_clean - FileN...
+FAILED tests/test_voice_barge_in_upgrade.py::test_next_utterance_after_hotword_barge_in_is_routed
+FAILED tests/test_voice_barge_in_upgrade.py::test_voice_state_gate_rejects_commands_during_speaking_with_hotword
+FAILED tests/test_voice_barge_in_upgrade.py::test_voice_diagnostics_include_hotword_barge_in_status
+ERROR tests/test_hud_layers_playwright.py::test_every_media_asset_actually_loads
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[error-hud_bg]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[listening-pulse]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[online-hud_bg]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[recognising-pulse]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[saying-rings]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[sleep-hud_bg]
+ERROR tests/test_hud_layers_playwright.py::test_each_state_shows_its_own_layer[thinking-dna]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[error]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[listening]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[online]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[recognising]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[saying]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[sleep]
+ERROR tests/test_hud_layers_playwright.py::test_only_one_video_decodes_at_a_time[thinking]
+ERROR tests/test_hud_layers_playwright.py::test_portrait_clips_are_rails_not_backgrounds
+ERROR tests/test_hud_layers_playwright.py::test_sleep_pauses_all_video_decoding_and_orb_animation
+ERROR tests/test_hud_layers_playwright.py::test_collapsed_dashboard_does_not_poll
+ERROR tests/test_hud_layers_playwright.py::test_no_console_errors - playwrigh...
+ERROR tests/test_studio_panel_playwright.py::test_panel_is_hidden_until_a_build_starts
+ERROR tests/test_studio_panel_playwright.py::test_panel_opens_on_the_first_studio_event
+ERROR tests/test_studio_panel_playwright.py::test_it_says_what_nexi_is_handling_right_now
+ERROR tests/test_studio_panel_playwright.py::test_completed_stages_are_marked_done
+ERROR tests/test_studio_panel_playwright.py::test_the_active_stage_is_visibly_distinct
+ERROR tests/test_studio_panel_playwright.py::test_failures_are_shown_as_failed_not_active
+ERROR tests/test_studio_panel_playwright.py::test_live_log_accumulates_messages
+ERROR tests/test_studio_panel_playwright.py::test_stage_output_is_rendered_as_text_not_markup
+ERROR tests/test_studio_panel_playwright.py::test_a_new_run_resets_the_board
+117 failed, 3016 passed, 5 skipped, 28 errors in 940.63s (0:15:40)
+[VAD] trimmed_leading_silence_ms=16560 kept_ms=1840
+[VAD] speech_ended duration_ms=1840 speech_ms=160
+[ASR] request_audio_saved path=artifacts\last_asr_request.wav bytes=58924
+[ASR] audio_gate fail reason=rms_too_low rms=0.00917 min_rms=0.01
+[ASR] provider=groq failed reason=audio_gate_rejected
+[ASR] provider=groq success chars=0
+[ASR] empty_audio_saved path=artifacts\last_empty_asr.wav bytes=58880
+[SESSION_MEMORY] cleared=true
+[SESSION] finish id=bc0090cc reason=asr_empty
+[SLEEP] entering_sleep hotword_rearmed=true reason=asr_empty
+[SESSION] detectors_resumed=true
+[COMMAND_CAPTURE] asr_empty — session finished
+[WAKE] source=hotword emitted=false
+[WAKE] post_turn_flush drained=2 frames — detection re-armed

@@ -4,6 +4,7 @@ import os
 import re
 import tempfile
 import time
+import uuid
 
 try:
     import ctypes
@@ -149,6 +150,11 @@ def _speak_impl(text):
     _speak_pyttsx3(text)
 
 
+def _play_audio_file_impl(file_path):
+    from playsound import playsound
+    playsound(file_path)
+
+
 def _worker():
     global _state
     while True:
@@ -156,20 +162,114 @@ def _worker():
         if item is None:
             _QUEUE.task_done()
             break
-        text = item
+        if isinstance(item, dict):
+            text = str(item.get("text") or "")
+            item_kind = str(item.get("kind") or "speech")
+            lifecycle_session_id = str(item.get("session_id") or "")
+            lifecycle_global_lease_id = str(item.get("global_lease_id") or "")
+            lifecycle_producer_id = str(item.get("producer_id") or "")
+            lifecycle_started = bool(item.get("lifecycle_started", False))
+        else:
+            text = str(item or "")
+            item_kind = "speech"
+            lifecycle_session_id = ""
+            lifecycle_global_lease_id = ""
+            lifecycle_producer_id = ""
+            lifecycle_started = False
         if _STOP_EVENT.is_set():
+            if lifecycle_started:
+                try:
+                    if lifecycle_session_id:
+                        from engine.runtime_bridge import notify_cooldown_complete, notify_tts_interrupted
+                        if notify_tts_interrupted(lifecycle_session_id, lifecycle_producer_id):
+                            notify_cooldown_complete(lifecycle_session_id, lifecycle_producer_id)
+                    else:
+                        from engine.runtime_bridge import notify_global_cooldown_complete, notify_global_tts_interrupted
+                        if notify_global_tts_interrupted(lifecycle_global_lease_id):
+                            notify_global_cooldown_complete(lifecycle_global_lease_id)
+                except Exception:
+                    pass
             _QUEUE.task_done()
             continue
+        heartbeat_stop = threading.Event()
+        heartbeat_thread = None
+        if lifecycle_started:
+            try:
+                heartbeat_seconds = max(0.01, float(os.getenv("NEXI_TTS_HEARTBEAT_SECONDS", "5.0")))
+
+                def _heartbeat():
+                    from engine.runtime_bridge import notify_global_tts_heartbeat, notify_tts_heartbeat
+                    while not heartbeat_stop.wait(heartbeat_seconds):
+                        posted = (
+                            notify_tts_heartbeat(lifecycle_session_id, lifecycle_producer_id)
+                            if lifecycle_session_id
+                            else notify_global_tts_heartbeat(lifecycle_global_lease_id)
+                        )
+                        if not posted:
+                            return
+
+                heartbeat_thread = threading.Thread(target=_heartbeat, daemon=True, name="speech-controller-heartbeat")
+                heartbeat_thread.start()
+            except Exception as exc:
+                print(f"[TTS] lifecycle_heartbeat_failed reason={type(exc).__name__}", flush=True)
         with _SPEAKER_LOCK:
             _state["is_speaking"] = True
             _state["state"] = "speaking"
             _state["last_text_preview"] = _redact_preview(text)
             _state["last_stop_reason"] = ""
         try:
-            _speak_impl(text)
+            if item_kind == "audio_file":
+                _play_audio_file_impl(text)
+            else:
+                _speak_impl(text)
         except Exception as e:
             print(f"Speech worker error: {e}")
         finally:
+            if lifecycle_started:
+                heartbeat_stop.set()
+                if heartbeat_thread is not None:
+                    heartbeat_thread.join(timeout=0.25)
+                interrupted = _STOP_EVENT.is_set()
+                try:
+                    if lifecycle_session_id:
+                        from engine.runtime_bridge import (
+                            notify_cooldown_complete,
+                            notify_tts_finished,
+                            notify_tts_interrupted,
+                        )
+                        terminal_posted = (
+                            notify_tts_interrupted(lifecycle_session_id, lifecycle_producer_id)
+                            if interrupted
+                            else notify_tts_finished(lifecycle_session_id, lifecycle_producer_id)
+                        )
+                        cooldown_callback = lambda: notify_cooldown_complete(lifecycle_session_id, lifecycle_producer_id)
+                    else:
+                        from engine.runtime_bridge import (
+                            notify_global_cooldown_complete,
+                            notify_global_tts_finished,
+                            notify_global_tts_interrupted,
+                        )
+                        terminal_posted = (
+                            notify_global_tts_interrupted(lifecycle_global_lease_id)
+                            if interrupted
+                            else notify_global_tts_finished(lifecycle_global_lease_id)
+                        )
+                        cooldown_callback = lambda: notify_global_cooldown_complete(lifecycle_global_lease_id)
+                    if terminal_posted:
+                        from engine.post_tts_cleanup import post_tts_cleanup
+                        post_tts_cleanup(on_complete=cooldown_callback)
+                    else:
+                        print(f"[TTS] terminal_enqueue_failed session={lifecycle_session_id} lease={lifecycle_global_lease_id}", flush=True)
+                        if lifecycle_session_id:
+                            from engine.runtime_bridge import current_control_queue, post_session_finish
+                            post_session_finish(
+                                current_control_queue(),
+                                lifecycle_session_id,
+                                reason="tts_terminal_enqueue_failed",
+                                force=True,
+                            )
+                except Exception as exc:
+                    print(f"[TTS] lifecycle_terminal_failed reason={type(exc).__name__}", flush=True)
             with _SPEAKER_LOCK:
                 _state["is_speaking"] = bool(_QUEUE.qsize() > 0 and not _STOP_EVENT.is_set())
                 _state["state"] = "idle" if not _state["is_speaking"] else "speaking"
@@ -190,8 +290,57 @@ def speak(text, interrupt=False):
     if interrupt:
         stop_speaking(reason="interrupted_by_new_speech")
         reset_stop_flag()
+    try:
+        from engine.runtime_bridge import (
+            current_bridge_session_id,
+            notify_global_tts_started,
+            notify_tts_started,
+        )
+        session_id = current_bridge_session_id()
+        producer_id = uuid.uuid4().hex
+        if session_id:
+            global_lease_id = ""
+            lifecycle_started = notify_tts_started(session_id, producer_id)
+        else:
+            global_lease_id = notify_global_tts_started()
+            lifecycle_started = bool(global_lease_id)
+    except Exception:
+        session_id = ""
+        producer_id = ""
+        global_lease_id = ""
+        lifecycle_started = False
     _ensure_worker()
-    _QUEUE.put(text)
+    _QUEUE.put({
+        "kind": "speech",
+        "text": text,
+        "session_id": session_id,
+        "producer_id": producer_id,
+        "global_lease_id": global_lease_id,
+        "lifecycle_started": lifecycle_started,
+    })
+    with _SPEAKER_LOCK:
+        _state["queue_size"] = _QUEUE.qsize()
+
+
+def play_audio_file(file_path):
+    if not file_path:
+        return
+    try:
+        from engine.runtime_bridge import notify_global_tts_started
+        global_lease_id = notify_global_tts_started()
+        lifecycle_started = bool(global_lease_id)
+    except Exception:
+        global_lease_id = ""
+        lifecycle_started = False
+    _ensure_worker()
+    _QUEUE.put({
+        "kind": "audio_file",
+        "text": str(file_path),
+        "session_id": "",
+        "producer_id": "",
+        "global_lease_id": global_lease_id,
+        "lifecycle_started": lifecycle_started,
+    })
     with _SPEAKER_LOCK:
         _state["queue_size"] = _QUEUE.qsize()
 

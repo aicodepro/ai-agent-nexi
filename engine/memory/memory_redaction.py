@@ -1,38 +1,11 @@
-import re
+"""Re-exports redact_sensitive from the authoritative engine/memory_safety.py.
 
-# Shape-matched vendor keys (gsk_..., AIza..., sk-ant-...). Shared with
-# engine/memory_safety.py rather than kept in sync by hand — the two redactors
-# guard the same stores and drifting apart means one path leaks.
-from engine.memory_safety import VENDOR_KEY_PATTERN
-
-_EMAIL_PATTERN = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
-_PHONE_PATTERN = re.compile(
-    r'\b\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}\b'
-)
-_API_KEY_LIKE = re.compile(
-    r'(?i)(api[_-]?key|apikey|api_key|token|secret|password|passwd|pwd)'
-    r'\s*[=:]\s*\S{6,}'
-)
-_CARD_PATTERN = re.compile(r'\b(?:\d[ -]*?){13,19}\b')
-_OTP_PATTERN = re.compile(
-    r'(?i)(otp|one[ -]?time[ -]?pin|verification[ -]?code)\s*[=:]\s*\S+'
-)
+Kept as a separate module to avoid breaking existing imports. All redaction
+logic is owned by engine/memory_safety.py — edit there, not here.
+"""
+from engine.memory_safety import redact_sensitive, VENDOR_KEY_PATTERN
 
 _REDACTED_PLACEHOLDER = "[REDACTED]"
-
-
-def redact_sensitive(text):
-    if not text or not isinstance(text, str):
-        return text
-    t = text
-    # Before the labelled patterns: a bare key has no label to anchor on.
-    t = VENDOR_KEY_PATTERN.sub(_REDACTED_PLACEHOLDER, t)
-    t = _API_KEY_LIKE.sub(lambda m: m.group(1) + "=" + _REDACTED_PLACEHOLDER, t)
-    t = _EMAIL_PATTERN.sub(_REDACTED_PLACEHOLDER, t)
-    t = _PHONE_PATTERN.sub(_REDACTED_PLACEHOLDER, t)
-    t = _CARD_PATTERN.sub(_REDACTED_PLACEHOLDER, t)
-    t = _OTP_PATTERN.sub(lambda m: m.group(1) + "=" + _REDACTED_PLACEHOLDER, t)
-    return t
 
 
 def redact_dict(data):

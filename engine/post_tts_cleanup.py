@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Any
+from typing import Any, Callable
 
 # Configuration constants
 DEFAULT_COOLDOWN_MS = 800
@@ -31,9 +31,10 @@ _cooldown_active = False
 _cooldown_start_time = 0.0
 _cooldown_end_time = 0.0
 _audio_buffers_flushed = False
+_cooldown_callbacks: list[Callable[[], None]] = []
 
 
-def post_tts_cleanup() -> bool:
+def post_tts_cleanup(*, on_complete: Callable[[], None] | None = None) -> bool:
     """Execute post-TTS cleanup and enter cooldown.
 
     Returns:
@@ -43,15 +44,13 @@ def post_tts_cleanup() -> bool:
 
     current_time = time.time()
 
-    # Check if we're in cooldown
-    if _cooldown_active and current_time < _cooldown_end_time:
-        remaining_ms = int((_cooldown_end_time - current_time) * 1000.0)
-        print(f"[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms={remaining_ms}", flush=True)
-        return False
-
     # Start cooldown
     with _cooldown_lock:
+        if on_complete is not None:
+            _cooldown_callbacks.append(on_complete)
         if _cooldown_active and current_time < _cooldown_end_time:
+            remaining_ms = int((_cooldown_end_time - current_time) * 1000.0)
+            print(f"[POST_TTS] cooldown_active reason=still_in_cooldown remaining_ms={remaining_ms}", flush=True)
             return False
 
         _cooldown_active = True
@@ -125,6 +124,7 @@ def reset_cooldown() -> None:
         _cooldown_active = False
         _cooldown_start_time = 0.0
         _cooldown_end_time = 0.0
+        _cooldown_callbacks.clear()
 
     print(f"[POST_TTS] cooldown_reset", flush=True)
 
@@ -183,13 +183,21 @@ def _cooldown_cleanup() -> None:
 
     # Cooldown complete
     if _cooldown_active and current_time >= _cooldown_end_time:
+        callbacks: list[Callable[[], None]] = []
         with _cooldown_lock:
             if _cooldown_active:
                 _cooldown_active = False
                 _cooldown_start_time = 0.0
                 _cooldown_end_time = 0.0
+                callbacks = list(_cooldown_callbacks)
+                _cooldown_callbacks.clear()
 
         print(f"[POST_TTS] cooldown_complete", flush=True)
+        for callback in callbacks:
+            try:
+                callback()
+            except Exception:
+                pass
 
 
 # Convenience functions for integration

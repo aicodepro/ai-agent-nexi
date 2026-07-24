@@ -48,7 +48,7 @@ def _spec(name: str, description: str, required: list[str] | None = None, safety
 _TOOLS: dict[str, ToolSpec] = {
     "open_app": _spec("open_app", "Open a Windows application", ["app_name"], handler="engine.local_skills.open_app"),
     "open_website": _spec("open_website", "Open a website", ["url"], handler="engine.local_skills.open_website"),
-    "web_search": _spec("web_search", "Search the web", ["query"], handler="engine.local_skills.web_search"),
+    "web_search": _spec("web_search", "Search the live web with citations", ["query"], optional=["mode"], handler="engine.local_skills.web_search"),
     "create_folder": _spec("create_folder", "Create a folder", ["folder_name"], safety="medium"),
     "create_project_folder": _spec("create_project_folder", "Create a project folder", ["folder_name"], safety="medium"),
     "create_file": _spec("create_file", "Create a file", ["file_name"], optional=["content"], safety="medium"),
@@ -163,6 +163,14 @@ _TOOLS: dict[str, ToolSpec] = {
     "media_pause": _spec("media_pause", "Pause media playback", aliases=("pause", "pause video", "pause music", "stop playing"), examples=["pause the video", "pause music"], category="desktop"),
     "media_resume": _spec("media_resume", "Resume media playback", aliases=("resume", "resume video", "play again", "continue playing"), examples=["resume the video", "play again"], category="desktop"),
     "media_mute": _spec("media_mute", "Mute or toggle media sound", aliases=("mute video", "mute sound", "silence"), examples=["mute the sound"], category="desktop"),
+    "spotify_connect": _spec("spotify_connect", "Connect Spotify using browser PKCE authorization", safety="medium", handler="engine.integrations.spotify.spotify_connect", aliases=("connect spotify", "link spotify", "authorize spotify"), examples=["connect spotify"], category="web"),
+    "spotify_play": _spec("spotify_play", "Search Spotify and play a track, artist, album, or playlist", ["query"], optional=["kind", "device"], handler="engine.integrations.spotify.spotify_play", aliases=("play on spotify", "spotify play"), examples=["play Billie Jean on Spotify", "play my focus playlist on Spotify"], category="web"),
+    "spotify_pause": _spec("spotify_pause", "Pause verified Spotify playback", optional=["device"], handler="engine.integrations.spotify.spotify_control", aliases=("pause spotify", "pause spotify playback"), examples=["pause Spotify"], category="web"),
+    "spotify_resume": _spec("spotify_resume", "Resume verified Spotify playback", optional=["device"], handler="engine.integrations.spotify.spotify_control", aliases=("resume spotify", "continue spotify"), examples=["resume Spotify"], category="web"),
+    "spotify_next": _spec("spotify_next", "Skip to the next Spotify item", optional=["device"], handler="engine.integrations.spotify.spotify_control", aliases=("next on spotify", "skip spotify"), examples=["next on Spotify"], category="web"),
+    "spotify_previous": _spec("spotify_previous", "Return to the previous Spotify item", optional=["device"], handler="engine.integrations.spotify.spotify_control", aliases=("previous on spotify", "spotify previous"), examples=["previous on Spotify"], category="web"),
+    "spotify_now_playing": _spec("spotify_now_playing", "Report the verified current Spotify item", handler="engine.integrations.spotify.spotify_now_playing", aliases=("what is playing on spotify", "spotify now playing"), examples=["what is playing on Spotify"], category="web"),
+    "spotify_devices": _spec("spotify_devices", "List available Spotify Connect devices", handler="engine.integrations.spotify.spotify_devices", aliases=("spotify devices", "list spotify devices"), examples=["list Spotify devices"], category="web"),
     "browser_new_tab": _spec("browser_new_tab", "Open a new browser tab", aliases=("new tab", "open new tab", "create tab"), examples=["open a new tab"], category="browser"),
     "browser_close_tab": _spec("browser_close_tab", "Close the current browser tab", aliases=("close tab", "close current tab", "close this tab"), examples=["close the tab"], category="browser"),
     "browser_refresh": _spec("browser_refresh", "Refresh the current page", aliases=("refresh", "reload", "refresh page", "reload page"), examples=["refresh the page"], category="browser"),
@@ -183,6 +191,7 @@ MODEL_FORBIDDEN_TOOLS = frozenset({
     "nexi_continue_studio_build",
     "nexi_cancel_workflow",
     "nexi_continue_workflow",
+    "spotify_connect",
 })
 
 
@@ -486,7 +495,10 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
         return open_website(url=str(slots.get("url") or slots.get("site") or ""))
     if name == "web_search":
         from engine.local_skills import web_search
-        return web_search(str(slots.get("query") or ""))
+        return web_search(
+            str(slots.get("query") or ""),
+            mode=str(slots.get("mode") or "search"),
+        )
     if name == "remember":
         from engine.memory_store import remember_fact
         return {"success": True, "message": remember_fact(str(slots.get("text") or "")), "tool": name, "verified": True}
@@ -806,6 +818,18 @@ def _execute_handler(name: str, slots: dict[str, Any], *, confirmed: bool) -> An
             return {"success": True, "message": f"Done: {label}.", "tool": name, "verified": True}
         except Exception:
             return {"success": False, "message": "That control requires pyautogui which is not available.", "tool": name}
+    if name.startswith("spotify_"):
+        from engine.integrations import spotify
+
+        if name == "spotify_connect":
+            return spotify.spotify_connect(slots)
+        if name == "spotify_play":
+            return spotify.spotify_play(slots)
+        if name == "spotify_now_playing":
+            return spotify.spotify_now_playing(slots)
+        if name == "spotify_devices":
+            return spotify.spotify_devices(slots)
+        return spotify.spotify_control(name.removeprefix("spotify_"), slots)
     if name in {"nexi_forge_tool", "nexi_list_forged_tools", "nexi_remove_tool"}:
         # Nexi writing her own tools. The forge wrappers take real arguments and
         # return {ok,...}, so adapt slots -> args and ok -> the tool contract.

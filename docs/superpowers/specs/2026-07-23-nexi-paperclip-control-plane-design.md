@@ -15,12 +15,13 @@ self-improvement lab, but Automaton is not embedded as Nexi's core.
 The authority hierarchy is:
 
 ```text
-Devendra
+Darsh
   -> Nexi Cognitive Kernel
       -> Nexi Mission and Authority Policy
           -> Paperclip control plane
+              -> Nexi governance plugin (policy digest + authority lease)
               -> Claude Code, Codex, and specialist workers
-                  -> disposable Git worktrees
+                  -> sandboxed disposable Git worktrees
           <- status, evidence, costs, gates, and audit events
       -> Nexi verifier and conversational reporting
 ```
@@ -36,8 +37,9 @@ inherit authority over the Windows desktop.
 3. Let Nexi create, assign, pause, resume, retry, cancel, inspect, and report
    Paperclip work through a typed adapter.
 4. Keep routine isolated work autonomous, similar to Claude Code auto mode.
-5. Interrupt Devendra only when work crosses a material trust boundary.
-6. Require disposable Git worktrees for autonomous code changes.
+5. Interrupt Darsh only when work crosses a material trust boundary.
+6. Require disposable Git worktrees inside an enforceable sandbox or a separate
+   low-privilege OS account for autonomous code changes.
 7. Preserve Nexi's local safety, voice, memory, verification, and rollback
    responsibilities.
 8. Fail closed. Paperclip outages or permission failures must never silently
@@ -81,6 +83,12 @@ This design does not:
 | Merge, release, deploy, rollback | Nexi governance | Work coordination only |
 | Workforce audit | Local bridge ledger | Company audit source |
 
+Nexi chooses the mission, allowed role/template set, data-egress class, budget
+envelope, and operation classes. Paperclip chooses a concrete worker from the
+allowed roster and resolves its configured runtime/model. A direct human Board
+override by Darsh remains authoritative and is reconciled as an out-of-band
+human decision; no other Paperclip actor may widen a Nexi-managed mission.
+
 ## 5. Existing Nexi Components
 
 ### 5.1 Retain
@@ -88,6 +96,8 @@ This design does not:
 - `engine/studio/commands.py`: explicit voice authorization grammar.
 - `engine/studio/intent_detect.py`: inferred mission confirmation.
 - `engine/groq_intent_router_v2.py`: deterministic Studio and mission routing.
+- `engine/command.py::allCommands`: sensitive voice/text command entry point.
+- `engine/app/phase3_command_bridge.py`: legacy/new command-flow bridge.
 - `engine/tool_registry.py`: stable northbound voice tool names.
 - `engine/agency/__init__.py`: stable facade for status and mission operations.
 - `engine/control/safety.py`: emergency stop and local sandbox policy.
@@ -113,8 +123,10 @@ implementations:
 - direct Nexi selection and dispatch of implementation workers;
 - local Studio retries, stage gates, and completion truth.
 
-Legacy runs remain inspectable and cancellable through a clearly labeled legacy
-path. New missions have exactly one authority: Paperclip.
+Paperclip mode cannot be enabled while a local Studio run is non-terminal. Such a
+run must first complete or be cancelled through the legacy path. After activation,
+legacy runs are archived and read-only. New missions have exactly one authority:
+Paperclip.
 
 ### 5.3 Do not reuse as the Paperclip boundary
 
@@ -162,6 +174,22 @@ Nexi startup. Nexi may report that Paperclip is unavailable, but must not instal
 start, reconfigure, or upgrade it as a side effect of import or a normal voice
 turn.
 
+Full auto mode additionally requires a versioned Nexi governance plugin installed
+in Paperclip. The plugin validates the mission policy digest, rejects unauthorized
+actors, enforces an expiring authority lease before dispatch, and pauses managed
+work when the lease expires. If the installed Paperclip plugin API cannot enforce
+those hooks, full auto mode is unavailable; the integration is limited to reads
+and explicitly approved one-shot mutations.
+
+Paperclip remains independently operable by Darsh through its authenticated
+Board UI. Board changes to a Nexi-managed mission are treated as explicit human
+overrides. A Paperclip-side pre-mutation hook atomically invalidates the current
+lease and blocks new scheduling before applying the Board override. The adapter
+then imports the Board decision into a new mission revision before issuing a new
+lease. Polling is observability only, not the enforcement mechanism. If the
+installed plugin API cannot enforce this transactionally, native Board mutation
+of managed missions is disabled while full auto is active.
+
 ## 7. Adapter Boundary
 
 Add a dedicated anti-corruption layer:
@@ -174,8 +202,23 @@ engine/integrations/paperclip/
   policy.py
   mapper.py
   service.py
+  mission_store.py
   approvals.py
+  evidence.py
+  attention.py
   audit.py
+```
+
+The Paperclip-side enforcement package is a separate deployable plugin, not a
+Paperclip fork:
+
+```text
+external/paperclip-nexi-governance/
+  plugin manifest
+  policy and lease validation
+  managed-mission actor restrictions
+  pre-dispatch workspace/sandbox checks
+  lease-expiry pause/cancel job
 ```
 
 ### 7.1 `contracts.py`
@@ -200,6 +243,10 @@ OperationRequest
 OperationDecision
 OperationResult
 ReconciliationResult
+MissionPolicyRevision
+AuthorityLease
+DataEgressPolicy
+BudgetPolicy
 ```
 
 ### 7.2 `client.py`
@@ -227,7 +274,22 @@ installed version. It must not guess endpoint paths from this design document.
 ### 7.3 `policy.py`
 
 Makes deterministic `AUTO`, `ASK`, or `FORBIDDEN` decisions before any Paperclip
-mutation. Model output cannot override this decision.
+mutation. The same versioned policy digest is enforced by the Paperclip governance
+plugin before worker dispatch. Model output cannot override either decision.
+
+Policy categories come from checked-in registries rather than free-form model
+labels:
+
+```text
+config/paperclip/operation_policy.json
+config/paperclip/protected_paths.json
+config/paperclip/network_allowlist.json
+config/paperclip/supply_chain_policy.json
+config/paperclip/data_egress_policy.json
+```
+
+Unknown operations, paths, hosts, package actions, or data classes default to
+`ASK`; explicitly prohibited values are `FORBIDDEN`.
 
 ### 7.4 `mapper.py`
 
@@ -250,12 +312,39 @@ Implements control-plane use cases:
 - event polling and mission reconciliation;
 - verified completion summaries.
 
-### 7.6 `approvals.py`
+The canonical external mission anchor is one Paperclip root issue. A Nexi
+`mission_id` maps one-to-one to that root issue; its Paperclip project and goal
+provide context. The root issue stores the `mission_id`, current policy revision,
+policy digest, and idempotency fingerprint in a supported metadata/document
+surface. If the installed version cannot preserve this correlation durably, mission
+mutations remain disabled.
+
+### 7.6 `mission_store.py`
+
+Atomically persists the non-secret mission aggregate under ignored local state.
+It owns policy revisions, Paperclip IDs, authority lease state, idempotency
+fingerprints, approval capability/write-ahead state, event cursor, attention
+state, and last reconciliation result. A restart never reconstructs authority
+from conversation memory.
+
+### 7.7 `approvals.py`
 
 Maintains Paperclip-specific approval capabilities. It does not reuse local
 desktop approval IDs or handlers.
 
-### 7.7 `audit.py`
+### 7.8 `evidence.py`
+
+Treats all worker output as hostile evidence. It validates artifact paths,
+workspace baselines, trusted test commands, changed tests, independent reviewer
+identity, command exit codes, and repository state before Nexi accepts completion.
+
+### 7.9 `attention.py`
+
+Groups approval/blocker events by stable fingerprint, suppresses duplicate prompts,
+applies reminder cooldowns, and escalates one unresolved decision instead of
+repeatedly interrupting the user.
+
+### 7.10 `audit.py`
 
 Appends redacted bridge events to a durable local ledger with restrictive file
 permissions. Paperclip remains the workforce audit source; the local ledger
@@ -296,12 +385,16 @@ nexi_reject_workforce_action
 Paperclip approval commands must never route to `approve_action` or
 `reject_action`, which are reserved for local Nexi actions.
 
-## 9. Mission Envelope
+## 9. Mission Aggregate And Policy Revisions
 
-Every business/project mission starts from an immutable Nexi envelope:
+Every business/project mission starts from an immutable revision 1 envelope.
+Approved changes create a new immutable revision; they never overwrite the prior
+authority record:
 
 ```text
 mission_id
+schema_version
+policy_revision
 source_turn_id
 requester_principal
 raw_user_goal_digest
@@ -309,13 +402,21 @@ resolved_goal
 acceptance_criteria
 configured_company_id
 configured_project_id, if continuing an existing project
+paperclip_root_issue_id, after creation
 allowed_repository_root
-allowed_worker_templates
+allowed_worker_templates: template ID, immutable revision, config digest,
+  capability digest, adapter/provider identity, sandbox profile, tool classes,
+  and network/data-egress policy
 allowed_operation_classes
-mission_budget_cap
+data_classification
+allowed_model_providers
+allowed_network_hosts
+budget_policy: currency, period, cap, warning threshold, reservation rules
 external_effects_allowed=false
 created_at
 expires_at for start authorization
+supersedes_revision, after revision 1
+revision_reason, after revision 1
 ```
 
 The envelope is created from the user's current voice or text turn after material
@@ -323,6 +424,22 @@ ambiguities are resolved. It is not generated solely from a model plan.
 
 The initial mission request authorizes creation and routine isolated execution
 inside this envelope. It does not authorize later trust-boundary crossings.
+
+The mission store persists every revision before Paperclip receives its digest.
+Paperclip's root issue is the canonical external aggregate anchor. Personal memory
+stores only the mission reference and verified summary, never the authority data.
+
+Template, adapter, provider, tool, sandbox, or capability drift invalidates the
+mission lease. A changed template is not an AUTO reuse; it requires a new policy
+revision and the applicable ASK decision.
+
+No autonomous paid execution starts until a nonzero budget policy is configured.
+Before dispatch, Paperclip reserves the run's configured maximum estimated cost
+against mission, agent, project, and company limits. Actual reported cost releases
+or consumes that reservation. Delayed costs reduce future available budget; they
+never retroactively authorize overspend. Concurrent reservations are atomic in
+Paperclip. Budget changes create a new mission policy revision and follow the ASK
+rules.
 
 ## 10. Low-Interruption Auto Mode
 
@@ -348,7 +465,7 @@ the mission envelope:
 
 ### 10.2 ASK
 
-Nexi interrupts Devendra only when:
+Nexi interrupts Darsh only when:
 
 - unresolved ambiguity would materially change the product or acceptance
   criteria;
@@ -365,6 +482,11 @@ Nexi interrupts Devendra only when:
 - work would publish, deploy, modify production data, send external messages,
   charge money, or create another external or difficult-to-reverse effect;
 - rollback cannot be proven before promotion.
+
+Autonomous shell, build, test, and edit operations are AUTO only when an
+enforcement-capable sandbox or separate ACL-restricted worker account applies the
+mission filesystem, process, secret, and network policy. A host-local worktree by
+itself never qualifies for AUTO execution.
 
 ### 10.3 FORBIDDEN
 
@@ -392,10 +514,14 @@ approval_id: cryptographically random
 operation
 target_type and target_id
 normalized argument digest
+canonicalization schema version
 mission_id
+mission policy revision
 paperclip company/project/issue IDs
+paperclip approval ID and revision
 requester principal
 voice/text source turn
+approval assurance level
 budget impact
 risk reason
 created_at
@@ -410,6 +536,23 @@ oldest pending action.
 Paperclip's internal approval record is workforce state. Nexi's capability is
 proof that the human or policy authority allowed Nexi to answer that specific
 record. Neither can authorize a local Windows action.
+
+Arguments are canonicalized as versioned, sorted JSON before hashing. Capability
+state moves atomically through `pending -> in_flight -> applied|rejected|unknown`.
+The Paperclip mutation uses the capability digest as its idempotency key. A timeout
+leaves the capability `unknown` until reconciliation proves whether the effect
+occurred; it cannot be reused or replaced by an equivalent capability meanwhile.
+
+Capability state is persisted with a write-ahead record before the remote
+mutation. After restart, deferred recovery reconciles every `in_flight` or
+`unknown` capability before an equivalent approval can be issued. Applied,
+rejected, expired, and superseded records remain in the durable audit history.
+
+Voice approval has the existing local-OS-principal assurance only. It may approve
+normal ASK operations but is not sufficient for secrets, money, protected-branch
+merge, production data, publish, or deploy. Those require confirmation in Nexi's
+secure UI by the authenticated local user. A future stronger voice identity may
+raise that assurance only through a separate design.
 
 ## 12. Authentication And Secrets
 
@@ -428,11 +571,17 @@ record. Neither can authorize a local Windows action.
    scoped Paperclip secret binding.
 9. Paperclip credentials cannot be reused for Nexi's Agency API or local tools.
 10. Nexi credentials cannot be injected into Paperclip workers.
+11. A dedicated Paperclip company is initially managed by Darsh's Board
+    principal and Nexi's scoped service principal only.
+12. Agent and non-Darsh API principals cannot mutate policy metadata, budgets,
+    approval ownership, worker permissions, or governance-plugin configuration.
+13. A Darsh Board override is accepted as human authority, but must be imported
+    as a new mission revision before automatic execution resumes.
 
 ## 13. Workspaces And Worker Execution
 
 All autonomous implementation uses Paperclip-managed execution workspaces with
-Git worktree mode.
+Git worktree mode plus an enforceable runtime boundary.
 
 Required invariants:
 
@@ -442,6 +591,14 @@ Required invariants:
 - the worktree is registered with Git before execution;
 - the branch is not protected;
 - the worker process receives only the worktree path and scoped run context;
+- the worker runs in a Paperclip sandbox driver or a separate low-privilege OS
+  account whose ACLs expose only the staging root;
+- sandbox/process policy blocks parent paths, junction/reparse escapes, device
+  paths, unapproved child processes, and unapproved network egress;
+- Git hooks and repository configuration are inspected or disabled before running
+  repository-controlled commands;
+- no Nexi, browser, SSH, cloud, or user-profile secrets exist in the worker
+  environment;
 - user-level OpenCode plugins, MCPs, and configuration passthrough are disabled
   for governed work;
 - worker tools cannot address paths outside the worktree;
@@ -453,6 +610,12 @@ Required invariants:
 Paperclip's `low_trust_review` preset is required for work that consumes hostile
 or prompt-injected inputs. Such work must use Paperclip's sandbox driver and
 isolated workspace mode. Host-local adapters are not sufficient containment.
+
+Ordinary repository code is also untrusted when executed by tests, builds,
+package managers, or Git hooks. If the runtime cannot enforce filesystem and
+network containment, planning and static read-only analysis may continue, but
+commands and writes require explicit per-run approval and cannot be labeled auto
+mode.
 
 ## 14. Workforce Model
 
@@ -473,9 +636,17 @@ Nexi Executive Supervisor
   -> Release Manager
 ```
 
-Paperclip owns the org chart and task assignment. Nexi selects mission intent and
-policy, not individual model IDs. Worker model/runtime selection follows
-Paperclip adapter configuration and approved budget policy.
+Paperclip owns the org chart and concrete task assignment. Nexi selects mission
+intent, allowed role/template set, data-egress policy, and budget envelope, not
+individual model IDs. Paperclip chooses a concrete worker from the allowed roster;
+that worker's approved adapter configuration chooses runtime and model. An explicit
+human reassign command may name a concrete worker, but automatic reassignment may
+only choose within the allowed role/template set.
+
+Repository content sent to a model is an egress event. Each mission names its data
+classification and allowed model providers. Provider credentials are configured
+at the worker runtime, not copied from Nexi. Unknown classifications or providers
+are ASK; secrets and prohibited files remain FORBIDDEN.
 
 Permanent agent creation, permission expansion, or new adapter installation is an
 ASK operation. Reusing an approved inactive worker template is AUTO.
@@ -509,18 +680,34 @@ business analysis
 -> correction loop with bounded retries
 ```
 
+Worker evidence is never trusted because it says "passed." Nexi's evidence
+verifier compares the worktree to a pre-run baseline, validates changed paths,
+flags test modifications, chooses test commands from trusted repository policy,
+runs verification in a clean environment, and requires an independent reviewer
+that did not author the implementation. Generated logs, patches, paths, artifacts,
+screenshots, and test output are bounded and prompt-injection scanned before they
+enter model context.
+
 ### 15.3 Finish
 
 ```text
 Paperclip reports evidence-backed completion
 -> Nexi verifies required evidence and workspace state
--> if promotion is gated, ask Devendra
+-> if promotion is gated, ask Darsh
 -> create PR or promote only through the approved release path
 -> canary and health check
 -> rollback on regression
 -> store bounded verified outcome in Nexi procedural/project memory
 -> conversational result report
 ```
+
+Paperclip never performs the final external release on Nexi's behalf. A separate
+Nexi Release Gateway, invoked by Nexi after polling a gated Paperclip result, owns
+the dedicated Git-host/deployment credentials. It may create a draft PR from the
+verified mission branch. Protected-branch merge, publish, deploy, production
+mutation, canary promotion, and rollback are executed only by this gateway under
+the approved operation capability. Paperclip receives the resulting status and
+evidence as issue comments/work products.
 
 ## 16. Status And UI Mapping
 
@@ -534,7 +721,9 @@ task manager.
 | `in_progress` | active |
 | `blocked` | blocked |
 | `in_review` | reviewing |
-| `done` | completed |
+| `done`, not yet independently verified | verification pending |
+| `done`, verification passed | completed |
+| `done`, verification failed | verification failed |
 | `cancelled` | cancelled |
 | unavailable/stale | offline or stale |
 
@@ -544,10 +733,17 @@ pretend Paperclip work is in a legacy G0-G11 stage.
 Paperclip event text is untrusted. It is bounded, redacted, and rendered with
 `textContent`, never executable HTML.
 
+Nexi never speaks or displays "completed" solely from Paperclip `done`. The
+mission store records `verification_pending`, and only the evidence verifier can
+promote it to `completed`.
+
 ## 17. Polling And Proactive Attention
 
-- No Paperclip calls occur during import, wake-word scoring, sleep detection, or
-  unrelated personal commands.
+- No Paperclip calls occur during module import, wake-word scoring, sleep
+  detection, or unrelated personal commands.
+- After the UI and bridge are ready, a deferred integration-recovery job loads
+  non-terminal mission references from the local mission store and reconciles
+  them. This job is not part of wake startup and cannot block voice readiness.
 - User-requested status reads are immediate and timeout-bounded.
 - Active mission monitoring runs only while at least one Nexi-tracked Paperclip
   mission is non-terminal.
@@ -558,6 +754,28 @@ Paperclip event text is untrusted. It is bounded, redacted, and rendered with
   second scheduler.
 - Nexi surfaces only changes requiring attention or requested summaries, not raw
   heartbeat noise.
+- Attention fingerprints group equivalent approvals and blockers. Duplicate
+  events do not reprompt. A pending request has one reminder cooldown and one
+  escalation deadline; concurrent budget requests are summarized into one scoped
+  decision without broadening any capability.
+
+## 17.1 Mission Authority Lease
+
+Every automatic mission has a short renewable authority lease signed by Nexi and
+validated by the Paperclip governance plugin. The lease binds mission ID, policy
+revision, allowed operation classes, immutable worker/template capability digests,
+sandbox profile, data-egress policy, and expiry.
+
+- Nexi refreshes the lease only while the mission remains enabled and policy state
+  is healthy.
+- Emergency stop revokes the local lease and sends Paperclip a pause/cancel request.
+- If Nexi crashes, loses credentials, or stops refreshing, the plugin blocks new
+  heartbeats and mutations after expiry and requests cancellation of managed
+  running work.
+- The lease never authorizes external effects or operations outside the mission
+  policy.
+- Full auto mode cannot be enabled unless installed-version tests prove the plugin
+  can fail closed on lease expiry and stop future dispatch.
 
 ## 18. Idempotency And Reconciliation
 
@@ -584,6 +802,27 @@ Rules:
 - stale locks are handled by Paperclip recovery semantics, not forced by Nexi;
 - Nexi records the reconciliation outcome in the bridge audit ledger.
 
+## 18.1 Mission Control Semantics
+
+Control operations are idempotent state transitions, not fire-and-forget commands:
+
+- **Pause:** blocks future wakes for the selected issue tree, requests graceful
+  cancellation of active runs, waits for acknowledgment, and preserves worktrees.
+- **Resume:** requires a valid mission policy revision and authority lease, then
+  wakes only healthy assigned work whose blockers and gates are clear.
+- **Cancel:** marks the selected issue tree cancelled, stops queued/running work,
+  preserves evidence, revokes related pending approvals, and never deletes a
+  worktree automatically.
+- **Retry:** creates or adopts one bounded successor run for a failed work item,
+  reuses the same issue/worktree/idempotency context, and refuses terminal success
+  or an active live owner.
+- **Reassign:** atomically changes one issue owner, cancels stale wakes for the old
+  owner, and queues at most one wake for the new allowed owner.
+
+Tree operations use Paperclip preview/dry-run data when available, record affected
+issue/run IDs, and reconcile partial acknowledgment. Terminal repeated operations
+return the existing state rather than producing new side effects.
+
 ## 19. Failure Handling
 
 | Failure | Required behavior |
@@ -602,6 +841,16 @@ Rules:
 | Budget hard stop | Pause affected work and raise one scoped budget request |
 | Worktree incoherence | Stop execution and open a recovery action |
 | Audit write failure | Block high-risk mutations; low-risk reads may continue visibly degraded |
+| Nexi crash or lease expiry | Governance plugin blocks new dispatch and pauses/cancels managed work |
+| Paperclip database/migration failure | Freeze mutations; require verified backup/repair before resume |
+| Disk full | Stop dispatch and mutations; preserve bounded diagnostics only |
+| API version changes mid-mission | Freeze incompatible operations and require compatibility recheck |
+| Invalid/expired event cursor | Rebuild bounded state from mission anchor, then store a new cursor |
+| Out-of-order/duplicate events | Order and deduplicate by durable external ID and timestamp/revision |
+| Hung worker process tree | Paperclip cancellation grace, then sandbox/process-tree termination |
+| Delayed cost report | Reconcile reservation; reduce future availability; never erase overspend |
+| Credential rotation | Freeze affected operations until the new principal passes capability checks |
+| Concurrent Board/Nexi mutation | Treat Darsh Board action as override; otherwise reject and pause on drift |
 
 ## 20. Memory Boundaries
 
@@ -675,21 +924,81 @@ detect failure
 Protected governance, secrets, release, and identity files require explicit
 review regardless of automated test results.
 
-## 23. Migration Strategy
+## 23. Compatibility Gate And Delivery Increments
 
-1. Add a `local_legacy` vs `paperclip` control-plane mode with no silent fallback.
-2. Keep status tools stable and add `control_plane` to results.
-3. Implement Paperclip contracts, transport, mapping, health, and reads.
-4. Add policy and durable bridge audit before enabling mutations.
-5. Add mission create/reuse and issue control with idempotency.
-6. Configure Paperclip company, org chart, budgets, workers, and worktree policy.
-7. Enable pause, resume, retry, cancel, reassign, and approval relay.
-8. Disable new local Studio runs in Paperclip mode.
-9. Keep existing local runs in a labeled read-only archive.
-10. Run one end-to-end disposable repository mission.
-11. Enable the controlled release path only after evidence and rollback gates pass.
-12. Add Automaton-inspired cognitive patterns and the self-improvement lab as
-    separate later increments.
+This document is an umbrella architecture, not one implementation plan. Each
+increment below requires its own focused specification, plan, tests, and acceptance
+gate.
+
+### Increment A: deployment and compatibility
+
+- install Paperclip separately in authenticated/private loopback mode;
+- create the Board user and candidate Nexi service principal;
+- generate a `PaperclipCompatibilityReport` from the installed version;
+- verify exact API routes, auth principal capabilities, metadata correlation,
+  idempotency support, budgets, approvals, plugin hooks, execution workspaces,
+  sandbox driver, cancellation, event cursors, and adapter versions;
+- configure scheduled Paperclip database backups outside the live data directory;
+- prove one backup restore and one failed-migration rollback in a disposable
+  Paperclip instance before enabling mutable increments;
+- disable any later increment whose required capability cannot be proven.
+
+### Increment B: typed read integration
+
+- implement contracts, loopback transport, mapper, health, capability reads,
+  mission status, activity, budgets, approvals display, and UI projection;
+- add the durable mission-reference store and deferred post-UI recovery;
+- make no Paperclip mutations.
+
+### Increment C: governance enforcement
+
+- implement the deterministic registries, policy engine, mission revisions,
+  bridge audit, attention manager, approval capabilities, data-egress policy, and
+  Paperclip governance plugin;
+- prove actor restrictions and lease-expiry fail-closed behavior;
+- mutations remain disabled until this increment passes.
+
+### Increment D: mission and work control
+
+- enable root-mission create/reuse, project/issue operations, assignment, pause,
+  resume, retry, cancel, reassign, budget reservations, approval relay, and
+  reconciliation;
+- use one disposable non-code mission before worker execution.
+
+### Increment E: sandboxed coding workforce
+
+- configure the approved org, Claude Code/Codex adapters, sandbox/low-privilege
+  runtime, data egress, disposable worktrees, trusted test manifests, hostile
+  evidence verifier, independent reviews, and retention cleanup;
+- run one disposable repository mission with no release authority.
+
+### Increment F: voice and UI control
+
+- preserve routing order through `engine/command.py::allCommands`,
+  `engine/app/phase3_command_bridge.py`, and the tool registry;
+- route full Paperclip mission control and attention requests conversationally;
+- test wake/listen/TTS/follow-up behavior independently of worker execution.
+
+### Increment G: release gateway
+
+- add dedicated Git-host/deployment credentials, draft PR creation, protected
+  merge gates, canary, health verification, and rollback;
+- Paperclip remains a coordinator and evidence store, not the credential holder.
+
+### Increment H: cognitive patterns and improvement lab
+
+- add Automaton-inspired memory, loop detection, circuit breakers, reflection,
+  proactive attention, and the isolated self-improvement PR loop;
+- keep this separate from Paperclip adoption and release authority.
+
+Mode migration rules:
+
+1. Add `local_legacy` vs `paperclip` mode with no silent fallback.
+2. Refuse Paperclip activation while any legacy run is non-terminal.
+3. Complete or explicitly cancel those runs before switching.
+4. After activation, archive all legacy runs read-only and disable new local
+   Studio creation.
+5. Keep status tools stable and mark every result with `control_plane`.
 
 ## 24. Testing Strategy
 
@@ -705,6 +1014,11 @@ review regardless of automated test results.
 - error normalization and retry eligibility;
 - audit append and redaction;
 - mission envelope validation.
+- mission revision persistence and restart recovery;
+- operation/path/network/supply-chain/data-egress registry defaults;
+- budget reservation and delayed-cost reconciliation;
+- attention grouping, reminder suppression, and escalation;
+- hostile evidence and changed-test detection.
 
 ### 24.2 Integration tests with mocked HTTP
 
@@ -719,11 +1033,18 @@ review regardless of automated test results.
 - no duplicate mutations after retries;
 - no local Studio fallback;
 - no access to local approval actions.
+- governance-plugin actor and policy-digest enforcement;
+- authority lease refresh, expiry, emergency revocation, and process cancellation;
+- Board override reconciliation and non-Board drift rejection;
+- approval `pending/in_flight/unknown/applied` timeout behavior;
+- approval write-ahead crash recovery and equivalent-approval suppression;
+- full pause/resume/retry/cancel/reassign state transitions.
 
 ### 24.3 Boundary tests
 
-- no Paperclip request during import, startup, sleep, wake detection, or unrelated
-  personal commands;
+- no Paperclip request during import, wake startup, sleep, wake detection, or
+  unrelated personal commands;
+- deferred recovery begins only after UI/bridge readiness and cannot block voice;
 - adapter exposes no generic HTTP or arbitrary endpoint method;
 - Paperclip IDs never enter local workflow identity namespaces;
 - Paperclip reads do not mutate local Studio persistence;
@@ -732,6 +1053,14 @@ review regardless of automated test results.
 - Paperclip approval cannot execute Nexi tools;
 - secrets never appear in logs, memory, UI, or fixtures;
 - dual authority is impossible in Paperclip mode.
+- host-local uncontained workers cannot receive AUTO write/command authority;
+- sandbox escapes through parent paths, symlinks, junctions/reparse points, Git
+  hooks, process trees, and network egress are denied;
+- only Darsh Board override or the scoped Nexi service principal can change a
+  managed mission;
+- worker/provider egress stays within mission data classification and allowlists.
+- worker template/config/capability drift invalidates the lease before dispatch;
+- a Board override atomically revokes the prior lease before scheduling can resume.
 
 ### 24.4 UI tests
 
@@ -741,6 +1070,8 @@ review regardless of automated test results.
 - bounded event text and HTML sanitization;
 - pending attention and approval display;
 - no false G0-G11 claims.
+- `done` remains `verification pending` until independent evidence passes;
+- verification failure is visible and never displayed as completed.
 
 ### 24.5 End-to-end acceptance test
 
@@ -756,23 +1087,35 @@ Use a disposable repository and a small application mission:
 8. Approving it consumes one scoped capability.
 9. Completion is reported only after evidence verification.
 10. The disposable worktree can be cleaned or rolled back.
+11. Killing Nexi causes authority lease expiry and stops new Paperclip execution.
+12. A direct Darsh Board override is reconciled; an agent/admin drift attempt
+    is rejected or pauses the mission.
 
 ## 25. Acceptance Criteria
 
 The integration is complete only when:
 
 - Paperclip is a separate authenticated/private loopback service;
+- Paperclip database backup, restore, and migration rollback have passed in a
+  disposable instance;
+- the installed-version compatibility report proves every capability required by
+  the enabled increment;
 - Nexi remains the only user-facing cognitive and desktop authority;
 - one explicit mission creates governed Paperclip work;
-- routine work runs autonomously inside disposable worktrees;
+- routine work runs autonomously inside sandboxed disposable worktrees or an
+  equivalent ACL-restricted low-privilege worker boundary;
 - trust-boundary actions request scoped approval;
 - full mission control is available through typed Nexi tools;
 - Paperclip cannot call Nexi tools or access Nexi secrets;
+- an expiring mission authority lease prevents continued autonomous execution
+  after Nexi failure or emergency stop;
+- non-Darsh Paperclip actors cannot widen Nexi-managed mission authority;
 - active local Studio and Paperclip orchestration cannot run for the same new
   mission;
 - costs and hard budget stops are visible and enforced;
 - retries are bounded and mutations are idempotent;
 - tests and reviewers provide verifiable evidence;
+- Paperclip `done` is not presented as completion before Nexi verification;
 - merge/release/deploy follows the gated PR, canary, and rollback path;
 - failures do not widen authority or trigger silent fallback;
 - a disposable-repository end-to-end mission passes.

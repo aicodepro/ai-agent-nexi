@@ -3,6 +3,85 @@ from engine.brain.model_client import (
     make_success_response, make_error_response, validate_request,
 )
 from engine.brain.provider_registry import ProviderRegistry
+from engine.providers.openai_compat import chat_completion
+from engine.providers.base import ProviderResult
+
+
+class OpenAIModelClient(ModelClient):
+    supports_vision = False
+    supports_streaming = True
+    supports_tools = False
+    supports_long_context = False
+
+    def __init__(self, model_name, provider_name, endpoint, api_key,
+                 timeout_seconds=30, max_tokens=2048):
+        self._model_name = model_name
+        self._provider_name = provider_name
+        self._endpoint = endpoint
+        self._api_key = api_key
+        self._timeout = timeout_seconds
+        self._max_tokens = max_tokens
+
+    def generate(self, request):
+        valid, msg = validate_request(request)
+        if not valid:
+            return make_error_response(
+                model_name=self._model_name,
+                provider_name=self._provider_name,
+                error_code="INVALID_REQUEST",
+                error_message=msg,
+            )
+        messages = request.get("messages", [])
+        prompt = request.get("prompt", "")
+        if prompt and not messages:
+            messages = [{"role": "user", "content": prompt}]
+        elif prompt and messages:
+            messages = messages + [{"role": "user", "content": prompt}]
+        timeout = request.get("timeout_seconds", self._timeout) or self._timeout
+        max_tokens = request.get("max_tokens", self._max_tokens) or self._max_tokens
+        payload_messages = messages if messages else [{"role": "user", "content": prompt or "..."}]
+        result = chat_completion(
+            base_url=self._endpoint.rstrip("/chat/completions").rstrip("/"),
+            api_key=self._api_key,
+            model=self._model_name,
+            messages=payload_messages,
+            provider_name=self._provider_name,
+            temperature=0.0,
+            max_tokens=max_tokens,
+            timeout=float(timeout),
+            max_retries=1,
+        )
+        if result.ok:
+            content = result.raw_text or ""
+            if result.decision:
+                content = str(result.decision)
+            elif result.tool_call:
+                content = f"tool_call: {result.tool_call['name']}({result.tool_call['arguments']})"
+            return make_success_response(
+                model_name=self._model_name,
+                provider_name=self._provider_name,
+                content=content,
+                input_tokens=len(payload_messages),
+                output_tokens=len(content.split()) if content else 1,
+                latency_ms=0,
+            )
+        return make_error_response(
+            model_name=self._model_name,
+            provider_name=self._provider_name,
+            error_code=result.error_code or "PROVIDER_ERROR",
+            error_message=f"Provider returned: {result.error_code}",
+        )
+
+    def health_check(self):
+        key_preview = (self._api_key[:8] + "...") if len(self._api_key) > 8 else "set" if self._api_key else "missing"
+        return {
+            "ok": bool(self._api_key),
+            "model": self._model_name,
+            "provider": self._provider_name,
+            "endpoint": self._endpoint,
+            "api_key": key_preview,
+            "reason": "API key set" if self._api_key else "No API key configured",
+        }
 
 
 def _is_blocked_by_privacy(provider_config, privacy_mode):
@@ -16,10 +95,15 @@ def _get_client_type(provider_name):
         "mock": "mock",
         "blocked": "blocked",
     }
-    return type_map.get(provider_name, "unknown")
+    return type_map.get(provider_name, "openai_compat")
 
 
 def create_client(model_name, privacy_mode="normal", use_mock=False):
+    if use_mock:
+        return MockModelClient(
+            model_name=model_name,
+            provider_name="mock",
+        )
     provider = ProviderRegistry.get_provider(model_name)
     if provider is None:
         return BlockedModelClient(
@@ -36,14 +120,22 @@ def create_client(model_name, privacy_mode="normal", use_mock=False):
             model_name=model_name,
             reason=f"Cloud provider blocked by {privacy_mode} privacy mode",
         )
-    if use_mock:
-        return MockModelClient(
+    api_key = ProviderRegistry.resolve_api_key(model_name)
+    if not api_key:
+        return BlockedModelClient(
             model_name=model_name,
-            provider_name=provider.get("provider_name", "mock"),
+            reason=f"No API key available for {model_name} (env: {provider.get('api_key_env', '?')})",
         )
-    return MockModelClient(
+    endpoint = provider.get("endpoint", "")
+    timeout = provider.get("timeout_seconds", 30)
+    max_tokens = provider.get("max_tokens", 2048)
+    return OpenAIModelClient(
         model_name=model_name,
         provider_name=provider.get("provider_name", "unknown"),
+        endpoint=endpoint,
+        api_key=api_key,
+        timeout_seconds=timeout,
+        max_tokens=max_tokens,
     )
 
 

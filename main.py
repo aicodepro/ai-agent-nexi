@@ -276,6 +276,8 @@ def greet_user():
     speak("I am Nexi. How may I help you, sir?")
 
 def main(command_queue=None, stop_event=None, control_queue=None):
+    from engine.runtime_bridge import configure_control_queue
+    configure_control_queue(control_queue)
     auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "false").lower() == "true"
     if face_recognition_enabled and auth_gate:
         print("[FACE] auth_gate was already handled by run.py gate — proceeding immediately")

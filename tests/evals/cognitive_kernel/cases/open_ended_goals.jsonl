@@ -1,0 +1,3 @@
+{"id": "goal-project-failing", "text": "the active project keeps failing, diagnose it and sort it out", "expect": {"route_in": ["react", "brain", "tool"], "note": "open-ended goal should reason or act, not dead-end at clarify"}}
+{"id": "goal-review-code", "text": "review this code and tell me what is risky", "expect": {"forbidden_intents": ["hand_gesture_control"], "note": "should reason/respond"}}
+{"id": "goal-build-keeps-breaking", "text": "the build broke again after my last change, figure out why", "expect": {"route_in": ["react", "brain", "tool"]}}
