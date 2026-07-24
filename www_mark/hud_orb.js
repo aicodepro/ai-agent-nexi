@@ -180,10 +180,13 @@
     // Logo in center
     var logoSize = fw * 0.22;
     if (logoImg) {
-      // Draw black circle behind logo
+      // ponytail: soft radial fade, not a flat disc, so the logo blends into the bg
+      var backdrop = ctx.createRadialGradient(cx, cy, logoSize * 0.25, cx, cy, logoSize * 1.15);
+      backdrop.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+      backdrop.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.beginPath();
       ctx.arc(cx, cy, logoSize * 1.15, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillStyle = backdrop;
       ctx.fill();
       ctx.drawImage(logoImg, cx - logoSize, cy - logoSize, logoSize * 2, logoSize * 2);
     } else {
@@ -352,11 +355,13 @@
     if (blinkTick >= 38) { blink = !blink; blinkTick = 0; }
 
     draw(tick);
-    if (state !== 'sleeping' && !document.hidden) animId = requestAnimationFrame(step);
+    // ponytail: keep animating while asleep (sleep targets above already idle it down);
+    // gating on 'sleeping' froze the orb between sessions.
+    if (!document.hidden) animId = requestAnimationFrame(step);
   }
 
   function startAnimation() {
-    if (!animId && state !== 'sleeping' && !document.hidden) {
+    if (!animId && !document.hidden) {
       lastT = Date.now();
       animId = requestAnimationFrame(step);
     }
@@ -390,14 +395,13 @@
     if (s === 'thinking') {
       halo = 90;
     }
+    // ponytail: sleeping is just a low-amplitude state, not a halt — stopping the
+    // loop here is what froze the orb between sessions.
     if (s === 'sleeping') {
       halo = 20;
       scale = 1.0;
-      stopAnimation();
-      draw(tick);
-    } else {
-      startAnimation();
     }
+    startAnimation();
     if (s === 'idle') {
       tgtScale = 1.0;
       tgtHalo = 55;
@@ -408,8 +412,7 @@
     if (document.hidden) {
       stopAnimation();
     } else {
-      if (state === 'sleeping') draw(tick);
-      else startAnimation();
+      startAnimation();
     }
   });
 
