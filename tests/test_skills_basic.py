@@ -90,11 +90,16 @@ class TestWeb:
         open_website("example.com")
         assert no_real_side_effects.urls == ["https://example.com"]
 
-    def test_web_search_url_encodes_the_query(self, no_real_side_effects):
+    def test_web_search_delegates_to_live_search(self, no_real_side_effects):
+        # web_search no longer opens a Google URL; it delegates to the live
+        # intelligence engine. Mocked so the test stays offline/deterministic.
+        from unittest.mock import patch
         from engine.local_skills import web_search
-        result = web_search("python testing")
+        with patch("engine.live_intelligence.live_web_search") as mock_search:
+            mock_search.return_value = {"success": True, "message": "live results"}
+            result = web_search("python testing")
         assert result["success"] is True
-        assert no_real_side_effects.urls == ["https://www.google.com/search?q=python+testing"]
+        mock_search.assert_called_once_with("python testing", mode="search")
 
     def test_sites_contains_common(self):
         from engine.local_skills import SITES

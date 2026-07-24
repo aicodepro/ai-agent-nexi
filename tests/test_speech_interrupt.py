@@ -188,7 +188,11 @@ class TestSpeechControllerIsolation(unittest.TestCase):
             self.controller.speak("replacement", interrupt=True)
 
         self.assertFalse(self.controller._STOP_EVENT.is_set())
-        put.assert_called_once_with("replacement")
+        # speak() queues a structured payload (kind/text/session_id/...), not a bare string.
+        put.assert_called_once()
+        payload = put.call_args[0][0]
+        self.assertEqual(payload["text"], "replacement")
+        self.assertEqual(payload["kind"], "speech")
 
     def test_stop_speaking_clears_queue(self):
         self.controller.speak("message one")

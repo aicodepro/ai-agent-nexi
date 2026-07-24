@@ -1337,7 +1337,9 @@ def handle_contact_message(query, call_type):
 
 def handle_weather_search(query):
     speak("Fetching the weather information.")
-    url = f"https://www.google.com/search?q={query}"
+    from urllib.parse import quote_plus
+    # encode: a raw query with spaces/&/# breaks the URL or injects extra params
+    url = f"https://www.google.com/search?q={quote_plus(str(query or ''))}"
     try:
         r = requests.get(url, timeout=8)
         data = BeautifulSoup(r.text, "html.parser")
