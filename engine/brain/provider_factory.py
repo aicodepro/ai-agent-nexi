@@ -122,9 +122,18 @@ def create_client(model_name, privacy_mode="normal", use_mock=False):
         )
     api_key = ProviderRegistry.resolve_api_key(model_name)
     if not api_key:
-        return BlockedModelClient(
+        # Known + enabled + privacy-allowed provider with no credentials degrades
+        # to a mock so the pipeline stays exercisable offline. Unknown/disabled/
+        # privacy-blocked models still return BlockedModelClient. Logged loudly
+        # so a missing key in production is never silent.
+        print(
+            f"[PROVIDER] no API key for {model_name} "
+            f"(env: {provider.get('api_key_env', '?')}) - using MockModelClient",
+            flush=True,
+        )
+        return MockModelClient(
             model_name=model_name,
-            reason=f"No API key available for {model_name} (env: {provider.get('api_key_env', '?')})",
+            provider_name=provider.get("provider_name", "mock"),
         )
     endpoint = provider.get("endpoint", "")
     timeout = provider.get("timeout_seconds", 30)

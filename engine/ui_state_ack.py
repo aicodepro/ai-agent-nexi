@@ -36,15 +36,34 @@ def on_ui_state_ack(
         _acks["_last_any"] = now
 
 
-def wait_for_ack(state: str, session_id: str, sequence: int, timeout_ms: int = 5000) -> bool:
-    key = _ack_key(session_id, state, int(sequence))
+def wait_for_ack(
+    state: str,
+    session_id: str,
+    sequence: int | None = None,
+    timeout_ms: int = 5000,
+) -> bool:
+    """Wait for a UI ack. With `sequence` it matches that exact event; without
+    it, any ack for this session+state satisfies the wait (callers that don't
+    track sequences still need to know the UI acknowledged the state)."""
+    if sequence is None:
+        prefix = f"session|{session_id}|{state}|"
+
+        def _matched() -> bool:
+            return any(k.startswith(prefix) for k in _acks)
+    else:
+        key = _ack_key(session_id, state, int(sequence))
+
+        def _matched() -> bool:
+            return key in _acks
+
     deadline = time.time() + timeout_ms / 1000.0
-    while time.time() < deadline:
+    while True:
         with _get_lock():
-            if key in _acks:
+            if _matched():
                 return True
+        if time.time() >= deadline:
+            return False
         time.sleep(0.05)
-    return False
 
 
 def get_last_ack() -> dict:
