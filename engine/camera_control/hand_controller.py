@@ -21,9 +21,9 @@ from engine.camera_control.smoothing import SmoothingFilter
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "mediapipe_models", "hand_landmarker.task")
 
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
-CAMERA_FPS = 30
+CAMERA_WIDTH = 320
+CAMERA_HEIGHT = 240
+CAMERA_FPS = 15
 if os.getenv("CAMERA_WIDTH"):
     try: CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH"))
     except: pass
@@ -45,6 +45,8 @@ RIGHT_CLICK_THRESHOLD = 0.035
 SCREENSHOT_HOLD_SECONDS = 1.0
 CURSOR_SMOOTHING_FACTOR = 0.5
 CURSOR_DEADZONE = 3.0
+CAMERA_READ_FAILURE_LIMIT = 3
+CAMERA_READ_FAILURE_BACKOFF = 0.1
 
 GESTURE_IDLE = "idle"
 GESTURE_POINTING = "pointing"
@@ -72,6 +74,10 @@ class HandController:
         self._gesture_state = {"scroll_y": None, "last_click_time": 0, "palm_start": None}
         self._click_buffer = deque(maxlen=3)
         self._frame_timestamp = 0
+        self._frame_skip = int(os.getenv("GESTURE_FRAME_SKIP", "2"))
+        self._frame_counter = 0
+        self._fps_frame_count = 0
+        self._fps_last_time = time.time()
 
     def run(self):
         set_debug(False)
@@ -82,8 +88,10 @@ class HandController:
 
         if self._use_gpu:
             delegate = python.BaseOptions.Delegate.GPU
+            print("[HAND] Using GPU delegate")
         else:
             delegate = python.BaseOptions.Delegate.CPU
+            print("[HAND] Using CPU delegate with XNNPack optimization")
 
         options = vision.HandLandmarkerOptions(
             base_options=python.BaseOptions(model_asset_path=MODEL_PATH, delegate=delegate),
@@ -92,39 +100,84 @@ class HandController:
             min_hand_detection_confidence=0.65,
             min_tracking_confidence=0.65,
         )
-        self._landmarker = vision.HandLandmarker.create_from_options(options)
+        try:
+            self._landmarker = vision.HandLandmarker.create_from_options(options)
+        except Exception as e:
+            self._stop_event.set()
+            self._stop()
+            return {
+                "ok": False,
+                "status": "unavailable",
+                "reason": "model_load_failed",
+                "detail": f"{type(e).__name__}: {e}",
+            }
 
         screen_w, screen_h = pyautogui.size()
+        read_failures = 0
 
         try:
             while self._cap.isOpened() and not self._stop_event.is_set():
                 ret, frame = self._cap.read()
                 if not ret:
+                    read_failures += 1
+                    if read_failures >= CAMERA_READ_FAILURE_LIMIT:
+                        self._stop_event.set()
+                        print("[HAND] camera_disconnected", flush=True)
+                        return {
+                            "ok": False,
+                            "status": "unavailable",
+                            "reason": "camera_disconnected",
+                        }
+                    self._stop_event.wait(CAMERA_READ_FAILURE_BACKOFF)
                     continue
+                read_failures = 0
 
-                self._frame_timestamp += 1
                 frame = cv2.flip(frame, 1)
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                result = self._landmarker.detect_for_video(mp_img, self._frame_timestamp)
+                self._frame_counter += 1
+                self._fps_frame_count += 1
 
-                landmark_list = []
-                if result.hand_landmarks:
-                    hand_landmarks = result.hand_landmarks[0]
-                    if DEBUG_OVERLAY:
-                        drawing_utils.draw_landmarks(
-                            frame, hand_landmarks,
-                            drawing_styles.get_default_hand_connections_style(),
-                        )
-                    for lm in hand_landmarks:
-                        landmark_list.append((lm.x, lm.y))
+                # FPS logging every 30 frames
+                if self._fps_frame_count >= 30:
+                    elapsed = time.time() - self._fps_last_time
+                    if elapsed > 0:
+                        fps = self._fps_frame_count / elapsed
+                        print(f"[HAND] FPS: {fps:.1f} frame_skip={self._frame_skip} capture_fps={CAMERA_FPS}")
+                    self._fps_frame_count = 0
+                    self._fps_last_time = time.time()
 
-                self._process_gesture(frame, landmark_list, screen_w, screen_h)
+                # Frame skipping: only run expensive MediaPipe detection every N frames
+                if self._frame_counter % self._frame_skip == 0:
+                    self._frame_timestamp += 1
+                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                    result = self._landmarker.detect_for_video(mp_img, self._frame_timestamp)
 
-                cv2.imshow("Camera Control", frame)
+                    landmark_list = []
+                    if result.hand_landmarks:
+                        hand_landmarks = result.hand_landmarks[0]
+                        if DEBUG_OVERLAY:
+                            drawing_utils.draw_landmarks(
+                                frame, hand_landmarks,
+                                drawing_styles.get_default_hand_connections_style(),
+                            )
+                        for lm in hand_landmarks:
+                            landmark_list.append((lm.x, lm.y))
+                else:
+                    landmark_list = None
+
+                if landmark_list is not None:
+                    self._process_gesture(frame, landmark_list, screen_w, screen_h)
+
+                # Resize display for preview (smoother imshow)
+                display = cv2.resize(frame, (640, 480))
+                cv2.imshow("Camera Control", display)
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q") or key == 27:
                     break
+        except pyautogui.FailSafeException:
+            self._stop_event.set()
+            print("[HAND] stopped reason=failsafe", flush=True)
+            return {"ok": False, "status": "stopped", "reason": "failsafe"}
         finally:
             self._stop()
 
@@ -139,7 +192,10 @@ class HandController:
             self._cap.release()
         cv2.destroyAllWindows()
         if is_dragging():
-            stop_drag()
+            try:
+                stop_drag()
+            except pyautogui.FailSafeException:
+                print("[HAND] drag_cleanup_stopped reason=failsafe", flush=True)
 
     @staticmethod
     def _get_distance(a, b):
@@ -197,9 +253,12 @@ class HandController:
                 self._gesture_state["palm_start"] = now
                 self._state = GESTURE_PAUSED
                 print("[HAND] gesture paused (open palm)")
+            elif self._state != GESTURE_SCREENSHOT and now - self._gesture_state["palm_start"] >= SCREENSHOT_HOLD_SECONDS:
+                screenshot()
+                self._state = GESTURE_SCREENSHOT
             return
         else:
-            if self._state == GESTURE_PAUSED:
+            if self._state in (GESTURE_PAUSED, GESTURE_SCREENSHOT):
                 self._state = GESTURE_IDLE
                 print("[HAND] gesture resumed")
             self._gesture_state["palm_start"] = None

@@ -48,6 +48,35 @@ def _safe_eel_call(fn_name: str, payload: dict[str, Any]) -> bool:
         return False
 
 
+def studio_event(*, run_id: str = "", stage: str = "", status: str = "",
+                 gate: str = "", agent: str = "", model: str = "", mode: str = "",
+                 message: str = "", completed: list[str] | None = None,
+                 total_stages: int = 0) -> dict[str, Any]:
+    """Push a live Studio/agency update to the UI panel.
+
+    Darsh wants a dedicated space that opens when a build runs and shows what NEXI is
+    doing right now — which stage, which agent, which model/mode, and what finished.
+    Everything is redacted and length-capped because stage messages can carry tool output.
+    Best-effort: if the UI is closed, `_safe_eel_call` logs and the build carries on.
+    """
+    payload = {
+        "run_id": str(run_id)[:64],
+        "stage": str(stage)[:64],
+        "status": str(status)[:32],
+        "gate": str(gate)[:16],
+        "agent": str(agent)[:64],
+        "model": str(model)[:80],
+        "mode": str(mode)[:32],
+        "message": _redact_secrets(str(message or "")[:500]),
+        "completed": [str(s)[:64] for s in (completed or [])][:20],
+        "total_stages": int(total_stages or 0),
+    }
+    with _lock:
+        _safe_eel_call("studioEvent", payload)
+        print(f"[UI_BRIDGE] studio stage={payload['stage']} status={payload['status']}", flush=True)
+        return payload
+
+
 def set_state(state: str) -> dict[str, Any]:
     with _lock:
         from engine.ui_state_manager import canonical_state, emit_state

@@ -1,0 +1,2 @@
+{"id": "multiturn-project-then-fix", "turns": ["check the active project", "fix that but do not deploy it"], "expect": {"forbidden_intents": ["hand_gesture_control"], "constraint_terms": ["deploy"], "note": "second turn must not lose the no-deploy constraint or arm camera"}}
+{"id": "multiturn-open-then-there", "turns": ["open my notes", "search for the budget in there"], "expect": {"forbidden_intents": ["hand_gesture_control"], "note": "'there' refers to notes from turn 1"}}

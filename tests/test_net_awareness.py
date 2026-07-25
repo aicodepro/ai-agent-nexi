@@ -67,6 +67,28 @@ def test_routing_ip_address():
         assert _route(phrase) == "get_ip_address", f"{phrase!r} mis-routed"
 
 
+def test_local_ip_never_returns_loopback(monkeypatch):
+    import socket as _socket
+    from engine import net_awareness as na
+
+    # Force the UDP routing trick to fail so the fallback path runs...
+    class _BadSock:
+        def settimeout(self, *_a):
+            pass
+
+        def connect(self, *_a):
+            raise OSError("no route")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(na.socket, "socket", lambda *a, **k: _BadSock())
+    # ...and make the hostname resolve to loopback.
+    monkeypatch.setattr(na.socket, "gethostbyname", lambda *_a: "127.0.1.1")
+    monkeypatch.setattr(na.socket, "gethostname", lambda: "host")
+    assert na._local_ip() == ""  # loopback rejected, not reported as local IP
+
+
 def test_read_only_no_state_change():
     before = execute_tool("get_network_status", {})
     after = execute_tool("get_network_status", {})

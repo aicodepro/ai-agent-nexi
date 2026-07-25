@@ -22,6 +22,12 @@ import sys
 
 import numpy as np
 
+# Windows consoles default to cp1252 and crash on the summary's arrow glyphs; force UTF-8.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 

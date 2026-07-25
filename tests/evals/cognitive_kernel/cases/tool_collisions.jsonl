@@ -1,0 +1,6 @@
+{"id": "collision-play-next-song", "text": "play the next song", "expect": {"forbidden_intents": ["play_youtube", "search_youtube"], "note": "media-next must NOT hijack to youtube"}}
+{"id": "collision-handle-it", "text": "this project is still not working, understand the issue and handle it", "expect": {"forbidden_intents": ["hand_gesture_control", "eye_mouse_control"], "note": "handle contains hand; must not arm camera"}}
+{"id": "collision-hand-me-report", "text": "hand me the camera report", "expect": {"forbidden_intents": ["hand_gesture_control"], "note": "hand me != hand gesture"}}
+{"id": "collision-conveyed-control", "text": "the message conveyed the control scheme", "expect": {"forbidden_intents": ["eye_mouse_control"], "note": "conveyed contains eye"}}
+{"id": "collision-take-screenshot", "text": "take a screenshot", "expect": {"forbidden_intents": ["hand_gesture_control", "eye_mouse_control"]}}
+{"id": "collision-play-youtube-real", "text": "play despacito on youtube", "expect": {"route": "tool", "intent_in": ["play_youtube", "search_youtube"], "note": "explicit youtube SHOULD select youtube"}}

@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 import threading
-from src.orin.memory.conversation_buffer import ConversationBuffer
+from engine.memory.conversation_buffer import ConversationBuffer
 
 
 class TestConversationBufferInit(unittest.TestCase):
@@ -63,6 +63,19 @@ class TestConversationBufferAppend(unittest.TestCase):
         self.assertEqual(turns1, turns2)
         turns1.append({"extra": True})
         self.assertEqual(buf.count(), 1)
+
+    def test_evicted_turns_roll_into_a_bounded_summary(self):
+        buf = ConversationBuffer(max_turns=2)
+        buf.append_turn("q1", "a1")
+        buf.append_turn("q2", "a2")
+        buf.append_turn("q3", "a3")
+
+        self.assertEqual([turn["user"] for turn in buf.get_turns()], ["q2", "q3"])
+        self.assertIn("User: q1", buf.get_summary())
+        self.assertIn("Earlier conversation summary:", buf.get_formatted_context())
+        for i in range(100):
+            buf.append_turn(f"safe question {i} " + "x" * 100, "safe answer")
+        self.assertLessEqual(len(buf.get_summary()), 2000)
 
 
 class TestConversationBufferFormat(unittest.TestCase):
@@ -168,6 +181,15 @@ class TestConversationBufferSecurity(unittest.TestCase):
         buf.append_turn("", "")
         self.assertEqual(buf.count(), 1)
         self.assertEqual(buf.get_turns()[0]["user"], "")
+
+    def test_raw_screen_dump_is_not_stored_or_summarized(self):
+        raw = "screenshot image data: private terminal contents " + "x" * 200
+        buf = ConversationBuffer(max_turns=1)
+        buf.append_turn(raw, "ok")
+        buf.append_turn("next", "done")
+        stored = str(buf.to_dict())
+        self.assertNotIn(raw, stored)
+        self.assertIn("[Content blocked]", stored)
 
 
 class TestConversationBufferThreadSafety(unittest.TestCase):

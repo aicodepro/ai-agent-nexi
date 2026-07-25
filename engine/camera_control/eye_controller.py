@@ -35,6 +35,8 @@ BLICK_CLICK_COOLDOWN_MS = 700
 EYE_SMOOTHING = 0.6
 DWELL_CLICK_MS = 1500
 DWELL_RADIUS = 30
+CAMERA_READ_FAILURE_LIMIT = 3
+CAMERA_READ_FAILURE_BACKOFF = 0.1
 
 CALIBRATION_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "eye_calibration.json"
@@ -77,15 +79,37 @@ class EyeController:
             output_face_blendshapes=False,
             output_facial_transformation_matrixes=False,
         )
-        self._landmarker = vision.FaceLandmarker.create_from_options(options)
+        try:
+            self._landmarker = vision.FaceLandmarker.create_from_options(options)
+        except Exception as e:
+            self._stop_event.set()
+            self._stop()
+            return {
+                "ok": False,
+                "status": "unavailable",
+                "reason": "model_load_failed",
+                "detail": f"{type(e).__name__}: {e}",
+            }
 
         screen_w, screen_h = pyautogui.size()
+        read_failures = 0
 
         try:
             while self._cap.isOpened() and not self._stop_event.is_set():
                 ret, frame = self._cap.read()
                 if not ret:
+                    read_failures += 1
+                    if read_failures >= CAMERA_READ_FAILURE_LIMIT:
+                        self._stop_event.set()
+                        print("[EYE] camera_disconnected", flush=True)
+                        return {
+                            "ok": False,
+                            "status": "unavailable",
+                            "reason": "camera_disconnected",
+                        }
+                    self._stop_event.wait(CAMERA_READ_FAILURE_BACKOFF)
                     continue
+                read_failures = 0
 
                 self._frame_timestamp += 1
                 frame = cv2.flip(frame, 1)
@@ -122,6 +146,10 @@ class EyeController:
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q") or key == 27:
                     break
+        except pyautogui.FailSafeException:
+            self._stop_event.set()
+            print("[EYE] stopped reason=failsafe", flush=True)
+            return {"ok": False, "status": "stopped", "reason": "failsafe"}
         finally:
             self._stop()
 
@@ -149,15 +177,13 @@ class EyeController:
         return vert / horz
 
     def _get_gaze_point(self, landmarks, frame_w, frame_h):
+        gaze_indices = [1, 4, 5, 6, 7, 8, 9, 10, 168, 175, 195, 197]
+        if len(landmarks) <= max(gaze_indices):
+            return frame_w / 2, frame_h / 2
         x_sum = 0.0
         y_sum = 0.0
         count = 0
-        for idx in [1, 4, 5, 6, 7, 8, 9, 10]:
-            lm = landmarks[idx]
-            x_sum += lm.x * frame_w
-            y_sum += lm.y * frame_h
-            count += 1
-        for idx in [168, 175, 195, 197]:
+        for idx in gaze_indices:
             lm = landmarks[idx]
             x_sum += lm.x * frame_w
             y_sum += lm.y * frame_h
@@ -167,7 +193,10 @@ class EyeController:
         return x_sum / count, y_sum / count
 
     def _check_blink(self, landmarks, frame):
-        left_eye = [landmarks[i] for i in [33, 160, 158, 133, 153, 144]]
+        eye_indices = [33, 160, 158, 133, 153, 144]
+        if len(landmarks) <= max(eye_indices):
+            return
+        left_eye = [landmarks[i] for i in eye_indices]
         ear = self._calculate_ear(left_eye)
         now = time.time()
         if ear < BLINK_THRESHOLD and self._blink_enabled:

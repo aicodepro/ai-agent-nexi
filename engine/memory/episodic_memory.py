@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import threading
 import time
 import uuid
+import warnings
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+from engine.memory.local_memory import atomic_write_json, lock_for_path, quarantine_corrupt_file
 
 
 DEFAULT_EPISODIC_PATH = Path(__file__).resolve().parents[2] / "data" / "memory" / "episodic_memory.json"
@@ -23,10 +25,12 @@ def _safe_text(text: str, limit: int = 1200) -> str:
     value = str(text or "")
     try:
         from engine.memory_safety import is_safe_to_store, redact_sensitive
-        value = redact_sensitive(value)
+        # check BEFORE redacting: redaction erases the very markers the gate
+        # looks for, so the old order let every secret through.
         safe, _reason = is_safe_to_store(value)
         if not safe:
             return ""
+        value = redact_sensitive(value)
     except Exception:
         pass
     value = re.sub(r"\s+", " ", value).strip()
@@ -77,7 +81,7 @@ class EpisodicMemory:
     def __init__(self, path: Path | str | None = None, *, max_episodes: int = 200) -> None:
         self.path = Path(path) if path is not None else _memory_path()
         self.max_episodes = max(1, int(max_episodes or 200))
-        self._lock = threading.Lock()
+        self._lock = lock_for_path(self.path)
 
     def _empty(self) -> dict[str, Any]:
         return {"schema_version": 1, "episodes": []}
@@ -86,17 +90,19 @@ class EpisodicMemory:
         try:
             if self.path.exists():
                 data = json.loads(self.path.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    base = self._empty()
-                    base["episodes"] = list(data.get("episodes") or [])
-                    return base
-        except Exception:
-            pass
+                if not isinstance(data, dict) or not isinstance(data.get("episodes", []), list):
+                    raise ValueError("episodic memory has an invalid schema")
+                base = self._empty()
+                base["episodes"] = list(data.get("episodes") or [])
+                return base
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            quarantine_corrupt_file(self.path, exc)
+        except OSError as exc:
+            warnings.warn(f"Could not read episodic memory: {self.path} ({exc})", RuntimeWarning, stacklevel=2)
         return self._empty()
 
     def _save(self, data: dict[str, Any]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+        atomic_write_json(self.path, data, sort_keys=True)
 
     def store(self, episode: Episode | dict[str, Any]) -> str:
         item = episode if isinstance(episode, Episode) else Episode.from_dict(episode)

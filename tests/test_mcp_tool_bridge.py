@@ -17,6 +17,13 @@ def test_forbidden_tools_blocked():
     assert result.error_code == "TOOL_BLOCKED"
 
 
+def test_forbidden_name_matching_uses_tokens_not_substrings():
+    from engine.mcp_tool_bridge import is_forbidden_tool_name
+
+    assert is_forbidden_tool_name("shell.run") is True
+    assert is_forbidden_tool_name("memory.runtime_summary") is False
+
+
 def test_memory_summary_tool_is_read_only(tmp_path, monkeypatch):
     from engine import memory_store
     from engine.mcp_tool_bridge import execute_mcp_tool
@@ -27,3 +34,9 @@ def test_memory_summary_tool_is_read_only(tmp_path, monkeypatch):
     result = execute_mcp_tool("memory.summary")
     assert result.ok is True
     assert "demo is tomorrow" in result.data["text"]
+
+
+def test_npx_health_cache_is_bounded():
+    from engine.mcp_tool_bridge import _check_npx_package
+
+    assert _check_npx_package.cache_info().maxsize == 64

@@ -10,6 +10,23 @@ WWW_MARK = ROOT / "www_mark"
 ARTIFACTS = ROOT / "artifacts" / "ui_mark_validation"
 
 
+def _launch(p):
+    """Prefer the bundled Chromium, fall back to the installed Edge channel.
+
+    `playwright install` was never run here, so chrome-headless-shell does not
+    exist and launch() dies — which is why this script had never produced
+    artifacts/ui_mark_validation, and why the two tests asserting that directory
+    exists have always failed. Edge IS a Chromium channel and is already on the
+    box, so screenshots render identically.
+    """
+    try:
+        return p.chromium.launch()
+    except Exception as exc:
+        print(f"[VISUAL] bundled chromium unavailable ({type(exc).__name__}) — "
+              f"using installed Edge channel", flush=True)
+        return p.chromium.launch(channel="msedge")
+
+
 def main():
     os.makedirs(ARTIFACTS, exist_ok=True)
 
@@ -26,7 +43,7 @@ def main():
         return False
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = _launch(p)
         context = browser.new_context(
             viewport={"width": 1920, "height": 1080},
             device_scale_factor=1,

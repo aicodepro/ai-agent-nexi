@@ -60,3 +60,16 @@ def test_local_skill_beats_brain():
         command.allCommands("open app")
     mock_route.assert_not_called()
     mock_speak.assert_called_once_with("Opening app.", handler_reason="tool")
+
+
+def test_workflow_snapshot_cannot_mutate_live_state():
+    from engine import workflow_state
+
+    workflow_state.start_workflow("create_folder", "ask_name", {"location": "Desktop"})
+    snapshot = workflow_state.get_workflow()
+    snapshot["step"] = "tampered"
+    snapshot["slots"]["location"] = "outside"
+
+    current = workflow_state.get_workflow()
+    assert current["step"] == "ask_name"
+    assert current["slots"]["location"] == "Desktop"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from engine.intent_taxonomy import empty_result, exact_schema
@@ -13,6 +14,14 @@ WAKE_PHRASES = {"wake", "wake up", "activate nexi"}
 
 def _norm(text: str) -> str:
     return " ".join(str(text or "").strip().lower().rstrip(".?!").split())
+
+
+def normalize_immediate_command(text: str) -> str:
+    q = _norm(text)
+    q = re.sub(r"^(?:(?:hey\s+)?(?:nexi|jarbos)\b[\s,]*)", "", q)
+    q = re.sub(r"^(?:(?:please\s+)?(?:can|could|would|will)\s+you\s+(?:please\s+)?|please\s+)", "", q)
+    q = re.sub(r"\s+(?:please|for me|please for me)$", "", q)
+    return q.strip()
 
 
 def _pending_followup_result(text: str, followup_type: str) -> dict[str, Any]:
@@ -41,7 +50,7 @@ def _pending_followup_result(text: str, followup_type: str) -> dict[str, Any]:
 
 
 def pre_route(text: str, context: dict | None = None) -> dict[str, Any] | None:
-    q = _norm(text)
+    q = normalize_immediate_command(text)
     ctx = context or {}
     if not q:
         return empty_result(route="clarify", intent="unknown", domain="unknown", confidence=1.0, reason="empty_input")

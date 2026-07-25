@@ -1,12 +1,12 @@
 import unittest
 import importlib
 
-from src.orin.vision.screen_observer import ScreenObserver
-from src.orin.vision.screenshot_service import ScreenshotService
-from src.orin.vision.vision_analyzer import VisionAnalyzer
-from src.orin.vision.privacy_guard import PrivacyGuard
-from src.orin.vision.screen_context import detect_screen_command, get_context_label, create_safe_summary
-from src.orin.control.safety import EmergencyStop
+from vision.screen_observer import ScreenObserver
+from vision.screenshot_service import ScreenshotService
+from vision.vision_analyzer import VisionAnalyzer
+from vision.privacy_guard import PrivacyGuard
+from vision.screen_context import detect_screen_command, get_context_label, create_safe_summary
+from engine.control.safety import EmergencyStop
 
 
 def _observed_text(observer, request_id):
@@ -21,6 +21,11 @@ class TestScreenObservationRequest(unittest.TestCase):
     def setUp(self):
         EmergencyStop.clear()
         self.observer = ScreenObserver()
+        self.observer._screenshot_service._capture_real = lambda: {
+            "ok": True, "method": "test_capture", "image_bytes": b"test",
+            "mime": "image/jpeg", "visible_text": "test application window",
+            "error": None,
+        }
 
     def test_request_requires_permission(self):
         result = self.observer.request_observation("User asked to look at screen")
@@ -31,11 +36,16 @@ class TestScreenObservationRequest(unittest.TestCase):
         self.observer.request_observation("Check this error")
         self.assertEqual(self.observer.screenshot_service.capture_count, 0)
 
-    def test_approval_allows_mock_screenshot_capture(self):
+    def test_approval_uses_real_screenshot_capture(self):
+        self.observer._screenshot_service._capture_real = lambda: {
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"jpeg",
+            "mime": "image/jpeg", "visible_text": "Notepad window",
+        }
         req = self.observer.request_observation("Look at screen")
         result = self.observer.approve_observation(req["request_id"], "yes")
         self.assertTrue(result["ok"])
         self.assertEqual(self.observer.screenshot_service.capture_count, 1)
+        self.assertEqual(req["screenshot_data"]["method"], "pil_imagegrab")
 
     def test_cancel_prevents_analysis(self):
         req = self.observer.request_observation("Screen dekho")
@@ -75,41 +85,67 @@ class TestScreenObservationRequest(unittest.TestCase):
         self.assertTrue(result_cookie["sensitive_content_detected"])
 
     def test_analyzer_returns_code_context(self):
-        payload = {"visible_text": "def hello(): print('hello')", "method": "mock"}
+        payload = {"visible_text": "def hello(): print('hello')", "method": "pil_imagegrab"}
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(payload)
         self.assertEqual(result["detected_context"], "code")
 
     def test_analyzer_returns_terminal_context(self):
-        payload = {"visible_text": "$ npm install - Error: module not found", "method": "mock"}
+        payload = {"visible_text": "$ npm install - Error: module not found", "method": "pil_imagegrab"}
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(payload)
         self.assertEqual(result["detected_context"], "terminal")
 
     def test_analyzer_returns_browser_context(self):
-        payload = {"visible_text": "http://localhost:3000 browser tab", "method": "mock"}
+        payload = {"visible_text": "http://localhost:3000 browser tab", "method": "pil_imagegrab"}
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(payload)
         self.assertEqual(result["detected_context"], "browser")
 
     def test_analyzer_returns_app_context(self):
-        payload = {"visible_text": "running application window", "method": "mock"}
+        payload = {"visible_text": "running application window", "method": "pil_imagegrab"}
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(payload)
         self.assertEqual(result["detected_context"], "app")
 
     def test_analyzer_returns_unknown_context(self):
-        payload = {"visible_text": "some random text with no keywords", "method": "mock"}
+        payload = {"visible_text": "some random text with no keywords", "method": "pil_imagegrab"}
         analyzer = VisionAnalyzer()
         result = analyzer.analyze(payload)
         self.assertEqual(result["detected_context"], "unknown")
 
-    def test_trusted_read_only_reports_mock_screenshot_method(self):
+    def test_trusted_read_only_uses_real_local_capture(self):
+        self.observer._screenshot_service.capture_real = lambda: {
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"jpeg",
+            "mime": "image/jpeg", "visible_text": "Visual Studio Code window",
+        }
         result = self.observer.request_trusted_read_only("screen dekho")
         obs = result["data"]["observation"]
-        self.assertEqual(obs["screenshot_method"], "mock")
+        self.assertTrue(result["ok"])
+        self.assertEqual(obs["screenshot_method"], "pil_imagegrab")
         self.assertFalse(obs["allow_cloud_analysis"])
         self.assertFalse(obs["store_screenshot"])
+
+    def test_trusted_read_only_capture_failure_is_truthful(self):
+        self.observer._screenshot_service.capture_real = lambda: {
+            "ok": False, "method": "unavailable", "image_bytes": b"",
+            "visible_text": "", "error": "capture failed",
+        }
+        result = self.observer.request_trusted_read_only("screen dekho")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["data"]["observation"]["status"], "unavailable")
+        self.assertEqual(result["data"]["observation"]["screenshot_method"], "unavailable")
+        self.assertIn("unavailable", result["summary"].lower())
+
+    def test_trusted_read_only_does_not_retain_pixels_or_raw_text(self):
+        self.observer._screenshot_service.capture_real = lambda: {
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"private pixels",
+            "mime": "image/jpeg", "visible_text": "private screen dump",
+        }
+        result = self.observer.request_trusted_read_only("screen dekho")
+        stored = self.observer._requests[result["request_id"]]["screenshot_data"]
+        self.assertNotIn("image_bytes", stored)
+        self.assertNotIn("visible_text", stored)
 
     def test_analysis_requires_confirmation_before_action(self):
         req = self.observer.request_observation("Look at this screen")
@@ -158,8 +194,8 @@ class TestScreenObservationRequest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("not granted", result["error"].lower())
 
-    def test_analyzer_deterministic_mock_results(self):
-        payload = {"visible_text": "def foo(): pass", "method": "mock"}
+    def test_analyzer_deterministic_results(self):
+        payload = {"visible_text": "def foo(): pass", "method": "pil_imagegrab"}
         a1 = VisionAnalyzer()
         a2 = VisionAnalyzer()
         r1 = a1.analyze(payload)
@@ -227,12 +263,12 @@ class TestScreenObservationRequest(unittest.TestCase):
         self.assertTrue(result["sensitive_content_detected"])
 
     def test_privacy_guard_check_payload_dict(self):
-        payload = {"visible_text": "my password is test", "method": "mock"}
+        payload = {"visible_text": "my password is test", "method": "pil_imagegrab"}
         result = PrivacyGuard.check_payload(payload)
         self.assertTrue(result["sensitive_content_detected"])
 
     def test_vision_module_importable(self):
-        mod = importlib.import_module("src.orin.vision")
+        mod = importlib.import_module("vision")
         self.assertTrue(hasattr(mod, "ScreenObserver"))
         self.assertTrue(hasattr(mod, "ScreenshotService"))
         self.assertTrue(hasattr(mod, "VisionAnalyzer"))
@@ -292,8 +328,8 @@ class TestScreenObservationRequest(unittest.TestCase):
     def test_vision_analyzer_analysis_count(self):
         analyzer = VisionAnalyzer()
         self.assertEqual(analyzer.analysis_count, 0)
-        analyzer.analyze({"visible_text": "test", "method": "mock"})
-        analyzer.analyze({"visible_text": "test2", "method": "mock"})
+        analyzer.analyze({"visible_text": "test", "method": "pil_imagegrab"})
+        analyzer.analyze({"visible_text": "test2", "method": "pil_imagegrab"})
         self.assertEqual(analyzer.analysis_count, 2)
 
 

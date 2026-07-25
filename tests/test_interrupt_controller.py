@@ -13,6 +13,7 @@ def test_interrupt_requested_while_speaking():
     assert ic.should_interrupt() is True
     assert ic.is_speaking() is True
     ic.clear_interrupt()
+    assert ic.get_interrupt_source() == ""
     ic.set_speaking(False)
 
 

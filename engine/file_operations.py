@@ -4,7 +4,6 @@ import os
 import requests
 from typing import Union
 from os import getcwd
-import pyttsx3
 
 def is_online(url="https://www.google.com", timeout=5):
     try:
@@ -30,20 +29,8 @@ def generate_audio(message: str, voice: str = "Aditi"):
 
 def speak_streamelements(message: str, voice: str = "Aditi", folder: str = "", extension: str = ".mp3") -> Union[None, str]:
     try:
-        eel.DisplayMessage(message)
-        
-        result_content = generate_audio(message, voice)
-        if result_content is None:
-            raise ValueError("Failed to generate audio from the API.")
-        
-        file_path = os.path.join(folder, rf"{getcwd()}\{voice}{extension}")
-        with open(file_path, "wb") as file:
-            file.write(result_content)
-        from playsound import playsound as _ps
-        _ps(file_path)
-        os.remove(file_path)
-        
-        eel.receiverText(message)
+        from engine.command import speak as authoritative_speak
+        authoritative_speak(str(message), voice=voice)
         return None
     except Exception as e:
         print(f"Error in speak_streamelements: {e}")
@@ -51,24 +38,14 @@ def speak_streamelements(message: str, voice: str = "Aditi", folder: str = "", e
 
 def speak_pyttsx3(text):
     try:
-        eel.DisplayMessage(text)
-        
-        engine = pyttsx3.init('sapi5')
-        voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[0].id)
-        engine.setProperty('volume', 1.0)
-        engine.setProperty('rate', 174)
-        engine.say(text)
-        eel.receiverText(text)
-        engine.runAndWait()
+        from engine.command import speak as authoritative_speak
+        authoritative_speak(str(text))
     except Exception as e:
         print(f"Error in speak_pyttsx3 function: {e}")
 
 def speak(text, voice="Matthew"):
-    if is_online():
-        speak_streamelements(text, voice)
-    else:
-        speak_pyttsx3(text)
+    from engine.command import speak as authoritative_speak
+    authoritative_speak(str(text), voice=voice)
 import os
 
 import os

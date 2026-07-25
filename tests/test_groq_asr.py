@@ -18,6 +18,13 @@ def _clean_env(monkeypatch):
     yield
 
 
+def _speech_wav():
+    """600ms/16kHz tone loud enough to pass the ASR audio-quality gate
+    (engine/groq_asr.py _audio_has_speech: >=500ms duration, >=0.01 RMS)."""
+    from engine.groq_asr import pcm_float32_to_wav_bytes
+    return pcm_float32_to_wav_bytes([0.5, -0.5] * 4800, sample_rate=16000)
+
+
 # ---------------------------------------------------------------------------
 # WAV bytes helper
 # ---------------------------------------------------------------------------
@@ -81,8 +88,10 @@ def test_groq_success_returns_text():
     fake_resp.status_code = 200
     fake_resp.json.return_value = {"text": "  two plus two is four  "}
 
-    with patch("engine.groq_asr.requests.post", return_value=fake_resp) as mock_post:
-        result = groq_asr.transcribe_audio_bytes(b"RIFFsamplewav")
+    # groq_asr posts via a pooled requests.Session (engine.groq_asr._session),
+    # not the bare requests.post function, so that's what must be patched.
+    with patch("engine.groq_asr._session.post", return_value=fake_resp) as mock_post:
+        result = groq_asr.transcribe_audio_bytes(_speech_wav())
         assert result == "two plus two is four"
         mock_post.assert_called_once()
         call_kwargs = mock_post.call_args.kwargs
@@ -161,9 +170,9 @@ def test_uses_configured_model():
     fake_resp.status_code = 200
     fake_resp.json.return_value = {"text": "ok"}
 
-    with patch("engine.groq_asr.requests.post", return_value=fake_resp) as mock_post:
+    with patch("engine.groq_asr._session.post", return_value=fake_resp) as mock_post:
         groq_asr.transcribe_audio_bytes(
-            b"RIFFwav", model="whisper-large-v3", api_key="explicit_key"
+            _speech_wav(), model="whisper-large-v3", api_key="explicit_key"
         )
         sent_data = mock_post.call_args.kwargs["data"]
         assert sent_data["model"] == "whisper-large-v3"

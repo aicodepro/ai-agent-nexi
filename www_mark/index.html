@@ -9,11 +9,56 @@
 </head>
 <body>
 
+  <!-- Ambient HUD background — STATE REACTIVE.
+       One layer per NEXI state, stacked and cross-faded by CSS off body[data-state]
+       (set in controller.js). Only `opacity` animates, so the compositor does the work
+       and the main thread is untouched. hud_layers.js pauses whichever layers are
+       invisible so only ONE video decodes at a time.
+       Landscape clips only — compass/terminal are 720x1280 portrait and live in the
+       side rails below, where 9:16 actually fits. -->
+  <div class="hud-video-stack" aria-hidden="true">
+    <video class="hud-video-bg" data-for="sleep online error" loop muted playsinline preload="auto">
+      <source src="media/hud_bg.mp4" type="video/mp4">
+    </video>
+    <video class="hud-video-bg" data-for="listening recognising" loop muted playsinline preload="auto">
+      <source src="media/pulse.mp4" type="video/mp4">
+    </video>
+    <video class="hud-video-bg" data-for="thinking" loop muted playsinline preload="auto">
+      <source src="media/dna.mp4" type="video/mp4">
+    </video>
+    <img class="hud-video-bg hud-video-gif" data-for="saying" src="media/rings.gif" alt="">
+  </div>
+  <div class="hud-video-tint" aria-hidden="true"></div>
+
+  <!-- Portrait (9:16) rails — these two clips are vertical phone video, so they fit a
+       side column exactly and would have been cropped to a strip as a background. -->
+  <video class="hud-rail hud-rail-left" loop muted playsinline preload="none" aria-hidden="true">
+    <source src="media/compass.mp4" type="video/mp4">
+  </video>
+  <video class="hud-rail hud-rail-right" loop muted playsinline preload="none" aria-hidden="true">
+    <source src="media/terminal.mp4" type="video/mp4">
+  </video>
+
+  <!-- ===== NEXI STUDIO: live build space =====
+       Hidden until the first studio event arrives, so it costs nothing during normal
+       voice use and opens exactly when a Studio/agency build starts. Driven by
+       eel.studioEvent -> studio_panel.js. -->
+  <section id="studio-panel" class="studio-panel" aria-live="polite">
+    <header class="studio-head">
+      <span id="studio-run-title" class="studio-title">NEXI Studio</span>
+      <span id="studio-status" class="studio-status"></span>
+      <button id="studio-close" class="studio-close" type="button" aria-label="Hide studio panel">×</button>
+    </header>
+    <div id="studio-meta" class="studio-meta"></div>
+    <div id="studio-stages" class="studio-stages"></div>
+    <div id="studio-log" class="studio-log" role="log"></div>
+  </section>
+
   <div id="app" class="app-shell">
 
     <!-- ===== HEADER ===== -->
     <header id="top-header" class="top-header">
-      <span class="header-left">MARK XXXIX</span>
+      <span class="header-left">NEXI OS</span>
       <div class="header-center">
         <span class="header-title">N.E.X.I</span>
         <span class="header-subtitle">Neural Executive Intelligence</span>
@@ -145,7 +190,7 @@
       <div class="command-shortcuts">
         <span id="nexi-bottom-state" class="bottom-state nexi-state-sleep">SLEEPING</span>
         <span>[Alt+M] Mute &middot; [F11] Fullscreen</span>
-        <span>STARK INDUSTRIES &middot; MARK XXXIX &middot; CLASSIFIED</span>
+        <span>NEXI &middot; NEURAL EXECUTIVE INTELLIGENCE &middot; CLASSIFIED</span>
         <span id="provider-status-short"></span>
       </div>
     </footer>
@@ -195,7 +240,10 @@
 
   <script type="text/javascript" src="/eel.js"></script>
   <script src="hud_orb.js"></script>
+  <script src="hud_layers.js"></script>
+  <script src="studio_panel.js"></script>
   <script src="controller.js"></script>
   <script src="main.js"></script>
+  <script src="claude_terminal.js"></script>
 </body>
 </html>

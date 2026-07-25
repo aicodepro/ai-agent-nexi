@@ -30,6 +30,116 @@
 
 html, body { height: 100%; width: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; }
 
+/* Ambient HUD video background. object-fit:cover fills any aspect; opacity + a dark
+   tint keep it as depth, not a distracting movie, so the reactive orb stays primary. */
+.hud-video-stack { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.hud-video-bg {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; pointer-events: none;
+  /* transform hint keeps it on the compositor layer */
+  transform: translateZ(0);
+  /* State layers: default hidden, cross-faded in by the rules below. Only opacity
+     animates — no layout, no paint on the main thread. */
+  opacity: 0;
+  transition: opacity 700ms ease-in-out;
+}
+/* Cross-fade driven entirely by body[data-state], which controller.js already sets.
+   No JS needed for the transition itself. ~= means "match this word in the list". */
+body[data-state="sleep"]       .hud-video-bg[data-for~="sleep"],
+body[data-state="online"]      .hud-video-bg[data-for~="online"],
+body[data-state="error"]       .hud-video-bg[data-for~="error"],
+body[data-state="listening"]   .hud-video-bg[data-for~="listening"],
+body[data-state="recognising"] .hud-video-bg[data-for~="recognising"],
+body[data-state="thinking"]    .hud-video-bg[data-for~="thinking"],
+body[data-state="saying"]      .hud-video-bg[data-for~="saying"] { opacity: 0.42; }
+/* Fallback: with no data-state yet (first paint, before the bridge connects), show the
+   ambient layer so the HUD is never a black rectangle. */
+body:not([data-state]) .hud-video-bg[data-for~="sleep"] { opacity: 0.42; }
+/* The error state tints red rather than needing its own clip. */
+body[data-state="error"] .hud-video-bg[data-for~="error"] { filter: hue-rotate(-50deg) saturate(1.4); }
+
+.hud-video-tint {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0,6,10,0.30) 0%, rgba(0,6,10,0.72) 70%, rgba(0,6,10,0.92) 100%);
+}
+
+/* Portrait 9:16 side rails. Behind the panels (z-index 0 vs #app's 1), masked at the
+   edges so they read as ambient depth instead of playing movies in the corner. */
+.hud-rail {
+  position: fixed; top: 0; height: 100%; width: 170px;
+  object-fit: cover; z-index: 0; opacity: 0.20; pointer-events: none;
+  transform: translateZ(0);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+}
+.hud-rail-left  { left: 0; }
+.hud-rail-right { right: 0; width: 340px; }
+
+/* ===== NEXI STUDIO panel — the live build space =====
+   Slides in from the right only while a build runs. transform/opacity only, so the
+   animation stays on the compositor and never costs the HUD a frame. */
+.studio-panel {
+  position: fixed; top: 0; right: 0; z-index: 40;
+  width: min(420px, 92vw); height: 100%;
+  display: flex; flex-direction: column;
+  background: rgba(6, 12, 20, 0.94);
+  border-left: 1px solid rgba(90, 200, 255, 0.28);
+  box-shadow: -18px 0 48px rgba(0, 0, 0, 0.55);
+  transform: translateX(100%); opacity: 0; pointer-events: none;
+  transition: transform 320ms ease, opacity 320ms ease;
+  font-family: var(--font-mono); color: var(--text);
+}
+.studio-panel.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+.studio-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid rgba(90, 200, 255, 0.18);
+}
+.studio-title { font-weight: 700; color: #7fd1ff; letter-spacing: 0.06em; flex: 1; }
+.studio-status { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.studio-status.ok  { color: #6ee7a8; }
+.studio-status.bad { color: #ff8080; }
+.studio-close {
+  background: none; border: none; color: #8fa8bd; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0 4px;
+}
+.studio-close:hover { color: #fff; }
+
+.studio-meta {
+  padding: 8px 14px; font-size: 11px; color: #9db4c8;
+  border-bottom: 1px solid rgba(90, 200, 255, 0.12); min-height: 18px;
+}
+
+.studio-stages { padding: 10px 8px; overflow-y: auto; max-height: 42%; }
+.studio-stage {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 8px; border-radius: 4px; font-size: 12px;
+  border-left: 2px solid transparent;
+}
+.studio-stage-num  { color: #5b7fa0; width: 26px; font-size: 10px; }
+.studio-stage-name { flex: 1; text-transform: capitalize; }
+.studio-stage-mark { width: 14px; text-align: center; }
+.studio-stage.pending { color: #5f7285; }
+.studio-stage.active  { color: #7fd1ff; border-left-color: #7fd1ff; background: rgba(90, 200, 255, 0.08); }
+.studio-stage.done    { color: #6ee7a8; }
+.studio-stage.failed  { color: #ff8080; border-left-color: #ff8080; background: rgba(255, 90, 90, 0.08); }
+
+.studio-log {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  border-top: 1px solid rgba(90, 200, 255, 0.12);
+  font-size: 11px; line-height: 1.5; color: #b9cbd9;
+}
+.studio-log-line { padding: 2px 0; word-break: break-word; }
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-panel { transition: none; }
+}
+
+#app { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .hud-video-bg, .hud-rail, .hud-video-stack { display: none; }
+}
+
 /* ===== GRID ===== */
 .app-shell {
   display: grid;

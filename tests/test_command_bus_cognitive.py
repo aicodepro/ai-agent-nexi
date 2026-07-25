@@ -20,6 +20,8 @@ def test_what_have_you_learned_summary(monkeypatch, tmp_path):
 def test_why_did_you_do_that_explains_route():
     from engine.cognitive_context import set_last_strategy
     from engine.command import _handle_cognitive_command
+    from engine.intent_explainer import record_intent_decision
+    record_intent_decision({"route": "tool", "intent": "open_website", "reason": "learned rule maps youtube to youtube.com"})
     set_last_strategy({"chosen_route": "tool", "chosen_intent": "open_website", "reason": "learned rule maps youtube to youtube.com", "learned_rules_used": ["rule_1"]})
     with patch("engine.command.speak") as speak:
         assert _handle_cognitive_command("why did you do that?") is True

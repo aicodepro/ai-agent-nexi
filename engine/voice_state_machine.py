@@ -203,6 +203,8 @@ class VoiceStateMachine:
             (VoiceState.RECORDING_UTTERANCE, "speech_ended"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, BARGE_IN_COMMAND_FINALIZED): VoiceState.RECOGNIZING,
+            # Duplicate asr_started while already recognizing is a no-op, not an error.
+            (VoiceState.RECOGNIZING, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.RECOGNIZING, "asr_result"): VoiceState.THINKING,
             (VoiceState.RECOGNIZING, "intent_routed"): VoiceState.THINKING,
             (VoiceState.RECOGNIZING, "command_started"): VoiceState.THINKING,
@@ -221,9 +223,14 @@ class VoiceStateMachine:
             (VoiceState.COOLDOWN, COOLDOWN_COMPLETE): VoiceState.SLEEPING,
             (VoiceState.COOLDOWN, "wake_during_cooldown"): VoiceState.LISTENING,
             (VoiceState.COOLDOWN, BARGE_IN_LISTENING_STARTED): VoiceState.LISTENING,
+            # Assistant-question auto-listen: re-arm the mic after asking a question
+            # (clarify / approval / plan follow-up) from any post-command state.
+            (VoiceState.SLEEPING, "listening_started"): VoiceState.LISTENING,
+            (VoiceState.THINKING, "listening_started"): VoiceState.LISTENING,
         }
-        # Explicit barge-in path can move SPEAKING/COOLDOWN into LISTENING after TTS is stopped/flushed.
-        if event == BARGE_IN_LISTENING_STARTED and self._state in {VoiceState.SPEAKING, VoiceState.COOLDOWN}:
+        # Explicit barge-in / assistant-question re-listen can move SPEAKING/COOLDOWN into
+        # LISTENING (after TTS is stopped/flushed or the question has been spoken).
+        if event in {BARGE_IN_LISTENING_STARTED, "listening_started"} and self._state in {VoiceState.SPEAKING, VoiceState.COOLDOWN}:
             return VoiceState.LISTENING
         return table.get((self._state, event))
 

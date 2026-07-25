@@ -3,7 +3,6 @@ import hugchat
 import os
 import re
 import requests
-import openai
 from PIL import Image
 import sqlite3
 import struct
@@ -56,24 +55,41 @@ def stop_clap_if_running():
         _clap_listener_instance = None
 from email.message import EmailMessage
 import smtplib
-try:
-    import pywhatkit as kit
-except Exception as e:
-    print(f"[FEATURES] pywhatkit unavailable reason={type(e).__name__}")
+class _PyWhatKitFallback:
+    def playonyt(self, search_term):
+        from urllib.parse import quote_plus
+        webbrowser.open("https://www.youtube.com/results?search_query=" + quote_plus(str(search_term)))
 
-    class _PyWhatKitFallback:
-        def playonyt(self, search_term):
-            from urllib.parse import quote_plus
-            webbrowser.open("https://www.youtube.com/results?search_query=" + quote_plus(str(search_term)))
 
-    kit = _PyWhatKitFallback()
+_kit = None
+
+
+def _get_kit():
+    """Import pywhatkit on FIRST USE, not at startup.
+
+    Measured with -X importtime: pywhatkit is 5.03s of engine.features' 12.9s cold
+    import, and it has exactly one use site (playonyt below). main.py star-imports
+    this module *before* it can call eel.start(), so every second spent here is a
+    second the window does not exist — this was 7.5s of "Nexi loads slowly".
+    Same fix as the openai top-import. Cached, so playonyt only pays it once.
+    """
+    global _kit
+    if _kit is None:
+        try:
+            import pywhatkit
+            _kit = pywhatkit
+        except Exception as e:
+            print(f"[FEATURES] pywhatkit unavailable reason={type(e).__name__}")
+            _kit = _PyWhatKitFallback()
+    return _kit
 from hugchat import hugchat
 from pipes import quote
 from time import sleep
 import eel
 con = sqlite3.connect("nexi.db")
 cursor = con.cursor()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai is imported lazily inside generateImageFromPrompt — importing it at module
+# top costs ~16s on openai>=1.x (pydantic type tree) and it's used in one place.
 HUGCHAT_COOKIE_PATH = os.path.join(os.path.dirname(__file__), "cookies.json")
 dictapp = {"commandprompt":"cmd","paint":"paint","word":"winword","excel":"excel","chrome":"chrome","vscode":"code","powerpoint":"powerpnt"}
 
@@ -81,10 +97,10 @@ dictapp = {"commandprompt":"cmd","paint":"paint","word":"winword","excel":"excel
 def playAssistantSound():
     music_dir = "www\\assets\\audio\\start_sound.mp3"
     try:
-        from playsound import playsound as _ps
-        _ps(music_dir)
-    except ImportError:
-        print("[SOUND] playsound not available, skipping startup sound")
+        from engine.voice.speech_controller import play_audio_file
+        play_audio_file(music_dir)
+    except Exception as exc:
+        print(f"[SOUND] startup sound skipped reason={type(exc).__name__}")
 
     
 def openCommand(query):
@@ -116,9 +132,12 @@ def openCommand(query):
 
                 else:
                     speak("Opening "+query)
-                    try:
-                        os.system('start '+query)
-                    except:
+                    # 'start '+query fed raw voice text straight to cmd.exe, so a query
+                    # like "notepad & del /f /s /q C:\\*" ran BOTH halves. start_process()
+                    # is the same launch behind an allowlist that rejects shell
+                    # metacharacters (engine/control/process_controller.py).
+                    from engine.control.process_controller import start_process
+                    if not start_process(query).ok:
                         speak("not found")
         except:
             speak("some thing went wrong")
@@ -130,7 +149,7 @@ def PlayYoutube(query):
     if not search_term:
         search_term = query
     speak("Playing "+search_term+" on YouTube")
-    kit.playonyt(search_term)
+    _get_kit().playonyt(search_term)
 
 
 def hotword():
@@ -339,6 +358,8 @@ def chatWithGPT(prompt):
 def generateImageFromPrompt(prompt):
     """Generate an image from a prompt using OpenAI's API."""
     try:
+        import openai  # lazy: heavy import, only needed here
+        openai.api_key = os.getenv("OPENAI_API_KEY")
         speak("Generating image, please wait...")
         # Using the available DALL-E model (e.g., dall-e-3)
         response = openai.Image.create(
@@ -405,12 +426,15 @@ def closeappweb(query):
         pyautogui.hotkey("ctrl", "w")
         speak("Tabs closed")
     else:
+        # Route every close through kill_process so the browser-protection guard
+        # applies here too (never force-kill Chrome and lose the user's tabs).
+        from engine.control.process_controller import kill_process
         dictapp = {"commandprompt":"cmd", "paint":"paint", "word":"winword", "excel":"excel", "chrome":"chrome", "vscode":"code", "powerpoint":"powerpnt"}
         keys = list(dictapp.keys())
         for app in keys:
             if app in query:
-                os.system(f"taskkill /f /im {dictapp[app]}.exe")
-                speak(f"Closed {app}")
+                result = kill_process(app)
+                speak(getattr(result, "message", None) or f"Closed {app}")
 
 
 # --- Brain provider chain --------------------------------------------------

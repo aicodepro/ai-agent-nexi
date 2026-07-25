@@ -4,10 +4,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 from unittest.mock import patch, MagicMock
-from src.orin.diagnostics.runtime_doctor import RuntimeDoctor, run_all_checks, CHECK_RESULTS
-from src.orin.diagnostics.bridge_doctor import BridgeDoctor
-from src.orin.diagnostics.hotword_doctor import HotwordDoctor
-from src.orin.diagnostics.playwright_doctor import PlaywrightDoctor
+from engine.diagnostic_doctors.runtime_doctor import RuntimeDoctor, run_all_checks, CHECK_RESULTS
+from engine.diagnostic_doctors.bridge_doctor import BridgeDoctor
+from engine.diagnostic_doctors.hotword_doctor import HotwordDoctor
+from engine.diagnostic_doctors.playwright_doctor import PlaywrightDoctor
 
 
 class TestRuntimeDoctor(unittest.TestCase):
@@ -25,6 +25,8 @@ class TestRuntimeDoctor(unittest.TestCase):
         self.assertIn("Hotword/Speech", check_names)
         self.assertIn("Playwright", check_names)
         self.assertIn("Dependencies", check_names)
+        self.assertIn("Computer-Use Harness", check_names)
+        self.assertIn("Tool Verifier Layer", check_names)
 
     def test_format_diagnosis(self):
         result = RuntimeDoctor.diagnose()
@@ -45,6 +47,18 @@ class TestRuntimeDoctor(unittest.TestCase):
         result = RuntimeDoctor.check_playwright()
         self.assertIn("name", result)
         self.assertEqual(result["name"], "Playwright")
+
+    def test_check_capability(self):
+        result = RuntimeDoctor.check_capability("tool verifier layer")
+        self.assertIn("name", result)
+        self.assertEqual(result["name"], "Tool Verifier Layer")
+        self.assertIn("role", result)
+        self.assertIn("safety_policy", result)
+
+    def test_migrated_model_router_and_mark_hud_are_healthy(self):
+        checks = {item["name"]: item for item in RuntimeDoctor.diagnose()["checks"]}
+        self.assertTrue(checks["Model Router"]["ok"], checks["Model Router"])
+        self.assertTrue(checks["Conscious HUD"]["ok"], checks["Conscious HUD"])
 
     def test_log_error(self):
         RuntimeDoctor._last_errors = []
@@ -90,7 +104,7 @@ class TestPlaywrightDoctor(unittest.TestCase):
         result = PlaywrightDoctor.is_available()
         self.assertIsInstance(result, bool)
 
-    @patch("src.orin.diagnostics.playwright_doctor.PlaywrightDoctor.is_available")
+    @patch("engine.diagnostic_doctors.playwright_doctor.PlaywrightDoctor.is_available")
     def test_can_launch_when_not_available(self, mock_avail):
         mock_avail.return_value = False
         ok, reason = PlaywrightDoctor.can_launch()

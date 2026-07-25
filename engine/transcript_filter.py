@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 import unicodedata
 import os
+from dataclasses import dataclass
 
 COMMAND_WORDS = {
     "open", "search", "google", "find", "create", "make", "new", "folder", "file",
     "take", "note", "screenshot", "capture", "remember", "forget", "show", "what",
     "who", "where", "when", "why", "how", "tell", "explain", "play", "pause", "stop",
-    "sleep", "wake", "activate", "hello", "hi", "nexi", "calculate", "compute",
+    "sleep", "wake", "activate", "hello", "hi", "bye", "goodbye", "thanks", "nexi",
+    "calculate", "compute", "spotify", "connect", "resume", "next", "previous",
+    "yes", "no", "confirm", "cancel",
 }
 
 SHORT_FOLLOWUP_ANSWERS = {
@@ -16,6 +19,15 @@ SHORT_FOLLOWUP_ANSWERS = {
     "ai agents", "notepad", "documents", "downloads",
 }
 FILLER_WORDS = {"um", "uh", "hmm", "mm", "erm"}
+
+
+@dataclass(frozen=True)
+class TranscriptDecision:
+    accepted: bool
+    reason: str
+    text: str
+    confidence: float
+    should_clarify: bool = False
 
 
 def clean_transcript(text: str) -> str:
@@ -88,3 +100,24 @@ def is_probably_english_command(text: str) -> bool:
 
 def is_gibberish_or_wrong_language(text: str) -> bool:
     return not is_probably_english_command(text)
+
+
+def assess_transcript(text: str, *, pending_followup: bool = False) -> TranscriptDecision:
+    clean = clean_transcript(text)
+    lower = clean.lower().rstrip(".?!")
+    if not clean:
+        return TranscriptDecision(False, "empty", clean, 0.0, False)
+    if lower in FILLER_WORDS:
+        return TranscriptDecision(False, "filler", clean, 0.1, False)
+    if pending_followup and accepts_pending_followup_answer(clean):
+        return TranscriptDecision(True, "pending_followup", clean, 0.95)
+    if not _letters(clean) and not re.search(r"\d\s*[+\-*/x]\s*\d", clean):
+        return TranscriptDecision(False, "non_lexical", clean, 0.1, True)
+    if is_probably_english_command(clean):
+        return TranscriptDecision(True, "accepted", clean, 0.9)
+    words = re.findall(r"[a-zA-Z]+", lower)
+    if 1 <= len(words) <= 3:
+        return TranscriptDecision(False, "uncertain_short", clean, 0.35, True)
+    if _has_non_ascii_letter(clean) or _latin_ratio(clean) < 0.85:
+        return TranscriptDecision(False, "uncertain_language", clean, 0.4, True)
+    return TranscriptDecision(False, "uncertain_noise", clean, 0.25, True)

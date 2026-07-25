@@ -42,3 +42,26 @@ def test_build_context_never_raises_when_empty():
     from engine.context_budget_manager import build_context
     ctx = build_context("anything")
     assert isinstance(ctx, str)
+
+
+def test_context_uses_current_voice_and_workflow_state():
+    from engine import workflow_state
+    from engine.context_budget_manager import build_context
+    from engine.voice_state_machine import get_voice_state_machine
+
+    state_machine = get_voice_state_machine()
+    state_machine.reset()
+    state_machine.transition("wake_detected")
+    workflow_state.start_workflow("create_folder", "ask_name", {})
+    try:
+        ctx = build_context("continue", max_chars=500)
+    finally:
+        workflow_state.clear_workflow()
+        state_machine.reset()
+
+    assert "[ACTIVE_MODE]:" in ctx
+    assert "listening" in ctx
+    assert "[WORKFLOW]:" in ctx
+    assert "create_folder" in ctx
+    assert "ask_name" in ctx
+    assert len(ctx) <= 500

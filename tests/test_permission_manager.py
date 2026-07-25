@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import patch
 
-from src.orin.control.permission_manager import PermissionManager
-from src.orin.control.safety import EmergencyStop
-from src.orin.vision.screen_trust import ScreenTrust
+from engine.control.permission_manager import PermissionManager
+from engine.control.safety import EmergencyStop
+from vision.screen_trust import ScreenTrust
 
 
 class TestPermissionManager(unittest.TestCase):
@@ -113,9 +113,17 @@ class TestPermissionManager(unittest.TestCase):
     def test_evaluate_with_custom_risk_level(self):
         result = self.pm.evaluate("test_action", risk_level="SAFE")
         self.assertEqual(result["decision"], "approved")
+        self.assertEqual(result["risk_level"], "SAFE")
         result2 = self.pm.evaluate("test_action", risk_level="HIGH")
         self.assertEqual(result2["decision"], "pending")
+        self.assertEqual(result2["risk_level"], "HIGH")
         self.assertTrue(result2["requires_confirmation"])
+
+    def test_owner_screen_trust_does_not_approve_unrelated_high_risk_actions(self):
+        ScreenTrust.set_owner_trusted(True)
+        result = self.pm.evaluate("send_message")
+        self.assertEqual(result["decision"], "pending")
+        self.assertTrue(result["requires_confirmation"])
 
     def test_decision_contains_all_expected_keys(self):
         result = self.pm.evaluate("run_diagnostics")

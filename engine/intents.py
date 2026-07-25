@@ -1,4 +1,9 @@
 from difflib import SequenceMatcher
+import re
+
+
+def _contains_phrase(text, phrase):
+    return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text) is not None
 
 class Intent:
     __slots__ = ('name', 'patterns', 'handler', 'module', 'priority', 'negative_patterns')
@@ -16,12 +21,12 @@ class Intent:
         if not q:
             return 0.0
         for neg in self.negative_patterns:
-            if neg in q:
+            if _contains_phrase(q, neg):
                 return 0.0
         q_words = set(q.split())
         best = 0.0
         for pattern in self.patterns:
-            if pattern in q:
+            if _contains_phrase(q, pattern):
                 return 1.0
             p_words = set(pattern.split())
             if p_words:
@@ -30,6 +35,10 @@ class Intent:
             ratio = SequenceMatcher(None, q, pattern, autojunk=False).ratio()
             best = max(best, ratio * 0.65)
         return best
+
+    def specificity(self, query):
+        q = query.lower().strip()
+        return max((len(pattern) for pattern in self.patterns if _contains_phrase(q, pattern)), default=0)
 
 REGISTRY = [
     Intent("open_app", ["open", "launch", "start", "run app", "open application"]),
@@ -57,6 +66,8 @@ REGISTRY = [
     Intent("game", ["play game", "start game", "launch game", "open game", "play a game"]),
     Intent("chess", ["play chess", "open chess", "start chess", "chess game", "chess board"]),
     Intent("hand_gesture", ["hand gesture", "gesture system", "enable gesture", "hand control", "gesture scrolling", "hand scrolling", "hand gesture system", "enable hand gesture", "gesture control"]),
+    Intent("face_recognition", ["face recognition", "face detect", "who am i", "recognize face", "face recognition system", "enable face recognition", "start face recognition", "who is this", "identify face", "face detection"]),
+    Intent("face_register", ["register face", "train face", "new face", "add face", "learn my face", "teach face", "register new face", "train my face", "save face"]),
     Intent("camera_stop", ["stop camera control", "disable camera control", "stop gesture control", "stop eye mouse", "disable gesture", "stop hand gesture"]),
     Intent("camera_hybrid", ["hybrid control", "hybrid camera", "hybrid mode", "camera hybrid", "eye and hand", "hand and eye"]),
     Intent("alarm", ["set alarm", "create alarm", "alarm for", "new alarm", "wake me up"]),
@@ -126,9 +137,10 @@ def match_intent(query, threshold=0.35):
     q = query.lower().strip()
     if not q:
         return None, 0.0
-    best, best_score = None, 0.0
+    best, best_score, best_specificity = None, 0.0, 0
     for intent in REGISTRY:
         s = intent.score(q)
-        if s > best_score:
-            best_score, best = s, intent
+        specificity = intent.specificity(q)
+        if s > best_score or (s == best_score and specificity > best_specificity):
+            best_score, best, best_specificity = s, intent, specificity
     return (best, best_score) if best_score >= threshold else (None, 0.0)

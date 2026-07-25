@@ -5,6 +5,11 @@ import numpy as np
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _stable_backend_order(monkeypatch):
+    monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "dsp_clap,clap_nn")
+
+
 class TestClapBackendManager:
 
     def test_import_and_create(self):
@@ -77,3 +82,24 @@ class TestClapBackendManager:
         r = m.process_audio_chunk(silence)
         assert r["backend"] == "none"
         assert not r["wake"]
+
+    def test_legacy_jarvis_gap_and_cooldown_env_aliases(self, monkeypatch):
+        from engine.clap_backend_manager import ClapBackendManager
+
+        for key in (
+            "NEXI_CLAP_MIN_GAP_MS",
+            "CLAP_MIN_GAP_MS",
+            "NEXI_CLAP_MAX_GAP_MS",
+            "CLAP_MAX_GAP_MS",
+            "NEXI_CLAP_COOLDOWN_MS",
+        ):
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setenv("JARVIS_CLAP_MIN_GAP_MS", "140")
+        monkeypatch.setenv("JARVIS_CLAP_MAX_GAP_MS", "4700")
+        monkeypatch.setenv("JARVIS_CLAP_COOLDOWN_MS", "1700")
+
+        status = ClapBackendManager().get_status()
+
+        assert status["min_gap_ms"] == 140
+        assert status["max_gap_ms"] == 4700
+        assert status["cooldown_ms"] == 1700

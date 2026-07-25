@@ -35,6 +35,13 @@ def _soft_disable_cooldown_secs() -> int:
         return 300
 
 
+def _playback_timeout_secs() -> float:
+    try:
+        return max(1.0, float(os.getenv("GROQ_TTS_PLAYBACK_TIMEOUT_SECONDS", "120")))
+    except (TypeError, ValueError):
+        return 120.0
+
+
 def is_configured() -> bool:
     global _soft_disabled_until
     try:
@@ -85,11 +92,16 @@ def _play_with_simpleaudio(path: str) -> GroqTTSResult | None:
         global _current_play_handle
         with _play_lock:
             _current_play_handle = handle
+        started = time.monotonic()
         while handle.is_playing():
             if should_interrupt():
                 stop()
                 print(f"[TTS] interrupted source={get_interrupt_source() or 'unknown'}", flush=True)
                 return GroqTTSResult(ok=True, interrupted=True, error="interrupted")
+            if time.monotonic() - started >= _playback_timeout_secs():
+                stop()
+                print("[TTS] playback_timeout", flush=True)
+                return GroqTTSResult(ok=False, fallback_used=True, error="playback_timeout")
             time.sleep(0.05)
         with _play_lock:
             if _current_play_handle is handle:
@@ -151,7 +163,7 @@ def speak_text(text: str) -> GroqTTSResult:
             path = tmp.name
         simple_result = _play_with_simpleaudio(path)
         if simple_result is not None:
-            if simple_result.interrupted:
+            if simple_result.interrupted or not simple_result.ok:
                 return simple_result
         else:
             from playsound import playsound

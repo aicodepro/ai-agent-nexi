@@ -8,8 +8,41 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-import requests
+from engine.memory_safety import redact_sensitive
 
+
+_RESERVED_MODEL_ARGUMENT_KEYS = frozenset({
+    "approved",
+    "approval",
+    "approval_id",
+    "approval_token",
+    "auth",
+    "auth_token",
+    "authorization",
+    "authorization_id",
+    "authorization_token",
+    "authorized",
+    "confirmed",
+    "confirmation",
+    "confirmation_id",
+    "confirmation_token",
+    "_studio_auth",
+})
+_RESERVED_MODEL_ARGUMENT_TOKENS = frozenset({
+    "approval",
+    "approve",
+    "approved",
+    "auth",
+    "authorization",
+    "authorized",
+    "authorisation",
+    "authorised",
+    "confirmation",
+    "confirm",
+    "confirmed",
+    "consent",
+    "permission",
+})
 
 @dataclass
 class ReActStep:
@@ -17,6 +50,7 @@ class ReActStep:
     action: str = "tool_call"
     tool_name: str | None = None
     tool_input: dict[str, Any] | None = None
+    tool_call_id: str = ""
     observation: str | None = None
     status: str = "pending"
 
@@ -32,18 +66,10 @@ class ReActPlan:
     context: dict[str, Any] = field(default_factory=dict)
     messages: list[dict[str, Any]] = field(default_factory=list)
     started_at: float = field(default_factory=time.time)
-
-
-def _json_object(text: str) -> dict[str, Any]:
-    value = str(text or "").strip()
-    match = re.search(r"\{.*\}", value, flags=re.S)
-    if match:
-        value = match.group(0)
-    try:
-        data = json.loads(value)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    allowed_tool_names: frozenset[str] = field(default_factory=frozenset)
+    unresolved_tool_error: str | None = None
+    failed_tool_obligations: list[dict[str, str]] = field(default_factory=list)
+    verified_tool_results: int = 0
 
 
 def _sanitize_public_text(text: str) -> str:
@@ -53,6 +79,14 @@ def _sanitize_public_text(text: str) -> str:
     return value[:1200]
 
 
+def _redact_provider_observation(text: str) -> str:
+    value = redact_sensitive(str(text or ""))
+    value = re.sub(r"(?i)\b(api[_ -]?key|token|password|secret|cookie|authorization)\b\s*(?:is|:|=)\s*\S+", r"\1=[REDACTED]", value)
+    value = re.sub(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b", "[REDACTED_JWT]", value)
+    value = re.sub(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", "[REDACTED_EMAIL]", value, flags=re.I)
+    return value
+
+
 def _observation_from_result(result: dict[str, Any]) -> str:
     message = str(result.get("message") or result.get("error") or "")
     status = "success" if result.get("success") is True else "failed"
@@ -60,7 +94,38 @@ def _observation_from_result(result: dict[str, Any]) -> str:
         status = "needs_input"
     if result.get("requires_confirmation"):
         status = "needs_confirmation"
-    return _sanitize_public_text(f"{status}: {message or 'No result message.'}")
+    return _sanitize_public_text(_redact_provider_observation(f"{status}: {message or 'No result message.'}"))
+
+
+def _strip_reserved_arguments(value: Any) -> Any:
+    """Remove model-supplied authorization/approval claims at every nesting level."""
+    if isinstance(value, dict):
+        return {
+            key: _strip_reserved_arguments(item)
+            for key, item in value.items()
+            if not _is_reserved_argument_key(key)
+        }
+    if isinstance(value, list):
+        return [_strip_reserved_arguments(item) for item in value]
+    return value
+
+
+def _is_reserved_argument_key(key: Any) -> bool:
+    raw = str(key).strip().lower()
+    if raw in _RESERVED_MODEL_ARGUMENT_KEYS:
+        return True
+    tokens = {token for token in re.split(r"[^a-z0-9]+", raw) if token}
+    return bool(tokens & _RESERVED_MODEL_ARGUMENT_TOKENS)
+
+
+def _schema_tool_names(tools_schema: list[dict[str, Any]]) -> frozenset[str]:
+    names: set[str] = set()
+    for item in tools_schema:
+        function = item.get("function") if isinstance(item, dict) else None
+        name = function.get("name") if isinstance(function, dict) else None
+        if isinstance(name, str) and name.strip():
+            names.add(name.strip())
+    return frozenset(names)
 
 
 class ReActPlanner:
@@ -70,31 +135,87 @@ class ReActPlanner:
         self.max_steps = max(1, int(os.getenv("REACT_MAX_STEPS", "10") or 10))
         self.max_retries = max(0, int(os.getenv("REACT_MAX_RETRIES", "1") or 1))
         self.timeout_seconds = max(1.0, float(os.getenv("REACT_TIMEOUT_SECONDS", "30") or 30))
-        self.model = (os.getenv("REACT_MODEL") or os.getenv("GROQ_INTENT_MODEL") or "llama-3.3-70b-versatile").strip()
+        # Pick a model that can actually survive a multi-turn tool loop (REACT_MODEL
+        # still wins). Guards the harmony-token leak: gpt-oss corrupts tool names on
+        # the 2nd turn, which Groq rejects with a hard 400.
+        from engine.model_registry import select_model
+        self.model = select_model("react_tools")
         self.temperature = float(os.getenv("REACT_TEMPERATURE", "0") or 0)
         self._interrupted: set[str] = set()
         self._retry_counts: dict[str, int] = {}
         self._tool_call_counts: dict[str, int] = {}
 
     def plan(self, user_input: str, context: dict | None = None) -> ReActPlan:
-        plan = ReActPlan(session_id=f"react_{uuid.uuid4().hex[:8]}", user_input=str(user_input or ""), context=dict(context or {}))
+        tools_schema = self._tools_schema()
+        # Capability allowlist from the Cognitive Admission Gate. Narrow the SCHEMA,
+        # not just the enforcement set, so the model never even sees a capability it
+        # was not admitted for -- a model shown 120 tools picks a near-miss.
+        # allowed_tool_names derives from this schema, so enforcement follows.
+        try:
+            from engine.admission_gate import allowed_for
+
+            admitted = allowed_for(user_input)
+            if admitted:
+                narrowed = [
+                    item for item in tools_schema
+                    if ((item.get("function") or {}).get("name") if isinstance(item, dict) else None) in admitted
+                ]
+                if narrowed:
+                    print(f"[REACT] capabilities {len(tools_schema)} -> {len(narrowed)} (admitted)", flush=True)
+                    tools_schema = narrowed
+        except Exception:
+            pass
+        plan = ReActPlan(
+            session_id=f"react_{uuid.uuid4().hex[:8]}",
+            user_input=str(user_input or ""),
+            context=dict(context or {}),
+            allowed_tool_names=_schema_tool_names(tools_schema),
+        )
+        # Situational state, so "handle it" / "again" resolve to something. Callers pass
+        # the router decision as context, which carries no world data -- read it here so
+        # every entry point into the loop gets it, not just command.py's react branch.
+        world: dict[str, Any] = {}
+        try:
+            from engine.world_model import get_world
+
+            snapshot = get_world()
+            world = {key: snapshot[key] for key in ("last_action", "last_result", "environment") if snapshot.get(key)}
+        except Exception:
+            world = {}
         plan.messages = [
             {"role": "system", "content": self._system_prompt(user_input)},
-            {"role": "user", "content": json.dumps({"request": user_input, "context": context or {}}, default=str)},
+            {"role": "user", "content": json.dumps({"request": user_input, "context": context or {}, "world": world}, default=str)},
         ]
         print(f"[REACT] started session={plan.session_id}", flush=True)
         self._tool_call_counts.clear()
+        deterministic_steps = self._deterministic_steps(plan)
+        if deterministic_steps:
+            return self._execute_deterministic_steps(plan, deterministic_steps)
         while plan.status == "in_progress" and len(plan.steps) < self.max_steps:
             if plan.session_id in self._interrupted:
                 plan.status = "interrupted"
                 break
-            if time.time() - plan.started_at > self.timeout_seconds:
+            remaining_timeout = self.timeout_seconds - (time.time() - plan.started_at)
+            if remaining_timeout <= 0:
                 plan.status = "error"
                 plan.error = "timeout"
                 break
-            next_step = self._next_step(plan)
+            next_step = self._next_step(plan, remaining_timeout, tools_schema)
             plan.steps.append(next_step)
             if next_step.action == "respond":
+                if plan.failed_tool_obligations:
+                    next_step.status = "failed"
+                    plan.final_response = "The requested action remains unverified because a required tool attempt failed or was blocked."
+                    plan.error = plan.failed_tool_obligations[0].get("error") or "tool_failed"
+                    plan.unresolved_tool_error = plan.error
+                    plan.status = "error"
+                    break
+                if plan.verified_tool_results < 1:
+                    next_step.status = "failed"
+                    plan.final_response = "The requested multi-step action remains unverified because no tool result was verified."
+                    plan.error = "verified_tool_result_required"
+                    plan.status = "error"
+                    break
                 plan.final_response = _sanitize_public_text(next_step.observation or "")
                 next_step.status = "success"
                 plan.status = "done"
@@ -104,19 +225,39 @@ class ReActPlanner:
                 plan.error = next_step.observation or "Planner returned an invalid action."
                 break
             self.execute_step(plan, len(plan.steps) - 1)
+            self._append_tool_result(plan, next_step)
             if next_step.status == "failed":
+                failure_error = next_step.observation or "tool_failed"
+                plan.failed_tool_obligations.append({
+                    "tool_name": str(next_step.tool_name or ""),
+                    "tool_call_id": str(next_step.tool_call_id or ""),
+                    "error": failure_error,
+                })
+                plan.unresolved_tool_error = failure_error
                 retries = self._retry_counts.get(plan.session_id, 0)
                 if retries < self.max_retries:
                     self._retry_counts[plan.session_id] = retries + 1
                     error_msg = _sanitize_public_text(next_step.observation or "That step failed.")
                     print(f"[REACT] retry attempt={retries + 1}/{self.max_retries} tool={next_step.tool_name}", flush=True)
-                    plan.messages.append({"role": "user", "content": f"Observation from {next_step.tool_name}: {error_msg}. Try a different approach or tool."})
+                    plan.messages.append({"role": "user", "content": f"That tool failed: {error_msg}. Try a different approach or tool."})
                     continue
                 plan.final_response = _sanitize_public_text(next_step.observation or "I couldn't complete that step.")
                 plan.error = next_step.observation or "tool_failed"
                 plan.status = "error"
                 break
-            plan.messages.append({"role": "user", "content": f"Observation from {next_step.tool_name}: {next_step.observation}"})
+            plan.verified_tool_results += 1
+            # A verified retry discharges only failures for that same tool. An
+            # unrelated successful tool cannot erase a prior failed obligation.
+            plan.failed_tool_obligations = [
+                obligation
+                for obligation in plan.failed_tool_obligations
+                if obligation.get("tool_name") != str(next_step.tool_name or "")
+            ]
+            plan.unresolved_tool_error = (
+                plan.failed_tool_obligations[0].get("error")
+                if plan.failed_tool_obligations
+                else None
+            )
             pattern = f"{next_step.tool_name}:{json.dumps(next_step.tool_input or {}, default=str, sort_keys=True)}"
             count = self._tool_call_counts.get(pattern, 0) + 1
             self._tool_call_counts[pattern] = count
@@ -133,11 +274,94 @@ class ReActPlanner:
             plan.error = "max_steps"
         return plan
 
+    def _deterministic_steps(self, plan: ReActPlan) -> list[ReActStep]:
+        """Build an offline plan only when every atomic command maps to a safe schema tool."""
+        try:
+            from engine.groq_intent_router_v2 import _deterministic_router, _finalize
+            from engine.router.compound import split_steps
+
+            commands = split_steps(plan.user_input)
+            if len(commands) < 2 or len(commands) > self.max_steps:
+                return []
+            steps: list[ReActStep] = []
+            route_context = dict(plan.context)
+            route_context["source"] = "react"
+            for command in commands:
+                decision = _finalize(_deterministic_router(command, route_context), command)
+                if decision.get("route") not in {"tool", "output", "workflow"}:
+                    return []
+                if decision.get("missing_slots") or decision.get("expects_user_reply"):
+                    return []
+                tool_name = str(decision.get("intent") or "")
+                if tool_name not in plan.allowed_tool_names:
+                    return []
+                slots = decision.get("slots") or {}
+                if not isinstance(slots, dict):
+                    return []
+                steps.append(ReActStep(
+                    action="tool_call",
+                    tool_name=tool_name,
+                    tool_input=dict(slots),
+                    tool_call_id=f"call_{uuid.uuid4().hex[:12]}",
+                ))
+            return steps
+        except Exception:
+            return []
+
+    def _execute_deterministic_steps(self, plan: ReActPlan, steps: list[ReActStep]) -> ReActPlan:
+        for step in steps:
+            if plan.session_id in self._interrupted:
+                plan.status = "interrupted"
+                return plan
+            if time.time() - plan.started_at >= self.timeout_seconds:
+                plan.status = "error"
+                plan.error = "timeout"
+                return plan
+            plan.steps.append(step)
+            self.execute_step(plan, len(plan.steps) - 1)
+            self._append_tool_result(plan, step)
+            if step.status != "success":
+                error = step.observation or "tool_failed"
+                plan.failed_tool_obligations.append({
+                    "tool_name": str(step.tool_name or ""),
+                    "tool_call_id": str(step.tool_call_id or ""),
+                    "error": error,
+                })
+                plan.unresolved_tool_error = error
+                plan.final_response = _sanitize_public_text(error)
+                plan.error = error
+                plan.status = "error"
+                return plan
+            plan.verified_tool_results += 1
+        plan.final_response = _sanitize_public_text(" ".join(
+            step.observation or "" for step in plan.steps if step.status == "success"
+        ))
+        plan.status = "done"
+        return plan
+
+    @staticmethod
+    def _append_tool_result(plan: ReActPlan, step: ReActStep) -> None:
+        plan.messages.append({
+            "role": "tool",
+            "tool_call_id": step.tool_call_id,
+            "name": str(step.tool_name or ""),
+            "content": _redact_provider_observation(str(step.observation or "No result message.")),
+        })
+
     def execute_step(self, plan: ReActPlan, step_index: int) -> ReActStep:
         step = plan.steps[step_index]
         step.status = "running"
         tool_name = str(step.tool_name or "")
-        tool_input = dict(step.tool_input or {})
+        if not isinstance(step.tool_input, dict):
+            step.status = "failed"
+            step.observation = "Planner returned invalid tool arguments."
+            return step
+        if tool_name not in plan.allowed_tool_names:
+            step.status = "failed"
+            step.observation = "Planner requested a tool that was not in this plan's immutable schema."
+            return step
+        tool_input = dict(_strip_reserved_arguments(step.tool_input))
+        step.tool_input = tool_input
         self._emit_status("running_tool", tool_name)
         try:
             from engine.safety_gate import execution_is_safe
@@ -150,7 +374,7 @@ class ReActPlanner:
             from engine.tool_registry import execute_tool
             result = execute_tool(tool_name, tool_input)
             step.observation = _observation_from_result(result if isinstance(result, dict) else {})
-            step.status = "success" if isinstance(result, dict) and result.get("success") is True else "failed"
+            step.status = "success" if isinstance(result, dict) and result.get("success") is True and result.get("verified") is True else "failed"
             print(f"[REACT] tool_done name={tool_name} status={step.status}", flush=True)
             return step
         except Exception as exc:
@@ -186,76 +410,97 @@ class ReActPlanner:
         self._interrupted.add(plan.session_id)
         plan.status = "interrupted"
 
-    def _next_step(self, plan: ReActPlan) -> ReActStep:
-        raw = self._call_llm(plan.messages, self._tools_schema())
+    def _next_step(self, plan: ReActPlan, timeout: float, tools_schema: list[dict[str, Any]]) -> ReActStep:
+        raw = self._call_llm(plan.messages, tools_schema, timeout=timeout)
+        if not isinstance(raw, dict):
+            return ReActStep(action="error", observation="Planner returned an invalid response.", status="failed")
         action = str(raw.get("action") or "").strip().lower()
+        if action == "error":
+            return ReActStep(action="error", observation=_sanitize_public_text(str(raw.get("error") or "Planner provider failed.")), status="failed")
         if raw.get("tool_name") or action == "tool_call":
+            tool_name = raw.get("tool_name") or raw.get("name")
+            tool_input = raw.get("tool_input") if "tool_input" in raw else raw.get("arguments", {})
+            if not isinstance(tool_name, str) or not tool_name.strip():
+                return ReActStep(action="error", observation="Planner returned an invalid tool name.", status="failed")
+            tool_name = tool_name.strip()
+            if tool_name not in plan.allowed_tool_names:
+                return ReActStep(action="error", observation="Planner requested a tool outside this plan's immutable schema.", status="failed")
+            if not isinstance(tool_input, dict):
+                return ReActStep(action="error", observation="Planner returned invalid tool arguments.", status="failed")
+            tool_input = _strip_reserved_arguments(tool_input)
+            tool_call_id = raw.get("tool_call_id")
+            if not isinstance(tool_call_id, str) or not tool_call_id:
+                tool_call_id = f"call_{uuid.uuid4().hex[:12]}"
+            # Rebuild the protocol message from sanitized arguments. Never echo
+            # provider-supplied authorization fields or extra tool calls.
+            assistant_message = {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [{
+                    "id": tool_call_id,
+                    "type": "function",
+                    "function": {"name": tool_name, "arguments": json.dumps(tool_input, default=str)},
+                }],
+            }
+            plan.messages.append(dict(assistant_message))
             return ReActStep(
                 thought=str(raw.get("thought") or "")[:400],
                 action="tool_call",
-                tool_name=str(raw.get("tool_name") or raw.get("name") or ""),
-                tool_input=dict(raw.get("tool_input") or raw.get("arguments") or {}),
+                tool_name=tool_name,
+                tool_input=dict(tool_input),
+                tool_call_id=tool_call_id,
             )
         message = raw.get("message") or raw.get("final_response") or raw.get("content") or ""
         if message:
             return ReActStep(thought=str(raw.get("thought") or "")[:400], action="respond", observation=_sanitize_public_text(str(message)), status="success")
         return ReActStep(action="error", observation="Planner returned no action.", status="failed")
 
-    def _call_llm(self, messages: list[dict], tools_schema: list[dict]) -> dict:
-        api_key = (os.getenv("GROQ_API_KEY") or "").strip()
-        if not api_key:
-            return {"action": "respond", "message": "I need the ReAct planner model configured before I can run multi-step tasks."}
-        payload = {
-            "model": self.model,
-            "temperature": self.temperature,
-            "max_tokens": int(os.getenv("REACT_MAX_TOKENS", "700") or 700),
-            "messages": messages,
-            "tools": tools_schema,
-            "tool_choice": "auto",
-        }
-        max_retries = max(0, int(os.getenv("REACT_MAX_RETRIES", "2")))
-        for attempt in range(max_retries + 1):
-            try:
-                response = requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                    json=payload,
-                    timeout=float(os.getenv("REACT_LLM_TIMEOUT_SECONDS", "10") or 10),
-                )
-                if response.status_code == 429 and attempt < max_retries:
-                    backoff = 2 ** attempt
-                    print(f"[REACT] rate_limited retry_in={backoff}s attempt={attempt + 1}/{max_retries}", flush=True)
-                    time.sleep(backoff)
-                    continue
-                if response.status_code >= 400:
-                    return {"action": "respond", "message": "I could not reach the ReAct planner model."}
-                message = response.json()["choices"][0]["message"]
-                break
-            except (requests.ConnectionError, requests.Timeout) as exc:
-                if attempt < max_retries:
-                    backoff = 2 ** attempt
-                    print(f"[REACT] transient_error={type(exc).__name__} retry_in={backoff}s attempt={attempt + 1}/{max_retries}", flush=True)
-                    time.sleep(backoff)
-                    continue
-                return {"action": "respond", "message": "I could not reach the ReAct planner model."}
-            except Exception:
-                return {"action": "respond", "message": "I could not reach the ReAct planner model."}
-        else:
-            return {"action": "respond", "message": "I could not reach the ReAct planner model."}
-        tool_calls = message.get("tool_calls") or []
-        if tool_calls:
-            call = tool_calls[0]
-            function = call.get("function") or {}
+    def _call_llm(self, messages: list[dict], tools_schema: list[dict], *, timeout: float) -> dict:
+        if timeout <= 0:
+            return {"action": "error", "error": "timeout"}
+        try:
+            from engine.providers import get_intent_provider
+            provider = get_intent_provider()
+        except Exception as exc:
+            return {"action": "error", "error": f"provider_init_failed:{type(exc).__name__}"}
+        if provider is None:
+            return {"action": "error", "error": "provider_unavailable"}
+        try:
+            if not provider.is_available():
+                return {"action": "error", "error": "provider_unavailable"}
+            result = provider.route_with_tools(
+                messages,
+                tools_schema,
+                model=self.model,
+                timeout=timeout,
+                tool_choice="auto",
+            )
+        except Exception as exc:
+            return {"action": "error", "error": f"provider_failed:{type(exc).__name__}"}
+        if not result.ok:
+            return {"action": "error", "error": f"provider_failed:{result.error_code or 'unknown'}"}
+        if result.tool_call is not None:
+            call = result.tool_call
+            if not isinstance(call, dict):
+                return {"action": "error", "error": "invalid_tool_call"}
+            name = call.get("name")
+            arguments = call.get("arguments")
+            if not isinstance(name, str) or not name or not isinstance(arguments, dict):
+                return {"action": "error", "error": "invalid_tool_arguments"}
             return {
                 "action": "tool_call",
-                "tool_name": function.get("name", ""),
-                "tool_input": _json_object(function.get("arguments", "{}")),
+                "tool_name": name,
+                "tool_input": arguments,
+                "tool_call_id": str(call.get("id") or ""),
+                "_assistant_message": result.assistant_message,
             }
-        content = str(message.get("content") or "")
-        parsed = _json_object(content)
-        if parsed:
-            return parsed
-        return {"action": "respond", "message": content}
+        if result.decision is not None:
+            if not isinstance(result.decision, dict):
+                return {"action": "error", "error": "invalid_provider_decision"}
+            return dict(result.decision)
+        if result.raw_text:
+            return {"action": "respond", "message": result.raw_text}
+        return {"action": "error", "error": "empty_provider_response"}
 
     def _tools_schema(self) -> list[dict]:
         try:
@@ -274,7 +519,8 @@ class ReActPlanner:
         return (
             "You are Nexi ReAct planner. Use registered tools for multi-step tasks. "
             "Do not reveal chain-of-thought. Return final user-facing messages only, or call one tool. "
-            "Never claim an action succeeded unless the tool observation says it was verified."
+            "Never claim an action succeeded unless the tool observation says it was verified. "
+            "For executable multi-step requests, do not finish before at least one verified tool result."
             + (f"\n{reflection}" if reflection else "")
         )
 

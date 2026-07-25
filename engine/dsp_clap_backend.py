@@ -50,6 +50,30 @@ def _env_bool(key: str, default: bool) -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def _env_float_aliases(keys: tuple[str, ...], default: float) -> float:
+    for key in keys:
+        value = os.getenv(key)
+        if value is None:
+            continue
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return default
+
+
+def _env_int_aliases(keys: tuple[str, ...], default: int) -> int:
+    for key in keys:
+        value = os.getenv(key)
+        if value is None:
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return default
+
+
 @dataclass
 class DspClapResult:
     is_clap: bool
@@ -75,12 +99,30 @@ class DspClapBackend:
         self._clock = clock or time.time
         self._debug = _env_bool("NEXI_DSP_CLAP_DEBUG", False)
 
-        self._rms_threshold = _env_float("NEXI_DSP_CLAP_RMS_THRESHOLD", 0.030)
-        self._peak_threshold = _env_float("NEXI_DSP_CLAP_PEAK_THRESHOLD", 0.10)
-        self._peak_ratio_threshold = _env_float("NEXI_DSP_CLAP_PEAK_RATIO", 4.0)
-        self._hf_ratio_threshold = _env_float("NEXI_DSP_CLAP_HF_RATIO", 0.30)
-        self._event_cooldown_ms = _env_int("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", 80)
-        self._speech_reject_ms = _env_int("NEXI_DSP_CLAP_SPEECH_REJECT_MS", 250)
+        self._rms_threshold = _env_float_aliases(
+            ("NEXI_DSP_CLAP_RMS_THRESHOLD", "JARVIS_DSP_CLAP_RMS_THRESHOLD"), 0.030
+        )
+        self._peak_threshold = _env_float_aliases(
+            ("NEXI_DSP_CLAP_PEAK_THRESHOLD", "JARVIS_DSP_CLAP_PEAK_THRESHOLD"), 0.10
+        )
+        self._peak_ratio_threshold = _env_float_aliases((
+            "NEXI_DSP_CLAP_PEAK_RATIO",
+            "NEXI_DSP_CLAP_PEAK_RATIO_THRESHOLD",
+            "JARVIS_DSP_CLAP_PEAK_RATIO",
+            "JARVIS_DSP_CLAP_PEAK_RATIO_THRESHOLD",
+        ), 4.0)
+        self._hf_ratio_threshold = _env_float_aliases((
+            "NEXI_DSP_CLAP_HF_RATIO",
+            "NEXI_DSP_CLAP_HF_RATIO_THRESHOLD",
+            "JARVIS_DSP_CLAP_HF_RATIO",
+            "JARVIS_DSP_CLAP_HF_RATIO_THRESHOLD",
+        ), 0.30)
+        self._event_cooldown_ms = _env_int_aliases(
+            ("NEXI_DSP_CLAP_EVENT_COOLDOWN_MS", "JARVIS_DSP_CLAP_EVENT_COOLDOWN_MS"), 80
+        )
+        self._speech_reject_ms = _env_int_aliases(
+            ("NEXI_DSP_CLAP_SPEECH_REJECT_MS", "JARVIS_DSP_CLAP_SPEECH_REJECT_MS"), 250
+        )
 
         self._last_event_time = 0.0
         self._speech_start_time: float | None = None
@@ -108,22 +150,24 @@ class DspClapBackend:
         peak = 0
         hf_energy = 0.0
         total_energy = 0.0
+        previous = samples[0]
         for i, s in enumerate(samples):
             sq = s * s
             sum_sq += sq
             abs_s = abs(s)
             if abs_s > peak:
                 peak = abs_s
-            hf_freq = (i / n) * (self._sample_rate / 2) if i > 0 else 0
-            if hf_freq >= 3000:
-                hf_energy += sq
+            if i > 0:
+                delta = s - previous
+                hf_energy += delta * delta
+            previous = s
             total_energy += sq
 
         rms = (sum_sq / n) ** 0.5 / 32768.0
         peak_norm = peak / 32768.0
         avg = rms
         peak_ratio = peak_norm / avg if avg > 1e-10 else 0.0
-        hf_ratio = hf_energy / total_energy if total_energy > 0 else 0.0
+        hf_ratio = min(1.0, hf_energy / (4.0 * total_energy)) if total_energy > 0 else 0.0
         duration_ms = (n / self._sample_rate) * 1000.0
 
         is_clap = False
@@ -155,7 +199,8 @@ class DspClapBackend:
         elif hf_ratio < self._hf_ratio_threshold:
             reason = f"low_hf_{hf_ratio:.2f}"
         else:
-            # Check for sustained speech-like energy
+            # All threshold checks passed — this is a transient event.
+            # First, rule out sustained speech:
             if rms > self._rms_threshold * 0.5 and peak_ratio < self._peak_ratio_threshold * 0.8:
                 if self._speech_start_time is None:
                     self._speech_start_time = now
@@ -163,16 +208,9 @@ class DspClapBackend:
                 if speech_dur > self._speech_reject_ms:
                     reason = f"sustained_speech_like_{speech_dur:.0f}ms"
                 else:
-                    self._event_counter += 1
-                    is_clap = True
-                    confidence = min(1.0, (rms / self._rms_threshold) * 0.3 +
-                                    (peak_ratio / self._peak_ratio_threshold) * 0.3 +
-                                    (hf_ratio / self._hf_ratio_threshold) * 0.2 +
-                                    (peak_norm / self._peak_threshold) * 0.2)
-                    reason = f"clap_detected_id={self._event_counter}"
-                    self._last_event_time = now
-                    self._speech_start_time = None
+                    reason = f"tracking_speech_{speech_dur:.0f}ms"
             else:
+                # Not sustained speech. All thresholds met → genuine clap.
                 self._speech_start_time = None
                 self._event_counter += 1
                 is_clap = True

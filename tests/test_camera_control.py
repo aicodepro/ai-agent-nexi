@@ -9,7 +9,9 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _reset_mouse_state():
+def _reset_mouse_state(monkeypatch):
+    monkeypatch.setenv("CAMERA_ON_STARTUP", "false")
+    monkeypatch.setenv("FACE_RECOGNITION_ON_STARTUP", "false")
     from engine.camera_control.mouse_actions import _reset_state
     _reset_state()
     yield
@@ -27,11 +29,12 @@ def test_start_stop_no_real_camera():
 
 def test_gpu_detection_no_torch_does_not_crash():
     from engine.camera_control.gpu import detect_gpu
+    fake_cv2 = MagicMock()
+    fake_cv2.cuda.getCudaEnabledDeviceCount.return_value = 0
     with patch.dict(os.environ, {"CAMERA_USE_GPU": "true"}, clear=False):
-        with patch("engine.camera_control.gpu._env_bool", return_value=True):
-            with patch.dict("sys.modules", {"torch": None}):
-                pass
-    result = detect_gpu()
+        with patch.dict("sys.modules", {"cv2": fake_cv2, "torch": None}):
+            with patch("engine.camera_control.gpu.probe_mediapipe_gpu", return_value={"mediapipe_gpu": False, "xnnpack": True, "error": None}):
+                result = detect_gpu()
     assert isinstance(result, dict)
     assert "available" in result
     assert "backend" in result
@@ -47,7 +50,8 @@ def test_gpu_disabled_by_env():
 
 def test_detect_gpu_returns_dict():
     from engine.camera_control.gpu import detect_gpu
-    result = detect_gpu()
+    with patch.dict(os.environ, {"CAMERA_USE_GPU": "false"}, clear=False):
+        result = detect_gpu()
     for key in ("available", "backend", "device", "cuda_torch", "cuda_opencv", "name"):
         assert key in result, f"missing key: {key}"
 

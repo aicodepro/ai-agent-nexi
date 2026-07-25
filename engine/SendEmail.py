@@ -2,8 +2,6 @@ import smtplib
 import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import pyttsx3
-import eel
 def send_email(recipient, subject, content):
     try:
         sender_email = "Darshyadav07@gmail.com"

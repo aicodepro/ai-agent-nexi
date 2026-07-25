@@ -1,9 +1,9 @@
 import unittest
-from src.orin.app.phase3_command_bridge import Phase3CommandBridge
-from src.orin.control.safety import EmergencyStop
-from src.orin.memory.preference_store import PreferenceStore
-from src.orin.diagnostics.runtime_doctor import RuntimeDoctor
-from src.orin.vision.screen_trust import ScreenTrust
+from engine.app.phase3_command_bridge import Phase3CommandBridge
+from engine.control.safety import EmergencyStop
+from engine.memory.preference_store import PreferenceStore
+from engine.diagnostic_doctors.runtime_doctor import RuntimeDoctor
+from vision.screen_trust import ScreenTrust
 
 
 class TestPhase3BridgeIntegration(unittest.TestCase):
@@ -78,7 +78,7 @@ class TestPhase3BridgeIntegration(unittest.TestCase):
         self.assertIn("request_id", data)
 
     def test_screen_dekho_does_not_capture_screenshot_before_approval(self):
-        from src.orin.vision.screen_observer import ScreenObserver
+        from vision.screen_observer import ScreenObserver
         observer = ScreenObserver()
         capture_count_before = observer.screenshot_service.capture_count
         req = observer.request_observation("test screen")
@@ -143,7 +143,7 @@ class TestPhase3BridgeIntegration(unittest.TestCase):
     def test_bridge_reset_clears_state(self):
         Phase3CommandBridge.try_handle("remember my test_key is test_value")
         Phase3CommandBridge.reset()
-        from src.orin.app.phase3_command_bridge import Phase3CommandBridge as PCB
+        from engine.app.phase3_command_bridge import Phase3CommandBridge as PCB
         self.assertIsNone(PCB._preference_store)
 
     def test_empty_query_not_handled(self):
@@ -235,9 +235,29 @@ class TestPhase3ScreenVisionApproval(unittest.TestCase):
     def _get_fresh_observer(self):
         observer = Phase3CommandBridge._get_screen_observer()
         observer.reset()
+        observer._screenshot_service._capture_real = lambda: {
+            "ok": True,
+            "method": "pil_imagegrab",
+            "image_bytes": b"jpeg",
+            "mime": "image/jpeg",
+            "visible_text": "Visual Studio Code window",
+            "error": None,
+        }
+        observer._vision_analyzer.analyze = lambda payload, allow_cloud=True: {
+            "ok": True,
+            "summary": "The screen shows Visual Studio Code.",
+            "detected_context": "code",
+            "context_label": "Code Editor",
+            "possible_issue": "",
+            "suggested_next_step": "Review before action",
+            "sensitive_content_detected": False,
+            "requires_confirmation_before_action": True,
+            "source": "deterministic_test_analyzer",
+            "error": None,
+        }
         return observer
 
-    def test_screen_observation_request_then_approve_uses_mock_capture(self):
+    def test_screen_observation_request_then_approve_uses_real_capture_method(self):
         observer = self._get_fresh_observer()
 
         req = observer.request_observation("test screen observation")
@@ -257,9 +277,9 @@ class TestPhase3ScreenVisionApproval(unittest.TestCase):
         updated = observer._requests.get(req["request_id"])
         screenshot = updated["screenshot_data"]
         self.assertIsNotNone(screenshot)
-        self.assertEqual(screenshot.get("method"), "mock")
+        self.assertEqual(screenshot.get("method"), "pil_imagegrab")
 
-    def test_approved_observation_analyze_returns_safe_mock_result(self):
+    def test_approved_observation_analyze_returns_safe_result(self):
         observer = self._get_fresh_observer()
 
         req = observer.request_observation("analyze this screen")
@@ -274,6 +294,11 @@ class TestPhase3ScreenVisionApproval(unittest.TestCase):
         self.assertIn("summary", analysis)
         self.assertFalse(analysis.get("sensitive_content_detected"))
         self.assertTrue(analysis.get("requires_confirmation_before_action"))
+        updated = observer._requests[request_id]
+        self.assertEqual(updated["status"], "completed")
+        self.assertFalse(updated["allow_cloud_analysis"])
+        self.assertFalse(updated["store_screenshot"])
+        self.assertNotIn("image_bytes", updated["screenshot_data"])
 
     def test_cloud_analysis_false_by_default_after_approval(self):
         observer = self._get_fresh_observer()
@@ -296,13 +321,13 @@ class TestPhase3ScreenVisionApproval(unittest.TestCase):
         updated = observer._requests.get(request_id)
         self.assertFalse(updated["store_screenshot"])
 
-    def test_real_capture_disabled_by_default(self):
-        from src.orin.vision.screenshot_service import ScreenshotService
+    def test_real_capture_disabled_by_default_is_unavailable(self):
+        from vision.screenshot_service import ScreenshotService
         service = ScreenshotService()
         self.assertFalse(service._real_capture_enabled)
-        mock_result = service.capture()
-        self.assertEqual(mock_result["method"], "mock")
-        self.assertEqual(mock_result["format"], "mock")
+        result = service.capture()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["method"], "unavailable")
 
     def test_diagnose_nexi_alias_works(self):
         result = Phase3CommandBridge.try_handle("diagnose Nexi")

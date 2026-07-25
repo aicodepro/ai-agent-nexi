@@ -18,7 +18,19 @@ def test_check_all_contains_expected_components():
 
     health = Diagnostics.check_all(force=True)
     assert {"microphone", "hotword", "clap", "asr", "brain", "tts", "memory", "tools"}.issubset(health)
+    assert {"computer_use_harness", "tool_verifier_layer", "reflection_memory", "conscious_hud"}.issubset(health)
     assert all(item.last_check > 0 for item in health.values())
+
+
+def test_diagnostic_capability_status_includes_policy_metadata():
+    from engine.diagnostics import Diagnostics
+
+    health = Diagnostics.check_all(force=True)
+    item = health["tool_verifier_layer"]
+    assert item.role
+    assert item.safety_policy
+    assert item.verifier
+    assert item.memory_rule
 
 
 def test_check_asr_disabled_without_groq_key(monkeypatch):

@@ -11,6 +11,11 @@ try:
     install_clean_console_filter()
 except Exception:
     pass
+try:
+    from engine.no_window import install as _install_no_window
+    _install_no_window()  # suppress console/PowerShell window flashes (Windows)
+except Exception:
+    pass
 
 try:
     from engine.demo_mode import DemoMode
@@ -33,6 +38,126 @@ def _env_bool(key: str, default: bool = False) -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def _face_auth_gate() -> bool:
+    """Block until the authorised user's face is recognised.
+
+    Opens the camera and runs LBPH face recognition in an **infinite loop**
+    until the user's face matches (confidence below threshold). Press **q**
+    to abort.  Nexi will NOT start without a recognised face.
+
+    Returns:
+        ``True`` if the user was authenticated.
+        ``False`` if auth failed (camera error, missing model, or user
+        pressed q) — the caller MUST exit when this returns ``False``.
+    """
+    if not _env_bool("FACE_RECOGNITION_ON_STARTUP", True):
+        print("[FACE] disabled by env — skipping auth gate")
+        return True
+    auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "true").lower() == "true"
+    if not auth_gate:
+        print("[FACE] auth_gate disabled — skipping")
+        return True
+    threshold = int(os.getenv("FACE_RECOGNITION_CONFIDENCE_THRESHOLD", "60"))
+    user_name = os.getenv("FACE_RECOGNITION_USER_NAME", "User")
+    print(f"[FACE] auth_gate enabled — face rec starting (threshold={threshold}) ...")
+    try:
+        import cv2
+        import FaceRecognition as fr
+
+        face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        model = None
+        for p in ("trainingData.yml", os.path.join(BASE_DIR, "trainingData.yml"),
+                  r"E:\jarvis-main\trainingData.yml"):
+            if os.path.exists(p):
+                model = p
+                break
+        if model is None:
+            print("[FACE] trainingData.yml not found — cannot authenticate", flush=True)
+            return False
+        face_recognizer.read(model)
+        name = {0: user_name}
+
+        # Calibration knobs (all backward-compatible defaults):
+        cam_index = int(os.getenv("FACE_RECOGNITION_CAMERA_INDEX", "0"))
+        warmup = max(0, int(os.getenv("FACE_RECOGNITION_WARMUP_FRAMES", "5")))
+        timeout_s = float(os.getenv("FACE_RECOGNITION_TIMEOUT_S", "0"))  # 0 = wait forever
+        required = max(1, int(os.getenv("FACE_RECOGNITION_REQUIRED_MATCHES", "1")))
+
+        # DirectShow opens far faster than the default backend on Windows.
+        cap = None
+        if sys.platform == "win32" and _env_bool("FACE_RECOGNITION_DSHOW", True):
+            cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                cap.release()
+                cap = None
+        if cap is None:
+            cap = cv2.VideoCapture(cam_index)
+        if not cap.isOpened():
+            print("[FACE] camera_open_failed — cannot authenticate", flush=True)
+            return False
+
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        for _ in range(warmup):  # discard exposure-settling frames -> reliable first read
+            cap.read()
+        frame_count = 0
+        consecutive = 0
+        _auth_start = time.time()
+
+        try:
+            while True:
+                if timeout_s > 0 and (time.time() - _auth_start) > timeout_s:
+                    print(f"[FACE] auth timed out after {timeout_s:.0f}s — cannot authenticate", flush=True)
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return False
+                ret, frame = cap.read()
+                if not ret:
+                    time.sleep(0.1)
+                    continue
+
+                faces_detected, gray_img = fr.faceDetection(frame)
+                for face in faces_detected:
+                    x, y, w, h = face
+                    fr.draw_rect(frame, face)
+                    roi_gray = gray_img[y:y + w, x:x + h]
+                    if roi_gray.size == 0:
+                        continue
+                    try:
+                        label, confidence = face_recognizer.predict(roi_gray)
+                    except Exception:
+                        continue
+                    predicted_name = name.get(label, "Unknown")
+                    print(f"[FACE] label={label} confidence={confidence:.0f} name={predicted_name} threshold={threshold}", flush=True)
+                    if confidence < threshold:
+                        consecutive += 1
+                        if consecutive >= required:
+                            print(f"[FACE] authenticated — proceeding (confidence={confidence:.0f} < threshold={threshold}, matches={consecutive})", flush=True)
+                            cap.release()
+                            cv2.destroyAllWindows()
+                            return True
+                    else:
+                        consecutive = 0  # a detected non-match breaks the streak
+
+                cv2.putText(frame, "Look at the camera — face auth required", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                    (0, 255, 255), 2)
+                cv2.imshow("Face Recognition - Press Q to quit", frame)
+                frame_count += 1
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    print("[FACE] user cancelled — q pressed", flush=True)
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return False
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+    except Exception as e:
+        print(f"[FACE] gate_error reason={type(e).__name__} message={e} — cannot authenticate", flush=True)
+    return False
+
+
 def _fatal_pipeline_failure(reason: str, stop_event=None):
     print(f"[WAKEPROC] fatal pipeline failed reason={reason}", flush=True)
     while stop_event is not None and not stop_event.is_set():
@@ -40,10 +165,10 @@ def _fatal_pipeline_failure(reason: str, stop_event=None):
     return False
 
 
-def startNexi(command_queue=None, stop_event=None):
+def startNexi(command_queue=None, stop_event=None, control_queue=None):
     print(f"[RUN] ui_process starting pid={os.getpid()} cwd={os.getcwd()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     from main import main
-    main(command_queue=command_queue, stop_event=stop_event)
+    main(command_queue=command_queue, control_queue=control_queue, stop_event=stop_event)
 
 
 def _signal_audio_ready(audio_ready, reason: str) -> None:
@@ -57,7 +182,7 @@ def _signal_audio_ready(audio_ready, reason: str) -> None:
         audio_ready.set()
 
 
-def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
+def listenHotword(command_queue=None, stop_event=None, audio_ready=None, control_queue=None):
     print(f"[RUN] audio_process starting pid={os.getpid()} cwd={os.getcwd()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     backend = (os.getenv("VOICE_WAKE_BACKEND", "") or "").lower().strip()
     legacy_fallback_disabled = _env_bool("DISABLE_LEGACY_HOTWORD_FALLBACK", False)
@@ -73,7 +198,7 @@ def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
                 get_last_start_error,
             )
             print("[WAKE] pipeline start requested", flush=True)
-            start_audio_wake_pipeline(command_queue=command_queue)
+            start_audio_wake_pipeline(command_queue=command_queue, control_queue=control_queue)
             if is_pipeline_running():
                 print("[WAKEPROC] pipeline running blocking=True", flush=True)
                 # Voice recognition (openWakeWord model, Silero VAD, mic) is now
@@ -106,13 +231,19 @@ def listenHotword(command_queue=None, stop_event=None, audio_ready=None):
 import threading
 
 if __name__ == '__main__':
+    if not _face_auth_gate():
+        print("[FATAL] Face authentication required — exiting", flush=True)
+        sys.exit(1)
+    os.environ["FACE_RECOGNITION_ON_STARTUP"] = "false"
+
     command_queue = multiprocessing.Queue()
+    control_queue = multiprocessing.Queue()
     stop_event = multiprocessing.Event()
     audio_ready = multiprocessing.Event()
     print(f"[BRIDGE] queue created id={id(command_queue)} pid={os.getpid()}", flush=True)
 
-    p1 = multiprocessing.Process(target=startNexi, args=(command_queue, stop_event))
-    p2 = multiprocessing.Process(target=listenHotword, args=(command_queue, stop_event, audio_ready))
+    p1 = multiprocessing.Process(target=startNexi, args=(command_queue, stop_event, control_queue))
+    p2 = multiprocessing.Process(target=listenHotword, args=(command_queue, stop_event, audio_ready, control_queue))
 
     p3 = None
     p4 = None

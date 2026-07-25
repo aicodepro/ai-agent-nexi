@@ -1,4 +1,9 @@
 import os
+import threading
+
+
+_gpu_info = None
+_gpu_info_lock = threading.Lock()
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -113,6 +118,26 @@ def detect_gpu():
     return result
 
 
-gpu_info = detect_gpu()
-gpu_available = gpu_info["available"]
-gpu_backend = gpu_info["backend"]
+def get_gpu_info():
+    global _gpu_info
+    if _gpu_info is None:
+        with _gpu_info_lock:
+            if _gpu_info is None:
+                _gpu_info = detect_gpu()
+    return _gpu_info
+
+
+def get_mediapipe_delegate():
+    """Return the optimal MediaPipe BaseOptions.Delegate for this system.
+
+    Uses GPU delegate when available (metal/CUDA backend). Falls back to
+    CPU delegate which auto-enables XNNPack optimization in modern
+    MediaPipe Python builds for ~2-3x CPU inference speedup.
+    """
+    from mediapipe.tasks import python
+    info = get_gpu_info()
+    if info["mediapipe_gpu"]:
+        print("[CAMERA] Selected GPU delegate for MediaPipe")
+        return python.BaseOptions.Delegate.GPU
+    print("[CAMERA] Selected CPU delegate (XNNPack auto-enabled) for MediaPipe")
+    return python.BaseOptions.Delegate.CPU

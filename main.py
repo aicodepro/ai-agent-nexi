@@ -2,6 +2,7 @@ import threading
 import os
 import socket
 import subprocess
+import time
 import eel
 from engine.features import *
 from engine.command import *
@@ -15,12 +16,17 @@ try:
     install_clean_console_filter()
 except Exception:
     pass
+try:
+    from engine.no_window import install as _install_no_window
+    _install_no_window()  # suppress console/PowerShell window flashes (Windows)
+except Exception:
+    pass
 
 cv2 = None
 face_authenticated = True
 cap = None
 
-face_recognition_enabled = os.getenv("FACE_RECOGNITION_ON_STARTUP", "false").lower() == "true"
+face_recognition_enabled = os.getenv("FACE_RECOGNITION_ON_STARTUP", "true").lower() == "true"
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -75,46 +81,7 @@ def _find_free_port(host: str, preferred: int, max_port: int = 8020) -> tuple[in
     raise RuntimeError(f"No free port found in range {preferred}-{max_port}")
 
 if face_recognition_enabled:
-    import cv2
-    import FaceRecognition as fr
-
-    try:
-        face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-        face_recognizer.read('trainingData.yml')
-    except AttributeError:
-        print("Error: 'cv2.face' module not available. Install opencv-contrib-python.")
-        exit(1)
-
-    name = {0: "Darsh"}
-    cap = cv2.VideoCapture(0)
-    face_authenticated = False
-
-    def check_face(frame):
-        global face_authenticated
-        faces_detected, gray_img = fr.faceDetection(frame)
-        for face in faces_detected:
-            (x, y, w, h) = face
-            roi_gray = gray_img[y:y+w, x:x+h]
-            label, confidence = face_recognizer.predict(roi_gray)
-            print(f"Label: {label}, Confidence: {confidence}")
-            fr.draw_rect(frame, face)
-            predicted_name = name.get(label, "Unknown")
-            if confidence < 60:
-                fr.put_text(frame, predicted_name, x, y)
-                if predicted_name == "Darsh":
-                    face_authenticated = True
-                    break
-
-    def recognize_faces():
-        global face_authenticated
-        while not face_authenticated:
-            ret, frame = cap.read()
-            if ret:
-                check_face(frame)
-                resized_img = cv2.resize(frame, (1000, 700))
-                cv2.imshow('Face Recognition', resized_img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+    print("[FACE] auth handled by run.py gate — skipping duplicate startup")
 else:
     print("Face recognition disabled by FACE_RECOGNITION_ON_STARTUP=false")
 
@@ -207,20 +174,52 @@ def _launch_edge_in_thread(url: str, host: str = "localhost", port: int = 8000,
                 print(f"[UI] webbrowser_fallback_failed reason={type(exc).__name__}", flush=True)
             return
         from engine.ui_loader import edge_window_args
-        args = [edge_path, *edge_window_args(), f"--app={url}"]
+        args = [edge_path, *edge_window_args(), "--no-first-run", f"--app={url}"]
         try:
-            subprocess.Popen(args)
-            print(f"[UI] edge_launched path={edge_path} args={' '.join(args[1:])}", flush=True)
+            proc = subprocess.Popen(args)
+            print(f"[UI] edge_launched path={edge_path} pid={proc.pid} args={' '.join(args[1:])}", flush=True)
+            _bring_window_to_front(proc.pid)
         except Exception as exc:
             print(f"[UI] edge_launch_failed reason={type(exc).__name__} fallback=maximized", flush=True)
             try:
-                subprocess.Popen([edge_path, "--start-maximized", f"--app={url}"])
+                proc = subprocess.Popen([edge_path, "--start-maximized", "--no-first-run", f"--app={url}"])
+                _bring_window_to_front(proc.pid)
             except Exception as exc2:
                 print(f"[UI] edge_fallback_failed reason={type(exc2).__name__}", flush=True)
     threading.Thread(target=_launch, daemon=True).start()
 
 
-def start_nexi(command_queue=None, stop_event=None):
+def _bring_window_to_front(pid: int, timeout: float = 10.0) -> None:
+    """Force the Edge window to front using SwitchToThisWindow (more
+    permissive than SetForegroundWindow) plus an Alt-key trick as
+    fallback to bypass Windows foreground lock."""
+    try:
+        import win32gui
+        import win32con
+        import ctypes
+        user32 = ctypes.windll.user32
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            hwnd = win32gui.FindWindow("Chrome_WidgetWin_1", None)
+            if hwnd and win32gui.IsWindowVisible(hwnd):
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                user32.SwitchToThisWindow(hwnd, True)
+                user32.keybd_event(0x12, 0, 0, 0)
+                win32gui.SetForegroundWindow(hwnd)
+                win32gui.BringWindowToTop(hwnd)
+                user32.keybd_event(0x12, 0, 2, 0)
+                print(f"[UI] window_brought_to_front hwnd={hwnd}", flush=True)
+                return
+            time.sleep(0.5)
+        print(f"[UI] bring_to_front timeout after {timeout}s", flush=True)
+    except ImportError:
+        print("[UI] win32gui not available — skipping bring_to_front", flush=True)
+    except Exception as e:
+        print(f"[UI] bring_to_front_error reason={type(e).__name__}", flush=True)
+
+
+def start_nexi(command_queue=None, stop_event=None, control_queue=None):
     print(f"[RUN] ui start_nexi pid={os.getpid()} queue={'yes' if command_queue is not None else 'no'}", flush=True)
     init_eel_ui(eel)
     try:
@@ -231,9 +230,14 @@ def start_nexi(command_queue=None, stop_event=None):
     if command_queue is not None:
         try:
             from engine.runtime_bridge import start_ui_bridge_pump
-            start_ui_bridge_pump(command_queue, stop_event)
+            start_ui_bridge_pump(command_queue, stop_event, control_queue=control_queue)
         except Exception as e:
             print(f"[BRIDGE] pump start failed: {e}")
+    try:
+        from engine.world_model import start_world_sampler
+        start_world_sampler()
+    except Exception as e:
+        print(f"[WORLD] sampler start failed: {e}")
     requested_port = _env_int("NEXI_UI_PORT", 8000)
     host = "localhost"
     try:
@@ -271,25 +275,29 @@ def greet_user():
         speak("Good Evening!")
     speak("I am Nexi. How may I help you, sir?")
 
-def main(command_queue=None, stop_event=None):
-    global face_authenticated
-    if face_recognition_enabled:
-        print("Starting face recognition...")
-        recognize_thread = threading.Thread(target=recognize_faces)
-        recognize_thread.start()
-        recognize_thread.join()
+def main(command_queue=None, stop_event=None, control_queue=None):
+    from engine.runtime_bridge import configure_control_queue
+    configure_control_queue(control_queue)
+    auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "false").lower() == "true"
+    if face_recognition_enabled and auth_gate:
+        print("[FACE] auth_gate was already handled by run.py gate — proceeding immediately")
+    else:
+        print("[FACE] auth_gate disabled — starting immediately")
 
-    if face_authenticated:
-        print("Face recognized. Starting Nexi...")
-        if _env_bool("TTS_BEFORE_COMMAND_CAPTURE", False):
-            greet_user()
-        else:
-            print("[TTS] startup_greeting skipped reason=TTS_BEFORE_COMMAND_CAPTURE=false", flush=True)
-        start_nexi(command_queue=command_queue, stop_event=stop_event)
-
-    if cap is not None:
-        cap.release()
-        cv2.destroyAllWindows()
+    greet = None
+    if _env_bool("TTS_BEFORE_COMMAND_CAPTURE", False):
+        greet = greet_user
+    else:
+        print("[TTS] startup_greeting skipped reason=TTS_BEFORE_COMMAND_CAPTURE=false", flush=True)
+    # Two-phase: reset session state + prefetch news concurrently, then greet.
+    try:
+        from engine.startup_briefing import two_phase_startup
+        two_phase_startup(greet=greet, speak=speak)
+    except Exception as e:
+        print(f"[startup] two_phase fallback: {e}", flush=True)
+        if greet:
+            greet()
+    start_nexi(command_queue=command_queue, stop_event=stop_event, control_queue=control_queue)
 
 if __name__ == "__main__":
     main()

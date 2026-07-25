@@ -25,18 +25,33 @@ def get_ui_mode() -> str:
 
 def get_ui_dir() -> str:
     mode = get_ui_mode()
-    if mode == "mark":
-        mark_dir = os.path.join(os.path.dirname(__file__), "..", "www_mark")
-        if os.path.isdir(mark_dir) and os.path.isfile(os.path.join(mark_dir, "index.html")):
-            return mark_dir
-        print(f"[UI_LOADER] www_mark not found, falling back to www", flush=True)
-    return os.path.join(os.path.dirname(__file__), "..", "www")
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    legacy_dir = os.path.join(root, "www")
+    mark_dir = os.path.join(root, "www_mark")
+    preferred = mark_dir if mode == "mark" else legacy_dir
+    fallback = legacy_dir if mode == "mark" else mark_dir
+    if os.path.isfile(os.path.join(preferred, "index.html")):
+        return preferred
+    if os.path.isfile(os.path.join(fallback, "index.html")):
+        print(f"[UI_LOADER] {os.path.basename(preferred)} not found, falling back to {os.path.basename(fallback)}", flush=True)
+        return fallback
+    return preferred
 
 
 def init_eel_ui(eel_module) -> str:
-    dir_name = "www_mark" if get_ui_mode() == "mark" and _mark_ui_exists() else "www"
+    dir_name = os.path.basename(get_ui_dir())
     eel_module.init(dir_name)
     print(f"[UI_LOADER] mode={get_ui_mode()} dir={dir_name}", flush=True)
+    # Wire the provider-neutral runtime bridge when any agent backend is opted in.
+    try:
+        from engine.agent_runtime import registry as runtime_registry
+        from engine.agent_runtime.session import register_eel as register_agent_runtime_eel
+        provider = runtime_registry.selected_provider_id()
+        if runtime_registry.runtime_enabled(provider):
+            register_agent_runtime_eel(eel_module)
+            print(f"[UI_LOADER] agent_runtime bridge registered provider={provider}", flush=True)
+    except Exception as exc:
+        print(f"[UI_LOADER] agent_runtime bridge skipped reason={type(exc).__name__}", flush=True)
     return dir_name
 
 

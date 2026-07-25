@@ -1,1 +1,11 @@
-Nexi desktop voice assistant. Likely commands: open Chrome, open YouTube, open Gmail, open Notepad, open Spotify, open VS Code, search the web, search YouTube, what's the weather, what time is it, set a timer, take a screenshot, volume up, volume down, mute, play music, pause, close this window. Transcribe the English speech. Output only the speech verbatim — no extra words, no preamble.
+# DEPRECATED — this file is NO LONGER loaded by the ASR.
+#
+# A Whisper "prompt" is fed to the decoder as leading context and is ECHOED back
+# verbatim on silence/noise. The imperative sentence that used to live here
+# ("Transcribe the English speech.") is exactly what Nexi "heard" when nobody was
+# speaking. The ASR now sends NO prompt by default (see engine/groq_asr._load_asr_prompt).
+#
+# If you genuinely need vocabulary biasing — and only with reliable VAD ensuring
+# speech is actually present — set the GROQ_ASR_PROMPT environment variable to a
+# short WORD LIST, never an imperative sentence. Example:
+#   GROQ_ASR_PROMPT="Chrome, YouTube, Gmail, Notepad, Spotify, VS Code, screenshot, volume, mute, weather"

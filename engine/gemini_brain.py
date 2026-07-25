@@ -213,6 +213,69 @@ def _build_prompt(prompt: str, context: str | None) -> str:
     return f"{safe_context}\n\nUser question:\n{user_prompt}"
 
 
+def ask_gemini_vision(prompt: str, image_bytes: bytes, *, mime: str = "image/jpeg",
+                      max_tokens: int | None = None) -> str:
+    """Send an image + prompt to Gemini and return its text description.
+
+    Gemini 2.5 Flash is multimodal, so screen vision reuses the SAME key and model
+    chain as the text brain — no new client, no new dependency. The image rides as an
+    inline_data part exactly like the REST docs' example; everything else mirrors
+    ask_gemini so failures degrade the same way.
+    """
+    import base64
+
+    api_key = _api_key()
+    if not api_key:
+        raise GeminiConfigurationError("gemini_api_key_missing")
+    if not image_bytes:
+        raise GeminiConfigurationError("empty_image")
+
+    base_url = (os.getenv("GEMINI_API_BASE") or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+    timeout = _env_float("GEMINI_VISION_TIMEOUT_SECONDS", _env_float("GEMINI_TIMEOUT_SECONDS", 20.0))
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": str(prompt or "Describe what is on this screen.")},
+                    {"inline_data": {"mime_type": mime, "data": b64}},
+                ],
+            }
+        ],
+        "generationConfig": {
+            "temperature": _env_float("GEMINI_VISION_TEMPERATURE", 0.2),
+            "maxOutputTokens": max_tokens or _env_int("GEMINI_VISION_MAX_TOKENS", 400),
+        },
+    }
+
+    last_reason = "unknown"
+    for model in get_gemini_model_chain():
+        print(f"[VISION] provider=gemini model={model} request_started img_kb={len(image_bytes)//1024}")
+        try:
+            response = requests.post(
+                f"{base_url}/models/{model}:generateContent",
+                headers={"x-goog-api-key": api_key},   # header, not ?key= — keeps the key out of URLs/logs
+                json=payload,
+                timeout=timeout,
+            )
+            if response.status_code >= 400:
+                last_reason = f"http_{response.status_code}"
+                print(f"[VISION] provider=gemini model={model} failed reason={last_reason}")
+                continue
+            text = _extract_text(response.json())
+            if text:
+                print(f"[VISION] provider=gemini model={model} success")
+                return text
+            last_reason = "empty_response"
+        except requests.Timeout:
+            last_reason = "timeout"
+        except Exception as e:
+            last_reason = type(e).__name__
+        print(f"[VISION] provider=gemini model={model} failed reason={last_reason}")
+    raise GeminiRuntimeError(last_reason)
+
+
 def ask_gemini(prompt: str, *, context: str | None = None) -> str:
     api_key = _api_key()
     if not api_key:
@@ -243,7 +306,7 @@ def ask_gemini(prompt: str, *, context: str | None = None) -> str:
         try:
             response = requests.post(
                 f"{base_url}/models/{model}:generateContent",
-                params={"key": api_key},
+                headers={"x-goog-api-key": api_key},   # header, not ?key= — keeps the key out of URLs/logs
                 json=payload,
                 timeout=timeout,
             )

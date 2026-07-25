@@ -3,18 +3,18 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-from src.orin.brain.model_policy import (
+from engine.brain.model_policy import (
     ROUTING_POLICY, TASK_TYPES, get_policy, is_valid_task_type,
     get_default_policy, list_task_types, list_model_names,
 )
-from src.orin.brain.provider_registry import (
+from engine.brain.provider_registry import (
     ProviderRegistry, DEFAULT_PROVIDERS, PRIVACY_MODES,
 )
-from src.orin.brain.model_fallback import (
+from engine.brain.model_fallback import (
     build_fallback_chain, resolve_model, is_available, list_available_models,
 )
-from src.orin.brain.model_metrics import ModelMetrics
-from src.orin.brain.model_router import route, route_batch, check_connectivity
+from engine.brain.model_metrics import ModelMetrics
+from engine.brain.model_router import route, route_batch, check_connectivity
 
 
 class TestModelPolicy(unittest.TestCase):

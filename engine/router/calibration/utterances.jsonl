@@ -1,0 +1,42 @@
+{"text": "open google chrome", "kind": "action", "intent": "open_app"}
+{"text": "launch notepad for me", "kind": "action", "intent": "open_app"}
+{"text": "fire up spotify", "kind": "action", "intent": "open_app"}
+{"text": "open youtube dot com", "kind": "action", "intent": "open_website"}
+{"text": "go to github", "kind": "action", "intent": "open_website"}
+{"text": "search the web for python tutorials", "kind": "action", "intent": "web_search"}
+{"text": "google the weather in paris", "kind": "action", "intent": "web_search"}
+{"text": "what time is it right now", "kind": "action", "intent": "tell_time"}
+{"text": "tell me the time", "kind": "action", "intent": "tell_time"}
+{"text": "crack me a joke", "kind": "action", "intent": "tell_joke"}
+{"text": "make me laugh", "kind": "action", "intent": "tell_joke"}
+{"text": "what is the weather today", "kind": "action", "intent": "weather_lookup"}
+{"text": "how much battery do i have left", "kind": "action", "intent": "get_battery_status"}
+{"text": "am i charging", "kind": "action", "intent": "get_battery_status"}
+{"text": "how much disk space is free", "kind": "action", "intent": "get_disk_space"}
+{"text": "mute the audio", "kind": "action", "intent": "mute"}
+{"text": "turn the volume up", "kind": "action", "intent": "volume_up"}
+{"text": "take a screenshot", "kind": "action", "intent": "take_screenshot"}
+{"text": "what is my ip address", "kind": "action", "intent": "get_ip_address"}
+{"text": "run an internet speed test", "kind": "action", "intent": "internet_speed_test"}
+{"text": "what apps are running right now", "kind": "action", "intent": "get_running_apps"}
+{"text": "why is my pc so slow", "kind": "action", "intent": "why_is_pc_slow"}
+{"text": "which app is active", "kind": "action", "intent": "get_active_window"}
+{"text": "open wifi settings", "kind": "action", "intent": "open_wifi_settings"}
+{"text": "play lofi beats on youtube", "kind": "action", "intent": "search_youtube"}
+{"text": "am i online", "kind": "action", "intent": "am_i_online"}
+{"text": "chrome kholo", "kind": "action", "intent": "open_app"}
+{"text": "battery kitni hai", "kind": "action", "intent": "get_battery_status"}
+{"text": "what is the capital of france", "kind": "chat", "intent": "general_qa"}
+{"text": "who invented the telephone", "kind": "chat", "intent": "general_qa"}
+{"text": "why is the sky blue", "kind": "chat", "intent": "general_qa"}
+{"text": "tell me about the roman empire", "kind": "chat", "intent": "general_qa"}
+{"text": "what do you think about ai", "kind": "chat", "intent": "general_qa"}
+{"text": "how does a car engine work", "kind": "chat", "intent": "general_qa"}
+{"text": "hello there", "kind": "chat", "intent": "greeting"}
+{"text": "good morning", "kind": "chat", "intent": "greeting"}
+{"text": "who are you", "kind": "chat", "intent": "identity"}
+{"text": "thank you so much", "kind": "chat", "intent": "social_close"}
+{"text": "what is the meaning of serendipity", "kind": "chat", "intent": "general_qa"}
+{"text": "open", "kind": "ambiguous", "intent": null}
+{"text": "do that again", "kind": "ambiguous", "intent": null}
+{"text": "the second one", "kind": "ambiguous", "intent": null}

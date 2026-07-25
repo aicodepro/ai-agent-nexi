@@ -54,9 +54,13 @@ def _local_ip() -> str:
         return sock.getsockname()[0]
     except OSError:
         try:
-            return socket.gethostbyname(socket.gethostname())
+            ip = socket.gethostbyname(socket.gethostname())
+            # Match _all_ipv4()'s filtering: never report loopback as the local IP.
+            if ip and not ip.startswith("127."):
+                return ip
         except OSError:
-            return ""
+            pass
+        return ""
     finally:
         if sock is not None:
             try:

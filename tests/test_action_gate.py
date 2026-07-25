@@ -3,12 +3,12 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import unittest
-from src.orin.control.action_gate import ActionGate, ActionGateResult, ActionGateStatus
-from src.orin.control.base import ControlResult, ControlFunction
-from src.orin.control.registry import ControlRegistry
-from src.orin.control.safety import EmergencyStop, AuditLog
-from src.orin.control.permission_manager import PermissionManager
-from src.orin.vision.screen_trust import ScreenTrust
+from engine.control.action_gate import ActionGate, ActionGateResult, ActionGateStatus
+from engine.control.base import ControlResult, ControlFunction
+from engine.control.registry import ControlRegistry
+from engine.control.safety import EmergencyStop, AuditLog
+from engine.control.permission_manager import PermissionManager
+from vision.screen_trust import ScreenTrust
 
 
 class TestActionGateStatusEnum(unittest.TestCase):
@@ -319,12 +319,12 @@ class TestExecuteControlActionBackwardCompat(unittest.TestCase):
         AuditLog.set_enabled(False)
 
     def test_execute_control_action_passes_safe_action(self):
-        from src.orin.control import execute_control_action
+        from engine.control import execute_control_action
         result = execute_control_action("list_apps")
         self.assertTrue(result.ok)
 
     def test_execute_control_action_blocks_under_emergency_stop(self):
-        from src.orin.control import execute_control_action
+        from engine.control import execute_control_action
         EmergencyStop.engage(reason="test")
         result = execute_control_action("list_apps")
         self.assertFalse(result.ok)
@@ -391,18 +391,18 @@ class TestHandlersNeverExecuteUnderEmergencyStop(unittest.TestCase):
         self.assertEqual(call_count, 0)
 
     def test_execute_control_action_critical_does_not_call_handler(self):
-        from src.orin.control import execute_control_action
+        from engine.control import execute_control_action
         result = execute_control_action("delete_files")
         self.assertFalse(result.ok)
 
     def test_execute_control_action_high_unconfirmed_does_not_call_handler(self):
         ScreenTrust.set_owner_trusted(False)
-        from src.orin.control import execute_control_action
+        from engine.control import execute_control_action
         result = execute_control_action("screen_capture")
         self.assertFalse(result.ok)
 
     def test_execute_control_action_emergency_stop_does_not_call_handler(self):
-        from src.orin.control import execute_control_action
+        from engine.control import execute_control_action
         EmergencyStop.engage(reason="test")
         try:
             result = execute_control_action("list_apps")

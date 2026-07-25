@@ -64,6 +64,7 @@ def build_context(
     max_chars: int | None = None,
     long_term_limit: int | None = None,
     recent_exchanges_limit: int | None = None,
+    max_tokens: int | None = None,
 ) -> str:
     """Build bounded context for AI models.
 
@@ -72,12 +73,15 @@ def build_context(
         max_chars: Maximum characters for total context (default: DEFAULT_CONTEXT_MAX_CHARS)
         long_term_limit: Number of long-term memories to include (default: DEFAULT_LONG_TERM_LIMIT)
         recent_exchanges_limit: Number of recent exchanges to include (default: DEFAULT_RECENT_EXCHANGES_LIMIT)
+        max_tokens: Optional estimated token limit using the repo-wide four-characters-per-token estimate
 
     Returns:
         Formatted context string
     """
     if max_chars is None:
         max_chars = DEFAULT_CONTEXT_MAX_CHARS
+    if max_tokens is not None:
+        max_chars = min(max_chars, max(0, max_tokens * 4 - 1))
 
     if long_term_limit is None:
         long_term_limit = DEFAULT_LONG_TERM_LIMIT
@@ -89,13 +93,27 @@ def build_context(
     chars_used = 0
 
     # 1. Active mode/state
-    # This could be enhanced with actual voice state from the state machine
-    active_mode_content = "[ACTIVE_MODE: voice_session]\n"
+    try:
+        from engine.voice_state_machine import get_current_state
+
+        active_mode_content = f"voice_state={get_current_state()}"
+    except Exception:
+        active_mode_content = "voice_state=unknown"
     chars_used += _add_section(context_parts, "ACTIVE_MODE", active_mode_content, max_chars - chars_used)
 
     # 2. Current workflow/followup
-    # This could be enhanced with actual workflow state
-    workflow_content = "[CURRENT_WORKFLOW: normal_operation]\n"
+    try:
+        from engine.workflow_state import get_workflow
+
+        workflow = get_workflow() or {}
+        workflow_content = (
+            f"name={workflow.get('name', '')} step={workflow.get('step', '')} "
+            f"slots={','.join(sorted((workflow.get('slots') or {}).keys()))}"
+            if workflow
+            else "none"
+        )
+    except Exception:
+        workflow_content = "unknown"
     chars_used += _add_section(context_parts, "WORKFLOW", workflow_content, max_chars - chars_used)
 
     # 3. Long-term memory (if budget allows)

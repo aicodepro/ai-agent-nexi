@@ -25,6 +25,16 @@ def record_intent_decision(
     }
 
 
+def get_last_decision() -> dict[str, Any]:
+    """The route Nexi ACTUALLY dispatched, as recorded by the live router.
+
+    This is the single source of truth for any self-explanation. The parallel
+    strategy in engine.realtime_cognitive_engine is only a hypothesis and must
+    never be reported to the user as the decision that was made.
+    """
+    return dict(_last_explanation)
+
+
 def explain_intent(result: dict[str, Any] | None = None, *, selected_tool: str = "", selected_rule: str = "", missing_slot: str = "") -> str:
     data = dict(result or _last_explanation or {})
     if result:

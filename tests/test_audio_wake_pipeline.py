@@ -145,6 +145,49 @@ def test_pipeline_disabled_does_not_start(monkeypatch, capsys):
     assert "enabled=False" in out
 
 
+def test_explicit_wake_disable_overrides_hotword_and_clap_aliases(monkeypatch):
+    monkeypatch.setenv("OPENWAKEWORD_ENABLED", "false")
+    monkeypatch.setenv("NEXI_HOTWORD_ENABLED", "true")
+    monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
+    import importlib
+    import engine.audio_wake_pipeline as awp
+    importlib.reload(awp)
+
+    pipeline = awp.AudioWakePipeline(
+        wake_scorer=ScriptedScorer([]),
+        vad=ScriptedVAD([]),
+        enable_clap=True,
+    )
+    try:
+        with patch.object(pipeline, "_open_stream") as open_stream:
+            pipeline.start()
+        open_stream.assert_not_called()
+        assert pipeline.is_running is False
+        assert pipeline._worker is None
+    finally:
+        pipeline.stop()
+
+
+def test_explicit_wake_disable_stops_existing_pipeline(monkeypatch):
+    import engine.audio_wake_pipeline as awp
+
+    pipeline = awp.AudioWakePipeline()
+    stream = MagicMock()
+    worker = MagicMock()
+    worker.is_alive.return_value = True
+    pipeline._stream = stream
+    pipeline._worker = worker
+    monkeypatch.setenv("OPENWAKEWORD_ENABLED", "false")
+
+    pipeline.start()
+
+    stream.stop.assert_called_once_with()
+    stream.close.assert_called_once_with()
+    worker.join.assert_called_once_with(timeout=2.0)
+    assert pipeline._stream is None
+    assert pipeline._worker is None
+
+
 def test_module_level_start_stop_works_when_disabled(monkeypatch):
     monkeypatch.setenv("OPENWAKEWORD_ENABLED", "false")
     import importlib
@@ -154,6 +197,24 @@ def test_module_level_start_stop_works_when_disabled(monkeypatch):
     awp.start_audio_wake_pipeline()
     assert awp.is_pipeline_running() is False
     awp.stop_audio_wake_pipeline()  # must not raise
+
+
+def test_module_level_start_does_not_create_detector_when_explicitly_disabled(monkeypatch):
+    monkeypatch.setenv("OPENWAKEWORD_ENABLED", "false")
+    monkeypatch.setenv("NEXI_HOTWORD_ENABLED", "true")
+    monkeypatch.setenv("CLAP_DETECTION_ENABLED", "true")
+    import importlib
+    import engine.audio_wake_pipeline as awp
+    importlib.reload(awp)
+
+    with patch.object(awp, "AudioWakePipeline") as pipeline_class:
+        pipeline_class.return_value.is_running = False
+        try:
+            awp.start_audio_wake_pipeline()
+            pipeline_class.assert_not_called()
+            assert awp._global_pipeline is None
+        finally:
+            awp.stop_audio_wake_pipeline()
 
 
 # ---------------------------------------------------------------------------
@@ -663,6 +724,54 @@ def test_successful_wake_with_queue_keeps_session_active_until_bridge_finishes()
     assert mgr.are_detectors_paused() is True, "detectors resumed before TTS completed"
 
 
+def test_followup_control_captures_and_dispatches_in_same_session():
+    from engine.wake_session_manager import get_session_manager, start_session
+
+    session_id = start_session("hotword")
+    pipeline = _fresh_pipeline(command_queue=MagicMock())
+    valid_audio = b"\x01\x01" * 30000
+    event = {
+        "type": "capture_followup",
+        "session_id": session_id,
+        "source": "hotword",
+        "reason": "missing_slot",
+        "not_before": 0.0,
+    }
+
+    with patch.object(pipeline, "flush_wake_tail"), \
+         patch.object(pipeline, "capture_command", return_value=valid_audio) as capture, \
+         patch.object(pipeline, "emit_command", return_value="Demo Website") as emit:
+        pipeline._last_capture_stats = {"speech_started": True, "duration_ms": 3000, "speech_ms": 1200}
+        assert pipeline._capture_followup(event) is True
+
+    assert capture.call_args.kwargs["followup"] is True
+    emit.assert_called_once_with(valid_audio, source="hotword")
+    assert get_session_manager().is_current(session_id) is True
+
+
+def test_followup_no_speech_finishes_session():
+    from engine.wake_session_manager import get_session_manager, start_session
+
+    session_id = start_session("hotword")
+    pipeline = _fresh_pipeline(command_queue=MagicMock())
+    event = {
+        "type": "capture_followup",
+        "session_id": session_id,
+        "source": "hotword",
+        "reason": "missing_slot",
+        "not_before": 0.0,
+    }
+
+    with patch.object(pipeline, "flush_wake_tail"), patch.object(
+        pipeline, "capture_command", return_value=b""
+    ), patch.object(pipeline, "emit_command") as emit:
+        pipeline._last_capture_stats = {"speech_started": False, "duration_ms": 0, "speech_ms": 0}
+        assert pipeline._capture_followup(event) is False
+
+    emit.assert_not_called()
+    assert get_session_manager().is_active() is False
+
+
 def test_no_speech_timeout_finishes_session():
     """Failure path still finishes the session and resumes detectors."""
     from engine.wake_session_manager import get_session_manager
@@ -679,3 +788,44 @@ def test_no_speech_timeout_finishes_session():
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+class _ScriptedOWWScorer:
+    """openWakeWord-named scorer so process_frame runs the RMS-floor branch."""
+    def __init__(self, scores):
+        self.scores = list(scores)
+        self.idx = 0
+        self.name = "openwakeword"
+    def score(self, frame: bytes) -> float:
+        s = self.scores[min(self.idx, len(self.scores) - 1)] if self.scores else 0.0
+        self.idx += 1
+        return float(s)
+
+
+def test_windowed_rms_gate_wakes_on_buffered_peak_after_speech(monkeypatch):
+    """openWakeWord's score peaks 1-2 frames AFTER the phrase, on a near-silent
+    frame. The old instantaneous RMS floor rejected exactly that frame, so normal
+    speech was missed and only shouting worked. The windowed gate must let the
+    buffered peak through because speech happened in the recent window."""
+    pipeline = _fresh_pipeline()
+    # phrase: loud frames scoring low; then the buffered PEAK: silent frames scoring high
+    pipeline._wake_scorer = _ScriptedOWWScorer([0.1, 0.1, 0.1, 0.9, 0.9, 0.9])
+
+    woke = False
+    pipeline.process_frame(_loud_frame())   # speech, low score -> fills recent_rms
+    pipeline.process_frame(_loud_frame())
+    pipeline.process_frame(_loud_frame())
+    r4 = pipeline.process_frame(_silent_frame())  # peak on silent frame: hit #1 (not rejected)
+    r5 = pipeline.process_frame(_silent_frame())  # hit #2 -> WAKE (consecutive=2)
+    woke = bool(r4.get("wake") or r5.get("wake"))
+
+    assert woke, f"buffered peak after speech did not wake (r4={r4}, r5={r5})"
+
+
+def test_windowed_rms_gate_still_ignores_pure_silence(monkeypatch):
+    """A high score with NO recent speech at all (true silence / a degenerate model)
+    must still be gated out — the window must not open the door to false wakes."""
+    pipeline = _fresh_pipeline()
+    pipeline._wake_scorer = _ScriptedOWWScorer([0.9, 0.9, 0.9, 0.9])
+    results = [pipeline.process_frame(_silent_frame()) for _ in range(4)]
+    assert not any(r.get("wake") for r in results), "woke on pure silence — RMS gate failed"

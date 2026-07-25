@@ -45,10 +45,12 @@ def extract_parameters(text: str, intent: str) -> dict[str, Any]:
     if (os.getenv("GROQ_INTENT_V2_ENABLED", "true") or "").strip().lower() in {"0", "false", "no", "off"}:
         return {"slots": {}, "missing": []}
     try:
-        from engine.groq_intent_planner import get_model_config
+        from engine.groq_intent_planner import get_model_config, _intent_max_retries, _intent_timeout_seconds
         model = get_model_config().get("intent_model", "openai/gpt-oss-20b")
     except Exception:
         model = "openai/gpt-oss-20b"
+        _intent_max_retries = lambda: 1
+        _intent_timeout_seconds = lambda: 4.0
     payload = {
         "model": model,
         "temperature": 0,
@@ -59,12 +61,24 @@ def extract_parameters(text: str, intent: str) -> dict[str, Any]:
         ],
     }
     try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "4")),
-        )
+        response = None
+        retries = _intent_max_retries()
+        for attempt in range(retries + 1):
+            try:
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=_intent_timeout_seconds(),
+                )
+            except Exception:
+                if attempt == retries:
+                    raise
+                continue
+            if response.status_code < 500 or attempt == retries:
+                break
+        if response is None:
+            return {"slots": {}, "missing": []}
         if response.status_code >= 400:
             return {"slots": {}, "missing": []}
         raw = _json_object(response.json()["choices"][0]["message"]["content"])

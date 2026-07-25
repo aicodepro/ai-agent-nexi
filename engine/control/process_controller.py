@@ -1,0 +1,165 @@
+import re
+import subprocess
+import os
+
+from engine.control.base import ControlResult
+
+# App names arrive from voice/intent input and can flow into a shell ('start').
+# Allow only safe, filename-ish characters so nothing can inject shell
+# metacharacters (& | ; > < ^ ( ) " ' % ` etc.).
+_SAFE_APP_NAME = re.compile(r"^[A-Za-z0-9 _.+\-]+$")
+
+
+# ponytail: force-killing a browser nukes every window/tab (data loss) — a real
+# incident here once closed the user's Chrome. Refuse to force-kill browsers
+# unless explicitly overridden. Set NEXI_ALLOW_BROWSER_KILL=1 to allow it.
+PROTECTED_BROWSERS = {
+    "chrome", "msedge", "edge", "firefox", "brave",
+    "opera", "chromium", "iexplore", "arc", "vivaldi",
+}
+
+
+def _browser_kill_allowed():
+    return os.environ.get("NEXI_ALLOW_BROWSER_KILL", "").strip().lower() in ("1", "true", "yes")
+
+
+def is_protected_browser(exe_name):
+    """True if exe_name (with or without .exe) is a protected browser process."""
+    base = exe_name.lower().strip()
+    if base.endswith(".exe"):
+        base = base[:-4]
+    return base in PROTECTED_BROWSERS
+
+
+KNOWN_APPS = {
+    "chrome": {"exe": "chrome", "path": None},
+    "notepad": {"exe": "notepad", "path": "notepad.exe"},
+    "vscode": {"exe": "code", "path": "code"},
+    "code": {"exe": "code", "path": "code"},
+    "visual studio code": {"exe": "code", "path": "code"},
+    "file explorer": {"exe": "explorer", "path": "explorer"},
+    "explorer": {"exe": "explorer", "path": "explorer"},
+    "cmd": {"exe": "cmd", "path": "cmd"},
+    "command prompt": {"exe": "cmd", "path": "cmd"},
+    "paint": {"exe": "paint", "path": "paint"},
+    "calculator": {"exe": "calc", "path": "calc"},
+    "word": {"exe": "winword", "path": "winword"},
+    "excel": {"exe": "excel", "path": "excel"},
+    "powerpoint": {"exe": "powerpnt", "path": "powerpnt"},
+    "settings": {"exe": "SystemSettings", "path": "start ms-settings:"},
+}
+
+
+def start_process(app_name):
+    app_name = app_name.lower().strip()
+    if app_name in KNOWN_APPS:
+        info = KNOWN_APPS[app_name]
+        try:
+            executable = info["path"] or info["exe"]
+            if executable.startswith("start "):
+                os.startfile(executable.removeprefix("start "))
+            else:
+                subprocess.Popen(
+                    [executable],
+                    shell=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            return ControlResult.success(message=f"Started {app_name.title()}")
+        except Exception as e:
+            return ControlResult.failure(
+                message=f"Failed to start {app_name}",
+                code="START_FAILED",
+                error_message=str(e)
+            )
+    if not _SAFE_APP_NAME.match(app_name):
+        return ControlResult.failure(
+            message=f"I can't open '{app_name}' — that name has characters I won't run.",
+            code="UNSAFE_APP_NAME",
+        )
+    try:
+        subprocess.Popen(
+            [app_name],
+            shell=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return ControlResult.success(message=f"Started {app_name.title()}")
+    except Exception as e:
+        return ControlResult.failure(
+            message=f"Failed to start {app_name}",
+            code="START_FAILED",
+            error_message=str(e)
+        )
+
+
+def kill_process(app_name):
+    app_name = app_name.lower().strip()
+    exe_name = KNOWN_APPS.get(app_name, {}).get("exe", app_name)
+    if is_protected_browser(exe_name) and not _browser_kill_allowed():
+        return ControlResult.failure(
+            message=(
+                f"I won't force-close {app_name.title()} — that would close every "
+                "window and tab and you'd lose your work. Close it yourself, or ask "
+                "me to close a specific tab."
+            ),
+            code="BROWSER_KILL_BLOCKED",
+        )
+    try:
+        # argv list + shell=False: exe_name is one argument, never shell-parsed,
+        # so no command injection is possible even for arbitrary input.
+        completed = subprocess.run(
+            ["taskkill", "/f", "/im", f"{exe_name}.exe"],
+            shell=False, capture_output=True, text=True, timeout=10
+        )
+        if completed.returncode != 0:
+            return ControlResult.failure(
+                message=f"Failed to close {app_name}",
+                code="KILL_FAILED",
+                error_message=(completed.stderr or completed.stdout or "taskkill failed").strip(),
+            )
+        return ControlResult.success(message=f"Closed {app_name.title()}")
+    except subprocess.TimeoutExpired:
+        return ControlResult.failure(
+            message=f"Timed out killing {app_name}",
+            code="KILL_TIMEOUT"
+        )
+    except Exception as e:
+        return ControlResult.failure(
+            message=f"Failed to close {app_name}",
+            code="KILL_FAILED",
+            error_message=str(e)
+        )
+
+
+def list_running():
+    try:
+        import psutil
+        processes = []
+        for proc in psutil.process_iter(["pid", "name"]):
+            try:
+                pinfo = proc.info
+                if pinfo["name"]:
+                    processes.append({"pid": pinfo["pid"], "name": pinfo["name"]})
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        unique = {}
+        for p in processes:
+            name = p["name"].lower()
+            if name not in unique:
+                unique[name] = {"name": p["name"], "pid": p["pid"]}
+        return ControlResult.success(
+            message=f"Found {len(unique)} running applications",
+            data={"apps": list(unique.values())}
+        )
+    except ImportError:
+        return ControlResult.failure(
+            message="psutil not available",
+            code="MISSING_DEPENDENCY"
+        )
+    except Exception as e:
+        return ControlResult.failure(
+            message="Failed to list processes",
+            code="LIST_FAILED",
+            error_message=str(e)
+        )

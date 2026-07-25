@@ -107,6 +107,11 @@ class BargeInManager:
             groq_tts.stop()
         except Exception:
             pass
+        try:
+            from engine.voice.speech_controller import stop_speaking
+            stop_speaking(reason=safe_reason)
+        except Exception:
+            pass
         print(f"[BARGE_IN] interrupted=true source={safe_source} level={level} reason={safe_reason}", flush=True)
         return BargeInResult(True, safe_reason, level)
 
@@ -140,3 +145,13 @@ def interrupt(*, source: str = "barge_in", reason: str = "wake_detected", speech
 
 def reset_barge_in_state() -> None:
     _manager.reset()
+    try:
+        from engine.interrupt_controller import clear_interrupt
+        clear_interrupt()
+    except Exception:
+        pass
+    try:
+        from engine.voice.speech_controller import reset_stop_flag
+        reset_stop_flag()
+    except Exception:
+        pass

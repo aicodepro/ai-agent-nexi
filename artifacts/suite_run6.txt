@@ -1,0 +1,122 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  8%]
+..........FFFFFF........................................................ [ 10%]
+........................................................................ [ 12%]
+..........s............................................................. [ 14%]
+........................................................................ [ 17%]
+.F...F............F..................................................... [ 19%]
+........................................................................ [ 21%]
+..............................................................F......... [ 23%]
+........................................................................ [ 25%]
+...................................................[POST_TTS] cooldown_complete
+..................... [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+......................................................................[POST_TTS] cooldown_complete
+.. [ 44%]
+........................................................................ [ 47%]
+...................................................................... [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........F............F.................................................F [ 57%]
+FF.....................F..........................[POST_TTS] cooldown_complete
+................[TURN] state=idle
+[VOICE_STATE] transition_failed reason=no_valid_transition event=tts_finished current=sleeping
+...... [ 59%]
+........[AUDIO_BUFFER] flushed_all_buffers
+[VOICE_STATE] sleeping -> sleeping event=session_finish source=ready
+[UI_SEND] state=sleep label=SLEEPING source=ready session=
+[UI_STATE] set=sleep source=ready
+[EEL] missing_js_function name=hideSpeechCapsule
+[TTS] speak_finished
+[TTS] audio_output_finished
+.......[POST_TTS] cooldown_complete
+.....................F....F.........................F.... [ 61%]
+F...FF......FF.......................................................... [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+......................[UI_ACK_MISSING] state=thinking session=sess123
+[UI_ACK_MISSING] state=saying session=sess123
+.[UI_ACK_MISSING] state=sleep session=sess123
+................................................. [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+...................................................FFF..FF............FF [ 78%]
+FFF.FFF....FFFFFF.F.FFFFFFFFFF.......................................... [ 81%]
+........................................................................ [ 83%]
+s.........s............................................................. [ 85%]
+..............................................s.........s............... [ 87%]
+.........................F...........................................F.. [ 89%]
+............[POST_TTS] cooldown_complete
+............................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+............................................................             [100%]
+=========================== short test summary info ===========================
+FAILED tests/test_browser_write.py::test_browser_click_requires_approval - As...
+FAILED tests/test_browser_write.py::test_browser_click_after_approval - Asser...
+FAILED tests/test_browser_write.py::test_browser_click_no_target_asks - Asser...
+FAILED tests/test_browser_write.py::test_browser_fill_requires_approval - Ass...
+FAILED tests/test_browser_write.py::test_browser_fill_after_approval - Assert...
+FAILED tests/test_browser_write.py::test_browser_fill_missing_asks - Assertio...
+FAILED tests/test_command_bus_cognitive.py::test_why_did_you_do_that_explains_route
+FAILED tests/test_command_bus_product_intelligence.py::test_tool_route_does_not_call_gemini
+FAILED tests/test_command_regressions_phase4a2.py::TestEmergencyStopPriority::test_emergency_stop_matches_in_phrase
+FAILED tests/test_dialogue_architecture_v2.py::test_auto_listen_requested_after_missing_slot_question
+FAILED tests/test_open_command_injection.py::test_a_legitimate_app_still_launches
+FAILED tests/test_orchestrator.py::test_no_feature_falls_back_to_brain - Asse...
+FAILED tests/test_owner_trusted_mode.py::TestPermissionManagerOwnerTrusted::test_high_auto_approves_draft_email
+FAILED tests/test_owner_trusted_mode.py::TestPermissionManagerOwnerTrusted::test_high_auto_approves_draft_whatsapp
+FAILED tests/test_owner_trusted_mode.py::TestPermissionManagerOwnerTrusted::test_high_auto_approves_send_message
+FAILED tests/test_owner_trusted_mode.py::TestBridgeScreenTrustWithOwnerMode::test_trusted_screen_access_with_owner_mode
+FAILED tests/test_phase3_bridge_integration.py::TestPhase3ScreenVisionApproval::test_approved_observation_analyze_returns_safe_mock_result
+FAILED tests/test_phase3_bridge_integration.py::TestPhase3ScreenVisionApproval::test_screen_observation_request_then_approve_uses_mock_capture
+FAILED tests/test_phase4a1b_bridge.py::TestScreenObservationTrustedFlow::test_owner_trusted_screen_uses_trusted_observation
+FAILED tests/test_phase4a1b_bridge.py::TestScreenObservationTrustedFlow::test_trusted_flow_preserves_ok_on_success
+FAILED tests/test_phase4a1b_bridge.py::TestScreenObservationTrustedFlow::test_trusted_screen_response_includes_mock_phase_fallback
+FAILED tests/test_phase4a1b_bridge.py::TestScreenObservationTrustedFlow::test_trusted_screen_response_includes_result_or_fallback
+FAILED tests/test_phase4a1b_bridge.py::TestRequestTrustedReadOnly::test_observation_status_completed
+FAILED tests/test_phase4a1b_bridge.py::TestRequestTrustedReadOnly::test_success_returns_analysis
+FAILED tests/test_studio_supervisor.py::test_exact_g0_g11_order_required_fields_artifacts_and_named_agents
+FAILED tests/test_studio_supervisor.py::test_studio_persists_selected_non_claude_runtime
+FAILED tests/test_studio_supervisor.py::test_studio_rejects_unavailable_or_policy_ineligible_provider
+FAILED tests/test_studio_supervisor.py::test_nexi_manager_answers_safe_reversible_question_before_escalating
+FAILED tests/test_studio_supervisor.py::test_request_classification_and_not_applicable_stage_selection
+FAILED tests/test_studio_supervisor.py::test_grouped_questions_assumptions_and_same_stage_resume
+FAILED tests/test_studio_supervisor.py::test_explicit_release_blocks_at_g10_when_governance_is_incomplete
+FAILED tests/test_studio_supervisor.py::test_qa_requires_exact_ac_coverage - ...
+FAILED tests/test_studio_supervisor.py::test_security_high_finding_blocks_g8
+FAILED tests/test_studio_supervisor.py::test_closeout_detects_artifact_hash_inconsistency
+FAILED tests/test_studio_supervisor.py::test_restart_policy_pauses_and_fresh_authorization_resumes_same_stage
+FAILED tests/test_studio_supervisor.py::test_read_only_stage_mutation_fails_current_gate
+FAILED tests/test_studio_supervisor.py::test_read_only_mutation_cleanup_allows_fresh_rerun
+FAILED tests/test_studio_supervisor.py::test_question_overflow_is_resumable_at_same_gate
+FAILED tests/test_studio_supervisor.py::test_remediation_limit_requires_and_audits_fresh_explicit_override
+FAILED tests/test_studio_supervisor.py::test_non_git_workspace_mutation_blocks_resume
+FAILED tests/test_studio_supervisor.py::test_git_head_drift_and_parent_repository_scope_escape_are_rejected
+FAILED tests/test_studio_supervisor.py::test_implementation_rejects_git_control_mutation_and_keeps_remote_separate
+FAILED tests/test_studio_supervisor.py::test_vague_qa_and_malformed_high_security_findings_block
+FAILED tests/test_studio_supervisor.py::test_project_memory_is_atomic_hashed_idempotent_and_has_no_unearned_idea_history
+FAILED tests/test_studio_supervisor.py::test_project_memory_failure_is_recoverable_and_blocks_g11
+FAILED tests/test_studio_supervisor.py::test_same_run_project_memory_resume_does_not_duplicate_decisions
+FAILED tests/test_studio_supervisor.py::test_partial_project_memory_tampering_blocks_same_run_resume
+FAILED tests/test_studio_supervisor.py::test_strategist_runs_only_for_new_project_and_idea_revision
+FAILED tests/test_studio_supervisor.py::test_project_strategist_mutation_requires_cleanup_and_fresh_session
+FAILED tests/test_studio_supervisor.py::test_project_memory_tampering_blocks_later_run
+FAILED tests/test_studio_supervisor.py::test_qa_objective_rerun_rejects_no_run_and_failure[test_result0]
+FAILED tests/test_studio_supervisor.py::test_qa_objective_rerun_rejects_no_run_and_failure[test_result1]
+FAILED tests/test_studio_supervisor.py::test_qa_objective_rerun_rejects_post_test_mutation
+FAILED tests/test_studio_supervisor.py::test_qa_objective_rerun_rejects_truncated_post_test_snapshot
+FAILED tests/test_tool_result_verifier.py::test_file_verifier_failure_is_reported_as_unavailable
+FAILED tests/test_tts_summary.py::test_long_answer_uses_summary_tts - assert ...
+56 failed, 3309 passed, 5 skipped, 1 deselected, 2 subtests passed in 443.16s (0:07:23)

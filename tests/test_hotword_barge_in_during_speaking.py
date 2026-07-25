@@ -1,66 +1,75 @@
 #!/usr/bin/env python3
-"""
-Test the hotword barge-in scenario during speaking.
+"""Hotword barge-in while Nexi is speaking.
+
+Contract (engine/audio_wake_pipeline.py::process_frame): a wake word detected
+while _is_speaking() enqueues a barge-in request via runtime_bridge and returns
+{"wake": False, "source": "hotword", "reason": "barge_in_requested"} -- it does
+NOT emit a normal wake and does NOT call the old barge_in_manager.interrupt.
+The wake score must clear the threshold; silence must NOT barge in (that is the
+self-trigger guard), so these tests inject a scorer that returns a high score.
 """
 import os
+import queue
 import sys
-import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from engine.audio_wake_pipeline import AudioWakePipeline
 
 
-def test_hotword_barge_in_during_speaking_transitions_to_listening():
-    """Test that hotword during speaking transitions to listening state."""
-    with patch('engine.audio_wake_pipeline.get_session_manager') as mock_session_manager:
-        mock_session_manager.return_value.are_detectors_paused.return_value = True
-        mock_session_manager.return_value.get_state.return_value = "saying"
-        
-        with patch('engine.audio_wake_pipeline._is_speaking') as mock_is_speaking:
-            mock_is_speaking.return_value = True
-            
-            with patch('engine.barge_in_manager.interrupt') as mock_barge_in_interrupt:
-                mock_barge_in_interrupt.return_value = type('MockResult', (), {'interrupted': True})()
-                
-                pipeline = AudioWakePipeline()
-                
-                # Simulate hotword detection during speaking
-                result = pipeline.process_frame(b"\x00\x00" * 160)
-                
-                # Verify barge-in was triggered
-                assert mock_barge_in_interrupt.called
-                assert result.get("wake") == True
-                assert result.get("source") == "hotword"
-                assert result.get("reason") == "hotword_during_speaking"
-                print("✅ Hotword barge-in during speaking transitions to listening")
+class _HotwordScorer:
+    name = "scripted"
+
+    def score(self, frame):
+        return 0.9  # above OPENWAKEWORD_SCORE_THRESHOLD default (0.35)
+
+
+def _run_barge_in_frame():
+    cmd_queue = queue.Queue()
+    with patch("engine.audio_wake_pipeline.get_session_manager") as msm, \
+         patch("engine.audio_wake_pipeline._is_speaking", return_value=True), \
+         patch("engine.runtime_bridge.post_barge_in_request", return_value="req-1") as mock_post:
+        msm.return_value.is_global_tts_active.return_value = False
+        msm.return_value.are_detectors_paused.return_value = True
+        msm.return_value.get_state.return_value = "saying"
+        msm.return_value.get_session_id.return_value = "sess-1"
+        msm.return_value.get_session_epoch.return_value = 1
+
+        pipeline = AudioWakePipeline(command_queue=cmd_queue, wake_scorer=_HotwordScorer())
+        result = pipeline.process_frame(b"\x10\x00" * 160)
+        return result, mock_post
+
+
+def test_hotword_barge_in_during_speaking_requests_barge_in():
+    result, mock_post = _run_barge_in_frame()
+    assert mock_post.called, "a barge-in request must be enqueued"
+    assert result["source"] == "hotword"
+    assert result["reason"] == "barge_in_requested"
+    # It is a barge-in, not a normal wake capture.
+    assert result["wake"] is False
 
 
 def test_hotword_barge_in_during_speaking_echo_guard():
-    """Test that hotword barge-in prevents echo/self-TTS."""
-    with patch('engine.audio_wake_pipeline.get_session_manager') as mock_session_manager:
-        mock_session_manager.return_value.are_detectors_paused.return_value = True
-        mock_session_manager.return_value.get_state.return_value = "saying"
-        
-        with patch('engine.audio_wake_pipeline._is_speaking') as mock_is_speaking:
-            mock_is_speaking.return_value = True
-            
-            with patch('engine.barge_in_manager.interrupt') as mock_barge_in_interrupt:
-                mock_barge_in_interrupt.return_value = type('MockResult', (), {'interrupted': True})()
-                
-                pipeline = AudioWakePipeline()
-                
-                # Simulate hotword detection during speaking
-                result = pipeline.process_frame(b"\x00\x00" * 160)
-                
-                # Verify that the interrupt controller was called appropriately
-                assert mock_barge_in_interrupt.called
-                assert result.get("reason") == "hotword_during_speaking"
-                print("✅ Hotword barge-in during speaking prevents echo/self-TTS")
+    # Silence (no scorer hit) must NOT barge in -- this is what stops Nexi's own
+    # TTS from waking itself.
+    cmd_queue = queue.Queue()
 
+    class _SilentScorer:
+        name = "scripted"
 
-if __name__ == "__main__":
-    test_hotword_barge_in_during_speaking_transitions_to_listening()
-    test_hotword_barge_in_during_speaking_echo_guard()
-    print("\n✅ All hotword barge-in during speaking tests passed!")
+        def score(self, frame):
+            return 0.0
+
+    with patch("engine.audio_wake_pipeline.get_session_manager") as msm, \
+         patch("engine.audio_wake_pipeline._is_speaking", return_value=True), \
+         patch("engine.runtime_bridge.post_barge_in_request", return_value="req-1") as mock_post:
+        msm.return_value.is_global_tts_active.return_value = False
+        msm.return_value.get_session_id.return_value = "sess-1"
+        msm.return_value.get_session_epoch.return_value = 1
+        pipeline = AudioWakePipeline(command_queue=cmd_queue, wake_scorer=_SilentScorer())
+        result = pipeline.process_frame(b"\x00\x00" * 160)
+
+    assert not mock_post.called, "silence must not trigger a barge-in (echo guard)"
+    assert result["reason"] == "speaking"
+    assert result["wake"] is False

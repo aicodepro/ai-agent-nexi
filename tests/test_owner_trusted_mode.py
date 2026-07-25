@@ -4,12 +4,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 import unittest
 import threading
+from unittest import mock
 
-from src.orin.vision.screen_trust import ScreenTrust
-from src.orin.control.permission_manager import PermissionManager
-from src.orin.control.safety import EmergencyStop, SandboxPolicy, AuditLog
-from src.orin.app.phase3_command_bridge import Phase3CommandBridge
-from src.orin.app.runtime_context import reset_runtime
+from vision.screen_trust import ScreenTrust
+from engine.control.permission_manager import PermissionManager
+from engine.control.safety import EmergencyStop, SandboxPolicy, AuditLog
+from engine.app.phase3_command_bridge import Phase3CommandBridge
+from engine.app.runtime_context import reset_runtime
 
 
 class TestOwnerTrustedModeDefault(unittest.TestCase):
@@ -106,20 +107,23 @@ class TestPermissionManagerOwnerTrusted(unittest.TestCase):
         self.assertTrue(result["owner_trusted"])
         self.assertIn("trusted", result["confirmation_prompt"].lower())
 
-    def test_high_auto_approves_draft_email(self):
+    def test_draft_email_remains_pending_with_owner_trusted(self):
         result = self.pm.evaluate("draft_email")
-        self.assertEqual(result["decision"], "approved")
-        self.assertTrue(result["owner_trusted"])
+        self.assertEqual(result["decision"], "pending")
+        self.assertTrue(result["requires_confirmation"])
+        self.assertFalse(result["owner_trusted"])
 
-    def test_high_auto_approves_draft_whatsapp(self):
+    def test_draft_whatsapp_remains_pending_with_owner_trusted(self):
         result = self.pm.evaluate("draft_whatsapp")
-        self.assertEqual(result["decision"], "approved")
-        self.assertTrue(result["owner_trusted"])
+        self.assertEqual(result["decision"], "pending")
+        self.assertTrue(result["requires_confirmation"])
+        self.assertFalse(result["owner_trusted"])
 
-    def test_high_auto_approves_send_message(self):
+    def test_send_message_remains_pending_with_owner_trusted(self):
         result = self.pm.evaluate("send_message")
-        self.assertEqual(result["decision"], "approved")
-        self.assertTrue(result["owner_trusted"])
+        self.assertEqual(result["decision"], "pending")
+        self.assertTrue(result["requires_confirmation"])
+        self.assertFalse(result["owner_trusted"])
 
     def test_critical_still_blocked_with_owner_trusted(self):
         result = self.pm.evaluate("delete_files")
@@ -231,6 +235,17 @@ class TestBridgeScreenDekhoOwnerTrusted(unittest.TestCase):
         ScreenTrust.reset_all()
         observer = Phase3CommandBridge._get_screen_observer()
         observer.reset()
+        observer._screenshot_service.capture_real = lambda: {
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"jpeg",
+            "mime": "image/jpeg", "visible_text": "Visual Studio Code window",
+            "error": None,
+        }
+        observer._vision_analyzer.analyze = lambda payload, allow_cloud=True: {
+            "ok": True, "summary": "The screen shows Visual Studio Code.",
+            "detected_context": "code", "sensitive_content_detected": False,
+            "requires_confirmation_before_action": True,
+            "source": "deterministic_test_analyzer", "error": None,
+        }
 
     def test_screen_dekho_owner_trusted_no_permission_needed(self):
         result = Phase3CommandBridge.try_handle("screen dekho")
@@ -270,11 +285,27 @@ class TestBridgeScreenTrustWithOwnerMode(unittest.TestCase):
         ScreenTrust.reset_all()
 
     def test_trusted_screen_access_with_owner_mode(self):
+        # Owner vision is tested through deterministic capture and analyzer boundaries.
         ScreenTrust.set_mode("trusted_session_read_only")
-        result = Phase3CommandBridge.try_handle("screen dekho")
+        observer = Phase3CommandBridge._get_screen_observer()
+        with mock.patch.object(observer._screenshot_service, "capture_real", return_value={
+            "ok": True, "method": "pil_imagegrab", "image_bytes": b"\xff\xd8\xff\xd9",
+            "mime": "image/jpeg", "visible_text": "", "width": 1920, "height": 1080,
+        }), mock.patch.object(observer._vision_analyzer, "analyze", return_value={
+            "ok": True, "summary": "A code editor is open.",
+            "detected_context": "code", "sensitive_content_detected": False,
+            "requires_confirmation_before_action": True,
+            "source": "deterministic_test_analyzer", "error": None,
+        }):
+            result = Phase3CommandBridge.try_handle("screen dekho")
         self.assertTrue(result["handled"])
         self.assertTrue(result["result"]["ok"])
         self.assertIn("trusted", result["result"]["message"].lower())
+        observation = result["result"]["data"]["observation"]
+        self.assertEqual(observation["status"], "completed")
+        self.assertEqual(observation["screenshot_method"], "pil_imagegrab")
+        self.assertFalse(observation["sensitive_content_detected"])
+        self.assertFalse(observation["store_screenshot"])
 
     def test_revoke_screen_access_preserves_owner_mode(self):
         Phase3CommandBridge.try_handle("revoke screen access")

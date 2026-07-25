@@ -2,6 +2,14 @@
   var MAX_LOG_ENTRIES = 300;
   var logEntries = [];
   var lastStateLog = { key: '', at: 0 };
+  var activeVoiceSession = '';
+  var activeVoiceEpoch = 0;
+  var activeVoiceLastAt = 0;
+  var latestVoiceEpoch = 0;
+  var VOICE_SESSION_EXPIRY_MS = 60000;
+  var lastSessionlessSequence = 0;
+  var voiceSessionSequences = Object.create(null);
+  var closedVoiceSessions = Object.create(null);
 
   var ALLOWED_STATES = {
     sleep: 'sleep', idle: 'sleep', sleeping: 'sleep', tts_done: 'sleep',
@@ -62,6 +70,48 @@
     return ALLOWED_STATES[key] || 'sleep';
   }
 
+  function positiveSequence(value) {
+    var sequence = Number(value);
+    return Number.isInteger(sequence) && sequence > 0 ? sequence : 0;
+  }
+
+  function acceptOrderedState(sessionId, sequence, rawState, sessionEpoch, createdAt) {
+    if (!sequence) return false;
+
+    if (!sessionId) {
+      if (activeVoiceSession || sequence <= lastSessionlessSequence) return false;
+      lastSessionlessSequence = sequence;
+      return true;
+    }
+
+    var eventCreatedAt = Number(createdAt || 0) * 1000;
+    if (!eventCreatedAt) eventCreatedAt = Date.now();
+    var eventEpoch = Number(sessionEpoch || 0) || (eventCreatedAt / 1000);
+    var authoritativeStart = rawState === 'online' && sequence === 1 && eventEpoch > 0;
+
+    if (activeVoiceSession && sessionId !== activeVoiceSession) {
+      var activeExpired = Date.now() - activeVoiceLastAt >= VOICE_SESSION_EXPIRY_MS;
+      if (!activeExpired || !authoritativeStart || eventEpoch <= activeVoiceEpoch) return false;
+      closedVoiceSessions[activeVoiceSession] = activeVoiceEpoch;
+      activeVoiceSession = '';
+      activeVoiceEpoch = 0;
+      activeVoiceLastAt = 0;
+    }
+    if (!activeVoiceSession) {
+      if (closedVoiceSessions[sessionId]) return false;
+      if (!authoritativeStart || eventEpoch <= latestVoiceEpoch) return false;
+      activeVoiceSession = sessionId;
+      activeVoiceEpoch = eventEpoch;
+      latestVoiceEpoch = eventEpoch;
+    }
+
+    var lastSequence = voiceSessionSequences[sessionId] || 0;
+    if (sequence <= lastSequence) return false;
+    voiceSessionSequences[sessionId] = sequence;
+    activeVoiceLastAt = eventCreatedAt;
+    return true;
+  }
+
   function addLog(level, msg) {
     var now = Date.now();
     var logKey = String(level || '') + '|' + String(msg || '');
@@ -74,7 +124,15 @@
       var cls = level === 'err' ? 'err' : level === 'you' ? 'you' :
                 level === 'ai' ? 'ai' : level === 'file' ? 'file' :
                 level === 'tool' ? 'tool' : level === 'wake' ? 'wake' : 'sys';
-      body.innerHTML += '<div class="log-msg ' + cls + '">' + esc(msg) + '</div>';
+      // appendChild, NOT innerHTML +=. The += form serialises every existing child
+      // back to a string, destroys all of them, and re-parses the whole log on every
+      // single line — O(n) per message with up to 200 children, on a panel that logs
+      // during speech. Same DOM-thrash family as the waveform rebuild in hud_orb.js.
+      // textContent also means the text can never be parsed as markup.
+      var line = document.createElement('div');
+      line.className = 'log-msg ' + cls;
+      line.textContent = String(msg == null ? '' : msg);
+      body.appendChild(line);
       body.scrollTop = body.scrollHeight;
       if (body.children.length > 200) {
         while (body.children.length > 100) body.removeChild(body.firstChild);
@@ -83,7 +141,14 @@
     var db = document.getElementById('debug-log-body');
     if (db) {
       var lvlCls = { info: 'info', warn: 'warn', error: 'error', route: 'route', tool: 'tool', voice: 'voice' }[level] || 'info';
-      db.innerHTML += '<div class="log-entry ' + lvlCls + ' hidden"><span class="ts">' + ts() + '</span>' + esc(msg) + '</div>';
+      var entry = document.createElement('div');
+      entry.className = 'log-entry ' + lvlCls + ' hidden';
+      var stamp = document.createElement('span');
+      stamp.className = 'ts';
+      stamp.textContent = ts();
+      entry.appendChild(stamp);
+      entry.appendChild(document.createTextNode(String(msg == null ? '' : msg)));
+      db.appendChild(entry);
       if (db.children.length > 300) db.removeChild(db.firstChild);
       renderDebugLog();
     }
@@ -243,7 +308,9 @@
     }).join('');
   }
 
-  function refreshDashboard() {
+  function refreshDashboard(force) {
+    var panel = document.getElementById('diagnostics-dashboard');
+    if (force !== true && (document.hidden || (panel && panel.classList.contains('collapsed')))) return;
     try {
       if (typeof eel !== 'undefined' && eel.getDashboardState) {
         eel.getDashboardState()(function (payload) { renderDashboard(payload); });
@@ -253,10 +320,16 @@
 
   window.nexiApplyState = function (payload) {
     payload = parsePayload(payload);
-    var state = normalizeState(payload.state || payload.status || 'sleep');
+    var rawState = String(payload.state || payload.status || '').trim().toLowerCase();
+    var sessionId = String(payload.session_id || '');
+    var sequence = positiveSequence(payload.sequence);
+    var sessionEpoch = Number(payload.session_epoch || 0);
+    var createdAt = Number(payload.created_at || 0);
+    if (!acceptOrderedState(sessionId, sequence, rawState, sessionEpoch, createdAt)) return false;
+
+    var state = normalizeState(rawState);
     var label = payload.label || payload.message || STATE_LABELS[state] || state.toUpperCase();
     var source = payload.source || 'system';
-    var sessionId = payload.session_id || '';
 
     updateMainHudState(state, label);
     updateBottomState(state, label);
@@ -268,9 +341,17 @@
     applyToneClass(payload.tone || (payload.presence && payload.presence.tone));
     if (payload.presence) renderPresence(payload.presence);
 
-    window.__nexiLastState = { state: state, label: label, source: source, sessionId: sessionId, ts: Date.now() };
+    window.__nexiLastState = { state: state, rawState: rawState, label: label, source: source, sessionId: sessionId, sessionEpoch: sessionEpoch, sequence: sequence, ts: Date.now() };
 
-    try { eel.ui_state_ack(sessionId, state, label)(); } catch (e) {}
+    try { eel.ui_state_ack(sessionId, rawState, sequence, label)(); } catch (e) {}
+
+    if (sessionId && state === 'sleep') {
+      closedVoiceSessions[sessionId] = true;
+      activeVoiceSession = '';
+      activeVoiceEpoch = 0;
+      activeVoiceLastAt = 0;
+    }
+    return true;
   };
 
   window.updateNexiState = function (payload) {
@@ -338,14 +419,21 @@
   window.refreshDashboard = refreshDashboard;
   window.toggleDiagnostics = function () {
     var panel = document.getElementById('diagnostics-dashboard');
-    if (panel) panel.classList.toggle('collapsed');
+    if (panel) {
+      panel.classList.toggle('collapsed');
+      if (!panel.classList.contains('collapsed')) refreshDashboard(true);
+    }
   };
 
   window.updateSpeechCapsule = function () {};
   window.hideSpeechCapsule = function () {};
   window.setContextIndicator = function () {};
-  window.DisplayMessage = function (m) { window.nexiApplyState({ state: 'saying', source: 'tts' }); };
-  window.ShowHood = function () { window.nexiApplyState({ state: 'sleep', source: 'ready' }); };
+  window.DisplayMessage = function (m) {
+    if (!m) return;
+    var el = document.getElementById('nexi-response');
+    if (el) el.textContent = 'NEXI: ' + String(m).slice(0, 300);
+  };
+  window.ShowHood = function () {};
   window.setStatus = function (t) {
     var text = String(t || '').trim();
     if (text) {
@@ -355,7 +443,27 @@
   };
   window.displayControlResult = function (m) { addLog('tool', 'Control: ' + m); };
   window.showEmergencyStop = function (r) { addLog('err', 'EMERGENCY: ' + r); };
-  window.showOutputWorkspace = function () {};
+  window.showOutputWorkspace = function (payload) {
+    // The draggable workspace panel from the old www/ UI is gone, but engine/command.py
+    // still routes long output here AND shortens what it speaks and displays on the
+    // assumption this renders the full text (the show_workspace branch replaces
+    // display_text with main_ui_text and voice_text with spoken_text). While this was a
+    // no-op, that content was silently discarded — the user heard a summary and never saw
+    // the body. Render it into the activity log so nothing is lost.
+    payload = parsePayload(payload);
+    var content = String(payload.workspace_content || '');
+    if (!content) return;
+    var body = document.getElementById('nexi-log') || document.getElementById('activity-log');
+    if (!body) return;
+    var block = document.createElement('div');
+    block.className = 'log-msg file nexi-output-block';
+    block.style.whiteSpace = 'pre-wrap';  // the content is multi-line
+    // appendChild + textContent, never innerHTML += — same DOM-thrash and markup-parsing
+    // reasons documented on addLog above.
+    block.textContent = String(payload.workspace_title || 'Nexi Output') + '\n' + content;
+    body.appendChild(block);
+    body.scrollTop = body.scrollHeight;
+  };
   window.closeOutputWorkspace = function () {};
   window.minimizeOutputWorkspace = function () {};
   window.pinOutputWorkspace = function () {};
@@ -391,11 +499,11 @@
   }
 
   var refreshBtn = document.getElementById('dashboard-refresh');
-  if (refreshBtn) refreshBtn.addEventListener('click', refreshDashboard);
+  if (refreshBtn) refreshBtn.addEventListener('click', function () { refreshDashboard(true); });
   var toggleBtn = document.getElementById('dashboard-toggle');
   if (toggleBtn) toggleBtn.addEventListener('click', window.toggleDiagnostics);
-  window.setTimeout(refreshDashboard, 600);
-  window.setInterval(refreshDashboard, 2000);
+  window.setTimeout(function () { refreshDashboard(false); }, 600);
+  window.setInterval(function () { refreshDashboard(false); }, 2000);
 
   console.log('[MarkUI] controller.js loaded');
 })();

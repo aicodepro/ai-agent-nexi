@@ -14,29 +14,56 @@ def _get_lock():
     return _ack_lock
 
 
-def on_ui_state_ack(state: str, source: str, created_at: float, *, label: str = "") -> None:
+def _ack_key(session_id: str, state: str, sequence: int) -> str:
+    return f"session|{session_id}|{state}|{sequence}"
+
+
+def on_ui_state_ack(
+    session_id: str,
+    state: str,
+    sequence: int,
+    *,
+    created_at: float = 0.0,
+    label: str = "",
+) -> None:
     with _get_lock():
-        key = f"{state}|{source}"
-        _acks[key] = time.time()
-        if source:
-            _acks[f"session|{source}|{state}"] = time.time()
+        now = time.time()
+        _acks[_ack_key(session_id, state, int(sequence))] = now
         if label:
-            _acks[f"label|{state}|{label}"] = time.time()
-        _acks["_last_any"] = time.time()
+            _acks[f"label|{session_id}|{state}|{sequence}|{label}"] = now
+        if created_at:
+            _acks[f"created_at|{session_id}|{state}|{sequence}"] = float(created_at)
+        _acks["_last_any"] = now
 
 
-def wait_for_ack(state: str, source: str, timeout_ms: int = 5000) -> bool:
-    key = f"{state}|{source}"
-    session_key = f"session|{source}|{state}"
+def wait_for_ack(
+    state: str,
+    session_id: str,
+    sequence: int | None = None,
+    timeout_ms: int = 5000,
+) -> bool:
+    """Wait for a UI ack. With `sequence` it matches that exact event; without
+    it, any ack for this session+state satisfies the wait (callers that don't
+    track sequences still need to know the UI acknowledged the state)."""
+    if sequence is None:
+        prefix = f"session|{session_id}|{state}|"
+
+        def _matched() -> bool:
+            return any(k.startswith(prefix) for k in _acks)
+    else:
+        key = _ack_key(session_id, state, int(sequence))
+
+        def _matched() -> bool:
+            return key in _acks
+
     deadline = time.time() + timeout_ms / 1000.0
-    while time.time() < deadline:
+    while True:
         with _get_lock():
-            if _acks.get("_last_any", 0) > time.time() - 10.0:
-                pass
-            if key in _acks or session_key in _acks:
+            if _matched():
                 return True
+        if time.time() >= deadline:
+            return False
         time.sleep(0.05)
-    return False
 
 
 def get_last_ack() -> dict:

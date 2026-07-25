@@ -7,6 +7,15 @@
 .env.*
 !.env.example
 
+# --- MCP config (may embed server paths / tokens) ---
+.mcp.json
+*.mcp.json
+
+# --- OpenCode framework files ---
+.opencode/
+.opencode.json
+.opencode.jsonc
+
 # --- Python ---
 __pycache__/
 *.py[cod]

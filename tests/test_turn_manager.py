@@ -22,3 +22,23 @@ def test_interrupt_state_records_source():
     state = turn_manager.get_turn_state()
     assert state["interrupted"] is True
     assert state["interrupt_source"] == "typed"
+
+
+def test_clear_interrupt_returns_turn_to_idle():
+    from engine import turn_manager
+
+    turn_manager.request_interrupt("typed", "new_command")
+    turn_manager.clear_interrupt()
+
+    state = turn_manager.get_turn_state()
+    assert state["state"] == "idle"
+    assert state["interrupted"] is False
+
+
+def test_assistant_done_returns_non_waiting_turn_to_idle():
+    from engine import turn_manager
+
+    turn_manager.mark_user_turn_started("typed")
+    turn_manager.mark_assistant_done()
+
+    assert turn_manager.get_turn_state()["state"] == "idle"

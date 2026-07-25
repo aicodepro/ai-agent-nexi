@@ -6,18 +6,22 @@ import unittest
 import tempfile
 import shutil
 import uuid
+from pathlib import Path
+from unittest.mock import patch
 
-from src.orin.memory.memory_policy import (
+from engine.memory.memory_policy import (
     classify_memory_text, classify_key_value, sensitivity_for, is_key_blocked,
 )
-from src.orin.memory.memory_redaction import (
+from engine.memory.memory_redaction import (
     redact_sensitive, redact_dict, sanitize_for_summary,
 )
-from src.orin.memory.local_memory import (
+from engine.memory.local_memory import (
     LocalMemoryStore, LocalJsonlStore, validate_storage_path,
 )
-from src.orin.memory.preference_store import PreferenceStore
-from src.orin.memory.task_memory import TaskMemory
+from engine.memory.preference_store import PreferenceStore
+from engine.memory.task_memory import TaskMemory
+from engine.memory.episodic_memory import Episode, EpisodicMemory
+from engine.memory.semantic_memory import SemanticFact, SemanticMemory
 
 
 class TestMemoryPolicy(unittest.TestCase):
@@ -204,6 +208,26 @@ class TestLocalMemoryStore(unittest.TestCase):
         reloaded = LocalMemoryStore(self.filepath, _skip_validation=True)
         self.assertEqual(reloaded.get("key"), "val")
 
+    def test_two_instances_do_not_overwrite_each_others_writes(self):
+        second = LocalMemoryStore(self.filepath, _skip_validation=True)
+        self.store.set("first", 1)
+        second.set("second", 2)
+        reloaded = LocalMemoryStore(self.filepath, _skip_validation=True)
+        self.assertEqual(reloaded.all(), {"first": 1, "second": 2})
+
+    def test_save_uses_atomic_replace(self):
+        with patch("os.replace", wraps=os.replace) as replace:
+            self.store.set("atomic", True)
+        replace.assert_called_once()
+
+    def test_corrupt_json_is_quarantined_and_reported(self):
+        Path(self.filepath).write_text("{broken", encoding="utf-8")
+        with self.assertWarns(RuntimeWarning):
+            store = LocalMemoryStore(self.filepath, _skip_validation=True)
+        self.assertTrue(store.load_error)
+        self.assertFalse(Path(self.filepath).exists())
+        self.assertEqual(len(list(Path(self.tmpdir).glob("test_prefs.json.corrupt-*"))), 1)
+
 
 class TestLocalJsonlStore(unittest.TestCase):
     def setUp(self):
@@ -237,6 +261,21 @@ class TestLocalJsonlStore(unittest.TestCase):
 
     def test_size_empty(self):
         self.assertEqual(self.store.size(), 0)
+
+    def test_corrupt_jsonl_is_quarantined_and_reported(self):
+        Path(self.filepath).write_text('{"ok": 1}\n{broken\n', encoding="utf-8")
+        with self.assertWarns(RuntimeWarning):
+            entries = self.store.read_all()
+        self.assertEqual(entries, [{"ok": 1}])
+        self.assertTrue(self.store.load_error)
+        self.assertFalse(Path(self.filepath).exists())
+        self.assertEqual(len(list(Path(self.tmpdir).glob("test_tasks.jsonl.corrupt-*"))), 1)
+
+    def test_size_does_not_silently_count_corrupt_lines(self):
+        Path(self.filepath).write_text('{broken\n', encoding="utf-8")
+        with self.assertWarns(RuntimeWarning):
+            self.assertEqual(self.store.size(), 0)
+        self.assertFalse(Path(self.filepath).exists())
 
 
 class TestValidateStoragePath(unittest.TestCase):
@@ -407,6 +446,45 @@ class TestPreferenceStorePersistence(unittest.TestCase):
         result = s2.get("assistant_name")
         self.assertTrue(result["ok"])
         self.assertEqual(result["data"]["item"]["value"], "Jarvi")
+
+
+class TestStructuredMemoryPersistence(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_episodic_and_semantic_writes_use_atomic_replace(self):
+        with patch("os.replace", wraps=os.replace) as replace:
+            EpisodicMemory(self.tmpdir / "episodes.json").store(
+                Episode(user_input="open the project", steps_taken=["opened project"])
+            )
+            SemanticMemory(self.tmpdir / "facts.json").upsert(
+                SemanticFact(object="prefers concise answers")
+            )
+        self.assertEqual(replace.call_count, 2)
+
+    def test_corrupt_structured_memory_is_quarantined_and_reported(self):
+        for name, factory in (
+            ("episodes.json", lambda path: EpisodicMemory(path).count()),
+            ("facts.json", lambda path: SemanticMemory(path).count()),
+        ):
+            with self.subTest(name=name):
+                path = self.tmpdir / name
+                path.write_text("{broken", encoding="utf-8")
+                with self.assertWarns(RuntimeWarning):
+                    self.assertEqual(factory(path), 0)
+                self.assertFalse(path.exists())
+                self.assertEqual(len(list(self.tmpdir.glob(f"{name}.corrupt-*"))), 1)
+
+    def test_default_preference_and_task_paths_stay_inside_current_project(self):
+        from engine.memory.preference_store import _DEFAULT_PREFS_PATH
+        from engine.memory.task_memory import _DEFAULT_TASKS_PATH
+
+        project_root = Path(__file__).resolve().parents[1]
+        self.assertTrue(Path(_DEFAULT_PREFS_PATH).is_relative_to(project_root))
+        self.assertTrue(Path(_DEFAULT_TASKS_PATH).is_relative_to(project_root))
 
 
 if __name__ == "__main__":

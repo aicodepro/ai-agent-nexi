@@ -12,14 +12,20 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
+@pytest.fixture(autouse=True)
+def _stable_dsp_thresholds(monkeypatch):
+    monkeypatch.setenv("NEXI_DSP_CLAP_RMS_THRESHOLD", "0.030")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_THRESHOLD", "0.10")
+    monkeypatch.setenv("NEXI_DSP_CLAP_PEAK_RATIO", "4.0")
+    monkeypatch.setenv("NEXI_DSP_CLAP_HF_RATIO", "0.30")
+
+
 def _make_impulse(duration_samples: int = 800) -> bytes:
     samples = [0] * duration_samples
     for i in range(20):
         idx = duration_samples // 2 + i
         if idx < duration_samples:
-            samples[idx] = 20000
-            if idx + 1 < duration_samples:
-                samples[idx + 1] = -18000
+            samples[idx] = 20000 if i % 2 == 0 else -18000
     return struct.pack(f"<{len(samples)}h", *samples)
 
 
@@ -55,6 +61,7 @@ class TestClapBackendNoTrainingRequired:
         monkeypatch.setenv("NEXI_CLAP_BACKEND_ORDER", "clap_nn,dsp_clap")
         monkeypatch.setenv("NEXI_CLAP_DEBUG", "true")
         from engine.clap_backend_manager import ClapBackendManager
+        monkeypatch.setattr(ClapBackendManager, "_build_clap_nn", lambda self: (None, False))
         mgr = ClapBackendManager(cooldown_ms=5000)
         assert mgr.primary_ready is False
         assert mgr.fallback_ready is True

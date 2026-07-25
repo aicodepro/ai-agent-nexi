@@ -6,20 +6,13 @@ import re
 
 import requests
 
+from engine.intent_taxonomy import ALLOWED_INTENTS as TAXONOMY_INTENTS
+
 ALLOWED_ROUTES = {
     "interrupt", "sleep", "wake", "cancel", "memory", "local_skill", "workflow_start",
     "workflow_answer", "workflow_switch", "followup_answer", "brain", "clarify", "repeat_last", "output_action", "training",
 }
-ALLOWED_INTENTS = {
-    "open_app", "open_website", "web_search", "create_folder", "create_file", "take_note",
-    "remember", "recall_memory", "forget_memory", "essay_request", "general_qa",
-    "summarize", "explain", "copy_latest_output", "save_latest_output", "clarify", "unknown",
-    "repeat_last", "stop_speaking", "workflow_answer", "cancel", "camera_preview", "hand_gesture_control", "eye_mouse_control",
-    "eye_mouse_calibrate", "stop_camera_control", "local_skill",
-    "train_nexi", "learn_rule", "correction", "show_training_rules", "cognitive_status",
-    "learned_rule_match", "user_preference_update", "why_did_you_do_that", "what_did_you_understand",
-    "train_need_profile", "start_ultra_training", "deep_training_command", "show_training_profiles",
-}
+ALLOWED_INTENTS = set(TAXONOMY_INTENTS) | {"local_skill"}
 DEFAULT_RESULT = {
     "route": "clarify",
     "intent": "unknown",
@@ -28,9 +21,25 @@ DEFAULT_RESULT = {
     "slots": {},
     "workflow_action": "none",
     "expects_user_reply": False,
-    "clarification_question": "I didn't catch that. Please say it again in English.",
+    "clarification_question": "The routing result was unclear. Could you rephrase your request?",
     "requires_safety": False,
 }
+
+
+def _intent_timeout_seconds() -> float:
+    try:
+        value = float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "4"))
+    except (TypeError, ValueError):
+        value = 4.0
+    return max(0.1, min(value, 10.0))
+
+
+def _intent_max_retries() -> int:
+    try:
+        value = int(os.getenv("GROQ_INTENT_MAX_RETRIES", "1"))
+    except (TypeError, ValueError):
+        value = 1
+    return max(0, min(value, 2))
 
 
 def get_model_config() -> dict:
@@ -110,6 +119,7 @@ def _pending_followup_classify(text: str, followup_type: str) -> dict:
 
 
 def _deterministic_classify(text: str, active_workflow: dict | None = None, pending_followup: dict | None = None) -> dict:
+    raw = str(text or "").strip()
     q = (text or "").strip().lower().rstrip(".?!")
     if pending_followup:
         return _pending_followup_classify(text, str(pending_followup.get("followup_type") or ""))
@@ -179,12 +189,12 @@ def _deterministic_classify(text: str, active_workflow: dict | None = None, pend
         mode = "control" if ("enable" in q or "eye control" in q) and "preview" not in q else "preview"
         return _normalize({"route": "local_skill", "intent": "eye_mouse_control", "confidence": 0.93, "reason": "eye mouse control", "slots": {"mode": mode}, "requires_safety": mode == "control"})
     if "hand" in q or "gesture" in q:
-        mode = "control" if ("enable" in q or "hand mouse" in q or "gesture mouse" in q or "mouse control" in q) and "preview" not in q else "preview"
+        mode = "preview" if "preview" in q else "control"
         return _normalize({"route": "local_skill", "intent": "hand_gesture_control", "confidence": 0.93, "reason": "hand gesture control", "slots": {"mode": mode}, "requires_safety": mode == "control"})
     if "camera" in q and "preview" in q:
         return _normalize({"route": "local_skill", "intent": "camera_preview", "confidence": 0.93, "reason": "camera preview", "slots": {}})
     if q.startswith(("open ", "launch ")):
-        target = q.split(" ", 1)[1].strip()
+        target = raw.split(" ", 1)[1].strip()
         try:
             from engine.local_skills import SITES
             is_site = target in SITES or "." in target
@@ -194,7 +204,7 @@ def _deterministic_classify(text: str, active_workflow: dict | None = None, pend
             return _normalize({"route": "local_skill", "intent": "open_website", "confidence": 0.95, "reason": "open website", "slots": {"url": "youtube.com" if target == "youtube" else target}})
         return _normalize({"route": "local_skill", "intent": "open_app", "confidence": 0.95, "reason": "open app", "slots": {"app_name": target}})
     if q.startswith(("search ", "google ")):
-        query = q.split(" ", 1)[1].strip()
+        query = raw.split(" ", 1)[1].strip()
         return _normalize({"route": "local_skill", "intent": "web_search", "confidence": 0.95, "reason": "search query", "slots": {"query": query}})
     if q.startswith("take screenshot"):
         return _normalize({"route": "local_skill", "intent": "local_skill", "confidence": 0.9, "reason": "local prefix"})
@@ -220,12 +230,24 @@ def classify_intent(text: str, *, source: str, active_workflow: dict | None = No
         ],
     }
     try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=float(os.getenv("GROQ_INTENT_TIMEOUT_SECONDS", "4")),
-        )
+        response = None
+        retries = _intent_max_retries()
+        for attempt in range(retries + 1):
+            try:
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=_intent_timeout_seconds(),
+                )
+            except Exception:
+                if attempt == retries:
+                    raise
+                continue
+            if response.status_code < 500 or attempt == retries:
+                break
+        if response is None:
+            return _finalize(deterministic)
         if response.status_code >= 400:
             return _finalize(deterministic)
         content = response.json()["choices"][0]["message"]["content"]

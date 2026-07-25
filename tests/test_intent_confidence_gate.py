@@ -7,12 +7,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 def test_search_ronaldo_routes_to_search():
+    # Search now goes through the live intelligence engine instead of opening a
+    # browser URL. Mocked so the test stays offline/deterministic; the point of
+    # the test is that "search ronaldo" is ROUTED to web search.
     from engine.local_skills import handle_local_skill
-    with patch("engine.local_skills.webbrowser.open") as mock_open:
+    with patch("engine.live_intelligence.live_web_search") as mock_search:
+        mock_search.return_value = {"handled": True, "success": True,
+                                    "message": "Live results for ronaldo"}
         result = handle_local_skill("search ronaldo")
     assert result.handled is True
-    assert "Searching the web" in result.message
-    assert "ronaldo" in mock_open.call_args.args[0]
+    mock_search.assert_called_once()
+    assert "ronaldo" in str(mock_search.call_args[0][0]).lower()
 
 
 def test_low_confidence_local_action_blocked(monkeypatch):

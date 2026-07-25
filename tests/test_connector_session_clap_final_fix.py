@@ -108,7 +108,9 @@ def test_ui_ack_wait_uses_session_id():
     from engine.ui_state_ack import on_ui_state_ack, reset_acks, wait_for_ack
 
     reset_acks()
-    on_ui_state_ack("online", "sess123", 0.0, label="ONLINE")
+    # NOTE arg order differs: on_ui_state_ack(session_id, state, sequence)
+    # but wait_for_ack(state, session_id, ...). This test had them swapped.
+    on_ui_state_ack("sess123", "online", 0, label="ONLINE")
     assert wait_for_ack("online", "sess123", timeout_ms=50) is True
 
 
@@ -143,6 +145,49 @@ def test_post_session_wake_suppression_blocks_residual_hotword(monkeypatch):
 
     assert result["wake"] is False
     assert result["reason"] == "post_session_suppressed"
+    _reset_session()
+
+
+def test_bridge_completion_reaches_audio_session_manager():
+    import engine.audio_wake_pipeline as awp
+    from engine.runtime_bridge import post_session_finish
+    from engine.wake_session_manager import get_session_manager, start_session
+
+    _reset_session()
+    control_queue: queue.Queue = queue.Queue()
+    session_id = start_session("hotword")
+    pipeline = awp.AudioWakePipeline(control_queue=control_queue)
+
+    assert post_session_finish(control_queue, session_id) is True
+    assert pipeline._drain_control_events() == 1
+    assert get_session_manager().is_active() is False
+    assert get_session_manager().is_post_session_suppressed() is True
+    _reset_session()
+
+
+def test_followup_control_reaches_audio_capture_for_current_session():
+    import engine.audio_wake_pipeline as awp
+    from engine.runtime_bridge import post_followup_capture
+    from engine.wake_session_manager import start_session
+
+    _reset_session()
+    control_queue: queue.Queue = queue.Queue()
+    session_id = start_session("hotword")
+    pipeline = awp.AudioWakePipeline(control_queue=control_queue)
+
+    assert post_followup_capture(
+        control_queue,
+        session_id,
+        source="hotword",
+        reason="missing_slot",
+    ) is True
+    with patch.object(pipeline, "_capture_followup", create=True, return_value=True) as capture:
+        assert pipeline._drain_control_events() == 1
+
+    capture.assert_called_once()
+    event = capture.call_args.args[0]
+    assert event["session_id"] == session_id
+    assert event["reason"] == "missing_slot"
     _reset_session()
 
 

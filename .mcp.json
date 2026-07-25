@@ -1,8 +1,166 @@
 {
+  "_comment": "Verified no-external-API MCP servers only. Docker, credential-backed servers, unavailable local services, and broken packages removed on 2026-07-18.",
   "mcpServers": {
+    "filesystem": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "E:/ai-agnet-nexi"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "sequential-thinking": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "memory": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "fetch": {
+      "command": "D:\\hermes\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "mcp-server-fetch",
+        "mcp-server-fetch"
+      ],
+      "autoStart": true,
+      "timeout": 180000
+    },
+    "git": {
+      "command": "D:\\hermes\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "mcp-server-git",
+        "mcp-server-git"
+      ],
+      "autoStart": true,
+      "timeout": 180000
+    },
+    "time": {
+      "command": "D:\\hermes\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "mcp-server-time",
+        "mcp-server-time"
+      ],
+      "autoStart": true,
+      "timeout": 180000
+    },
+    "sqlite": {
+      "command": "D:\\hermes\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "mcp-server-sqlite",
+        "mcp-server-sqlite",
+        "--db-path",
+        "E:/ai-agnet-nexi/nexai.db"
+      ],
+      "autoStart": true,
+      "timeout": 180000
+    },
+    "playwright": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@playwright/mcp"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "puppeteer": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "context7": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
+    "chrome-devtools": {
+      "command": "cmd",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "npx",
+        "-y",
+        "chrome-devtools-mcp"
+      ],
+      "autoStart": true,
+      "timeout": 180000,
+      "env": {
+        "npm_config_update_notifier": "false"
+      }
+    },
     "ruv-swarm": {
       "command": "cmd",
       "args": [
+        "/d",
+        "/s",
         "/c",
         "npx",
         "-y",
@@ -10,66 +168,11 @@
         "mcp",
         "start"
       ],
+      "autoStart": true,
+      "timeout": 180000,
       "env": {
         "npm_config_update_notifier": "false"
-      },
-      "autoStart": true
-    },
-    "ruflo": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "ruflo",
-        "mcp",
-        "start"
-      ],
-      "env": {
-        "npm_config_update_notifier": "false"
-      },
-      "autoStart": true,
-      "optional": true
-    },
-    "headroom": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        ".venv\\Scripts\\headroom.exe",
-        "mcp",
-        "serve"
-      ],
-      "env": {},
-      "autoStart": true,
-      "optional": true
-    },
-    "context7": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@upstash/context7-mcp"
-      ],
-      "env": {
-        "npm_config_update_notifier": "false"
-      },
-      "autoStart": true,
-      "optional": true
-    },
-    "brave-search": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@brave/brave-search-mcp-server"
-      ],
-      "env": {
-        "npm_config_update_notifier": "false"
-      },
-      "autoStart": true,
-      "optional": true
+      }
     }
   }
 }

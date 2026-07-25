@@ -230,36 +230,72 @@ def _extract_key_phrases(text: str) -> str:
     return f"{first_part}...{last_part}"
 
 
+# Greetings and bare acknowledgements carry nothing worth spending context budget on.
+SMALL_TALK = {
+    "hi", "hello", "hey", "yo", "thanks", "thank you", "ty", "ok", "okay", "k",
+    "sure", "yes", "yeah", "yep", "no", "nope", "bye", "goodbye", "good morning",
+    "good night", "nice", "cool", "great", "awesome", "got it", "never mind",
+}
+
+
+def _exchange_text(exchange: dict[str, Any], *keys: str) -> str:
+    """Read the first present key. autonomous_memory serialises exchanges with BOTH
+    `user`/`assistant` and `user_text`/`assistant_text`, so accept either spelling."""
+    for key in keys:
+        value = exchange.get(key)
+        if value:
+            return str(value)
+    return ""
+
+
+def _is_small_talk(user_text: str, assistant_text: str) -> bool:
+    return user_text.strip().lower().rstrip(".!?").strip() in SMALL_TALK
+
+
+def _trim_summary() -> None:
+    """Hold the whole summary under MAX_SUMMARY_LENGTH.
+
+    ponytail: drops from whichever category is longest rather than globally oldest —
+    entries carry no timestamp. Store one per entry if true FIFO eviction matters.
+    """
+    while sum(len(e) for entries in SUMMARY_CATEGORIES.values() for e in entries) > MAX_SUMMARY_LENGTH:
+        longest = max(SUMMARY_CATEGORIES.values(), key=len)
+        if not longest:
+            return
+        longest.pop(0)
+
+
 def merge_exchange(exchange: dict[str, Any]) -> None:
     """Merge an exchange into the session summary.
 
     Args:
-        exchange: Exchange dictionary with user_text and assistant_text
+        exchange: Exchange dictionary with user_text/assistant_text (or user/assistant)
     """
-    # Skip if no content
-    if not exchange.get("user_text") and not exchange.get("assistant_text"):
-        return
-
-    # Clean and validate the exchange
-    user_text = _clean_text(exchange.get("user_text", ""))
-    assistant_text = _clean_text(exchange.get("assistant_text", ""))
+    user_text = _clean_text(_exchange_text(exchange, "user_text", "user"))
+    assistant_text = _clean_text(_exchange_text(exchange, "assistant_text", "assistant"))
 
     if not user_text and not assistant_text:
         return
+    if _is_small_talk(user_text, assistant_text):
+        return
 
-    # Update the exchange with cleaned text
-    exchange["user_text"] = user_text
-    exchange["assistant_text"] = assistant_text
-
-    # Create summary entry
-    summary_entry = _summarize_exchange(exchange)
+    summary_entry = _summarize_exchange(
+        dict(exchange, user_text=user_text, assistant_text=assistant_text)
+    )
     if not summary_entry:
         return
 
-    # Add to appropriate category in the global summary
     category = _detect_summary_category(user_text, assistant_text)
 
-    # Save to persistent storage
+    # This append was missing: the entry and category were computed and then discarded,
+    # so the rolling summary was permanently empty and the ROLLING_SUMMARY context
+    # section built by context_budget_manager always came back blank.
+    entries = SUMMARY_CATEGORIES[category]
+    if summary_entry in entries:
+        return
+    entries.append(summary_entry)
+
+    _trim_summary()
     _save_summary()
 
 
