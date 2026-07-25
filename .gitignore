@@ -79,3 +79,13 @@ Thumbs.db
 # Machine-specific MCP config (absolute paths). Copy .mcp.json.example -> .mcp.json
 .mcp.json
 .mcp.json.bak-*
+
+# --- Private / generated runtime data (never distribute) ---
+# Personal voice recordings, biometric models, local databases and generated
+# training data. Kept locally; see docs for how to regenerate or download.
+hey_nexi_clips/
+datasets/
+artifacts/
+trainingData.yml
+*.db
+*.zip

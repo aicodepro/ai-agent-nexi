@@ -56,16 +56,18 @@ run.py                Launcher — spawns both processes
 ```text
 run.py            Dual-process launcher
 main.py           UI process entry point (Eel-exposed API)
-core/             config, dispatcher, tts, asr, ui_state, online, bridge
-intent/           unified router, taxonomy, safety_gate
-brain/            Gemini Q&A engine
-memory/           unified manager, context, user_model, safety
-skills/           apps, web, browser, files, system, communication, dispatch
-control/          chrome, desktop, file_control, gate, registry
-wake/             pipeline, hotword, clap, vad
-workflow/         multi-step workflow + clarification handling
-ui/               Eel adapter + loader
-www/              Mark-style frontend (HTML/CSS/JS)
+engine/           all runtime code (see below)
+  command.py          command dispatch + speech I/O
+  command_bus.py      single entry point for user input
+  runtime_bridge.py   cross-process event bridge
+  audio_wake_pipeline.py  mic -> wake -> VAD -> ASR
+  wake_session_manager.py session/turn lifecycle
+  ui_state_manager.py     ordered UI state events
+  router_v3.py / groq_intent_router_v2.py  intent routing
+  response_coordinator.py single response authority
+  tool_registry.py        tool definitions + execution
+  brain/, memory/, control/, integrations/, agent_runtime/
+www_mark/         frontend (HTML/CSS/JS) - the active UI
 prompts/          system prompt
 config/, data/    runtime config & persisted state
 ```

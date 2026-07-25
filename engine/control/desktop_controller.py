@@ -5,7 +5,7 @@ try:
     import win32gui
     import win32con
     HAS_WIN32 = True
-except ImportError:
+except Exception:
     HAS_WIN32 = False
 
 
