@@ -16,6 +16,10 @@ from typing import Any
 from engine.intent_taxonomy import exact_schema
 
 
+def _safe_log(message: str) -> None:
+    print(message, flush=True)
+
+
 @dataclass(frozen=True)
 class RouterTrace:
     source: str
@@ -44,6 +48,52 @@ class RouterV3:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._last_trace: RouterTrace | None = None
+        self._last_semantic_trace: dict | None = None
+
+    def _route_text(self, clean: str, *, source: str, context: dict) -> tuple[dict[str, Any], str]:
+        """Tiered routing. Exactly ONE tier produces the executed decision.
+
+        1. lifecycle/approval - deterministic, never a network round-trip;
+        2. semantic - structured LLM over retrieved capability manifests;
+        3. v2 - fallback only when the semantic tier cannot decide.
+
+        The V2 tier never runs when the semantic tier succeeds.
+        """
+        from engine.intent_taxonomy import empty_result
+        from engine import router_semantic as semantic
+
+        lifecycle = semantic.match_lifecycle(clean)
+        if lifecycle:
+            route, intent = lifecycle
+            return exact_schema(empty_result(
+                route=route, intent=intent, domain="system", confidence=1.0,
+                reason="router_v3:lifecycle",
+            )), "deterministic_lifecycle"
+
+        approval = semantic.match_approval(clean, bool(context.get("awaiting_approval")))
+        if approval:
+            return exact_schema(empty_result(
+                route="system", intent=approval, domain="system", confidence=1.0,
+                reason="router_v3:approval",
+            )), "deterministic_approval"
+
+        if semantic.semantic_enabled():
+            try:
+                decided, trace = semantic.semantic_route(clean, context=context)
+            except Exception as exc:
+                decided, trace = None, {"tier": "semantic", "ok": False,
+                                        "reason": f"unhandled:{type(exc).__name__}"}
+            self._last_semantic_trace = trace
+            if decided is not None:
+                return exact_schema(decided), "semantic"
+            _safe_log(f"[ROUTER_V3] semantic_fallback reason={trace.get('reason', 'unknown')}")
+
+        # Fallback tier. V2 owns the deterministic pre-router, registry
+        # validation and clarification policy that the semantic tier defers to
+        # when it cannot decide.
+        from engine.groq_intent_router_v2 import route_intent_v2
+
+        return exact_schema(route_intent_v2(clean, source=source, context=context)), "v2_fallback"
 
     def route(self, text: str, *, source: str = "voice", context: dict | None = None) -> dict[str, Any]:
         started = time.perf_counter()
@@ -60,13 +110,7 @@ class RouterV3:
             ))
             authority = "deterministic"
         else:
-            # V2 contains the production-proven deterministic pre-router, dynamic
-            # registry validation, bounded model tier, and clarification policy.
-            # It is deliberately private behind this facade during migration.
-            from engine.groq_intent_router_v2 import route_intent_v2
-
-            result = exact_schema(route_intent_v2(clean, source=source, context=context or {}))
-            authority = "v2_compatibility"
+            result, authority = self._route_text(clean, source=source, context=context or {})
 
         trace = RouterTrace(
             source=authority,
