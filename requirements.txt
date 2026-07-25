@@ -33,3 +33,4 @@ playwright
 
 # Transitive deps for the above (kept for clarity)
 typing_extensions
+edge-tts
