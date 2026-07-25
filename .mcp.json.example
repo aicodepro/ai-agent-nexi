@@ -10,7 +10,7 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "E:/ai-agnet-nexi"
+        "${NEXI_ROOT}"
       ],
       "autoStart": true,
       "timeout": 180000,
@@ -87,7 +87,7 @@
         "mcp-server-sqlite",
         "mcp-server-sqlite",
         "--db-path",
-        "E:/ai-agnet-nexi/nexai.db"
+        "${NEXI_ROOT}/nexai.db"
       ],
       "autoStart": true,
       "timeout": 180000

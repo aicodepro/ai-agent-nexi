@@ -30,10 +30,9 @@ def wake_nexi(source: str) -> bool:
     with _lock:
         _awake = True
     try:
-        from engine.interrupt_controller import is_speaking, request_interrupt, clear_interrupt
+        from engine.interrupt_controller import is_speaking, interrupt_and_wait
         if is_speaking():
-            request_interrupt(source=safe_source, reason="wake")
-            clear_interrupt()
+            interrupt_and_wait(source=safe_source, reason="wake")
     except Exception:
         pass
     print(f"[WAKE] internal_wake source={safe_source}", flush=True)
@@ -48,10 +47,9 @@ def sleep_nexi(reason: str = "") -> bool:
         _awake = False
         queue = _wake_queue
     try:
-        from engine.interrupt_controller import is_speaking, request_interrupt, clear_interrupt
+        from engine.interrupt_controller import is_speaking, interrupt_and_wait
         if is_speaking():
-            request_interrupt(source="sleep", reason=safe_reason)
-            clear_interrupt()
+            interrupt_and_wait(source="sleep", reason=safe_reason)
     except Exception:
         pass
     print(f"[WAKE] internal_sleep reason={safe_reason}", flush=True)

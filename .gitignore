@@ -75,3 +75,7 @@ Thumbs.db
 # --- Temp / logs ---
 *.tmp
 *.log
+
+# Machine-specific MCP config (absolute paths). Copy .mcp.json.example -> .mcp.json
+.mcp.json
+.mcp.json.bak-*

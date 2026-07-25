@@ -730,18 +730,16 @@ def _handle_wake_sleep_command(query: str) -> bool:
     sleep_commands = {"sleep", "go to sleep", "stop listening"}
     wake_commands = {"wake", "wake up", "activate nexi"}
     if q in sleep_commands:
-        from engine.interrupt_controller import request_interrupt, clear_interrupt
-        request_interrupt(source="command", reason="sleep")
-        clear_interrupt()
+        from engine.interrupt_controller import interrupt_and_wait
+        interrupt_and_wait(source="command", reason="sleep")
         from engine.nexi_wake_controller import sleep_nexi
         sleep_nexi(reason="command")
         speak("Sleeping.")
         _store_conversation_turn(query, "Sleeping.")
         return True
     if q in wake_commands:
-        from engine.interrupt_controller import request_interrupt, clear_interrupt
-        request_interrupt(source="command", reason="wake")
-        clear_interrupt()
+        from engine.interrupt_controller import interrupt_and_wait
+        interrupt_and_wait(source="command", reason="wake")
         from engine.nexi_wake_controller import wake_nexi
         wake_nexi("command")
         speak("I am awake.")
