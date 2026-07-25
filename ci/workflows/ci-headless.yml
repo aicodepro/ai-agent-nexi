@@ -1,0 +1,101 @@
+name: CI - Headless
+
+# Proves a CLEAN CHECKOUT can install and run the suite without the author's
+# machine. This is what makes "reproducible" evidence rather than a claim.
+
+on:
+  push:
+    branches: [main, jarvis-migration]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: headless-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: System libraries for headless audio/vision imports
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev libsndfile1 ffmpeg libgl1
+
+      - name: Install core + test dependencies only
+        # Deliberately NOT the full [all] extra: the headless lane must prove the
+        # app's core imports without Windows/desktop/GUI packages present.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      - name: Detect undeclared first-party modules
+        # Catches the class of defect where a module is imported but was never
+        # committed (previously caused by a bad .gitignore glob).
+        run: |
+          python - <<'PY'
+          import ast, pathlib, sys
+          roots = {p.name for p in pathlib.Path('.').iterdir() if p.is_dir()}
+          missing = []
+          for f in pathlib.Path('engine').rglob('*.py'):
+              try:
+                  tree = ast.parse(f.read_text(encoding='utf-8', errors='ignore'))
+              except SyntaxError:
+                  continue
+              for node in ast.walk(tree):
+                  mod = None
+                  if isinstance(node, ast.ImportFrom) and node.level == 0:
+                      mod = node.module
+                  elif isinstance(node, ast.Import):
+                      mod = node.names[0].name
+                  if not mod or not mod.startswith('engine.'):
+                      continue
+                  target = pathlib.Path(mod.replace('.', '/'))
+                  # A bare directory is a valid PEP 420 namespace package, so
+                  # target.is_dir() counts as resolvable.
+                  if not (target.with_suffix('.py').exists()
+                          or (target / '__init__.py').exists()
+                          or target.is_dir()):
+                      missing.append(f"{f}: imports missing {mod}")
+          if missing:
+              print("MISSING FIRST-PARTY MODULES:")
+              for m in sorted(set(missing)):
+                  print(" ", m)
+              sys.exit(1)
+          print("All first-party engine imports resolve to committed source.")
+          PY
+
+      - name: Compile all source
+        run: python -m compileall -q engine main.py run.py
+
+      - name: Test collection must not error
+        run: python -m pytest --collect-only -q
+
+      - name: Headless unit tests
+        # Windows/audio/browser-marked tests are excluded here and run in the
+        # Windows lane instead - hardware tests must not masquerade as unit tests.
+        run: |
+          python -m pytest -q -rf --tb=short \
+            -m "not windows and not audio and not browser and not integration" \
+            --junitxml=headless-results.xml
+
+      - name: Repository sanitization scan
+        run: python scripts/verify_repository_sanitization.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: headless-results-py${{ matrix.python-version }}
+          path: headless-results.xml
