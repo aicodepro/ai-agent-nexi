@@ -19,8 +19,8 @@
 **Root cause:** The file `env` (3505 bytes, NO dot prefix) contains active credentials. `.gitignore` line 25 says `env/` which only matches a directory named `env`. The actual secret file `env` (no trailing slash) is NOT gitignored and gets committed. The file `.env` (82 bytes, WITH dot) is the correct name and IS gitignored, but is either empty or a placeholder.
 
 **Exposed keys:**
-- Gemini: `AIzaSyA7fWf3yad53uQABYJh3xigj7QlIXIJMdw`
-- Groq: `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`
+- Gemini: `AIza...REDACTED-ROTATE-THIS-KEY`
+- Groq: `gsk_...REDACTED-ROTATE-THIS-KEY`
 
 **Fix (immediate):**
 1. Rotate both keys at console.cloud.google.com and console.groq.com
