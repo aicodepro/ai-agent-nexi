@@ -1,0 +1,635 @@
+[
+  {
+    "id": "R01",
+    "name": "nexi-executive-supervisor",
+    "class": "orchestrator",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R02",
+    "name": "intent-planner",
+    "class": "routing",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R03",
+    "name": "conversation-clarifier",
+    "class": "dialogue",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R04",
+    "name": "desktop-control-agent",
+    "class": "action",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R05",
+    "name": "browser-control-agent",
+    "class": "action",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R06",
+    "name": "screen-understanding-agent",
+    "class": "perception",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R07",
+    "name": "live-intelligence-agent",
+    "class": "research",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R08",
+    "name": "productivity-agent",
+    "class": "action",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R09",
+    "name": "media-control-agent",
+    "class": "action",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R10",
+    "name": "developer-workspace-agent",
+    "class": "bridge",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R11",
+    "name": "workflow-automation-agent",
+    "class": "planner",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R12",
+    "name": "accessibility-companion-agent",
+    "class": "assistance",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R13",
+    "name": "memory-context-agent",
+    "class": "context",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R14",
+    "name": "system-health-recovery-agent",
+    "class": "operations",
+    "stage": "runtime",
+    "risk": "high",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "R15",
+    "name": "privacy-approval-explainer",
+    "class": "risk",
+    "stage": "runtime",
+    "risk": "low",
+    "status": "specified",
+    "runtimes": [
+      "nexi"
+    ]
+  },
+  {
+    "id": "S01",
+    "name": "project-strategist",
+    "class": "studio",
+    "stage": "advisory",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S02",
+    "name": "business-analyst",
+    "class": "studio",
+    "stage": "requirements",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S03",
+    "name": "ux-researcher",
+    "class": "studio",
+    "stage": "requirements",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S04",
+    "name": "accessibility-architect",
+    "class": "studio",
+    "stage": "requirements",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S05",
+    "name": "research-analyst",
+    "class": "studio",
+    "stage": "research",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S06",
+    "name": "codebase-analyst",
+    "class": "studio",
+    "stage": "research",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S07",
+    "name": "dependency-supply-chain-analyst",
+    "class": "studio",
+    "stage": "research",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S08",
+    "name": "solution-architect",
+    "class": "studio",
+    "stage": "architecture",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S09",
+    "name": "mcp-tool-architect",
+    "class": "studio",
+    "stage": "architecture",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S10",
+    "name": "skill-capability-designer",
+    "class": "studio",
+    "stage": "architecture",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S11",
+    "name": "product-manager",
+    "class": "studio",
+    "stage": "sprint_plan",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S12",
+    "name": "developer-team",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S13",
+    "name": "frontend-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S14",
+    "name": "backend-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S15",
+    "name": "design-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S16",
+    "name": "desktop-automation-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S17",
+    "name": "browser-automation-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S18",
+    "name": "voice-realtime-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S19",
+    "name": "llm-routing-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S20",
+    "name": "agent-runtime-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S21",
+    "name": "mcp-integration-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S22",
+    "name": "data-memory-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S23",
+    "name": "devops-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S24",
+    "name": "observability-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S25",
+    "name": "performance-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S26",
+    "name": "security-remediation-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S27",
+    "name": "migration-refactor-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S28",
+    "name": "root-cause-debugger",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S29",
+    "name": "documentation-engineer",
+    "class": "studio",
+    "stage": "implementation",
+    "risk": "medium",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S30",
+    "name": "source-control-coordinator",
+    "class": "studio",
+    "stage": "external",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S31",
+    "name": "test-engineer",
+    "class": "studio",
+    "stage": "developer_tests",
+    "risk": "medium",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S32",
+    "name": "qa-verifier",
+    "class": "studio",
+    "stage": "qa",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S33",
+    "name": "accessibility-verifier",
+    "class": "studio",
+    "stage": "qa",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S34",
+    "name": "security-reviewer",
+    "class": "studio",
+    "stage": "security_review",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S35",
+    "name": "integration-verifier",
+    "class": "studio",
+    "stage": "integration",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S36",
+    "name": "performance-verifier",
+    "class": "studio",
+    "stage": "integration",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S37",
+    "name": "repository-hygiene-auditor",
+    "class": "studio",
+    "stage": "release",
+    "risk": "low",
+    "status": "new",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S38",
+    "name": "release-manager",
+    "class": "studio",
+    "stage": "release",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  },
+  {
+    "id": "S39",
+    "name": "knowledge-curator",
+    "class": "studio",
+    "stage": "closeout",
+    "risk": "low",
+    "status": "existing",
+    "runtimes": [
+      "claude",
+      "opencode"
+    ]
+  }
+]

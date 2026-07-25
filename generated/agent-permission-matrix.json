@@ -1,0 +1,764 @@
+{
+  "nexi-executive-supervisor": {
+    "id": "R01",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "intent-planner": {
+    "id": "R02",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "conversation-clarifier": {
+    "id": "R03",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "desktop-control-agent": {
+    "id": "R04",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "browser-control-agent": {
+    "id": "R05",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "screen-understanding-agent": {
+    "id": "R06",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "live-intelligence-agent": {
+    "id": "R07",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "productivity-agent": {
+    "id": "R08",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "media-control-agent": {
+    "id": "R09",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "developer-workspace-agent": {
+    "id": "R10",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "workflow-automation-agent": {
+    "id": "R11",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "accessibility-companion-agent": {
+    "id": "R12",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "memory-context-agent": {
+    "id": "R13",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "system-health-recovery-agent": {
+    "id": "R14",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "privacy-approval-explainer": {
+    "id": "R15",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "project-strategist": {
+    "id": "S01",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "business-analyst": {
+    "id": "S02",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "ux-researcher": {
+    "id": "S03",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "accessibility-architect": {
+    "id": "S04",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "research-analyst": {
+    "id": "S05",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "codebase-analyst": {
+    "id": "S06",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "dependency-supply-chain-analyst": {
+    "id": "S07",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "solution-architect": {
+    "id": "S08",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "mcp-tool-architect": {
+    "id": "S09",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "skill-capability-designer": {
+    "id": "S10",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "product-manager": {
+    "id": "S11",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "developer-team": {
+    "id": "S12",
+    "intent": "acceptEdits",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "frontend-engineer": {
+    "id": "S13",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "backend-engineer": {
+    "id": "S14",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "design-engineer": {
+    "id": "S15",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "desktop-automation-engineer": {
+    "id": "S16",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "browser-automation-engineer": {
+    "id": "S17",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "voice-realtime-engineer": {
+    "id": "S18",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "llm-routing-engineer": {
+    "id": "S19",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "agent-runtime-engineer": {
+    "id": "S20",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "mcp-integration-engineer": {
+    "id": "S21",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "data-memory-engineer": {
+    "id": "S22",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "devops-engineer": {
+    "id": "S23",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "observability-engineer": {
+    "id": "S24",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "performance-engineer": {
+    "id": "S25",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "security-remediation-engineer": {
+    "id": "S26",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "migration-refactor-engineer": {
+    "id": "S27",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "root-cause-debugger": {
+    "id": "S28",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "documentation-engineer": {
+    "id": "S29",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "source-control-coordinator": {
+    "id": "S30",
+    "intent": "ask",
+    "claude_mode": "default",
+    "opencode_permission": "ask",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "test-engineer": {
+    "id": "S31",
+    "intent": "write",
+    "claude_mode": "acceptEdits",
+    "opencode_permission": "write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "qa-verifier": {
+    "id": "S32",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "accessibility-verifier": {
+    "id": "S33",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "security-reviewer": {
+    "id": "S34",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "integration-verifier": {
+    "id": "S35",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "performance-verifier": {
+    "id": "S36",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "repository-hygiene-auditor": {
+    "id": "S37",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "release-manager": {
+    "id": "S38",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  },
+  "knowledge-curator": {
+    "id": "S39",
+    "intent": "plan",
+    "claude_mode": "plan",
+    "opencode_permission": "read",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "may_verify_self": false,
+    "may_approve_self": false
+  }
+}
