@@ -120,6 +120,11 @@ def ui_get_suggestions():
     from engine.tool_category_view import get_command_suggestions
     return get_command_suggestions()
 
+@eel.expose
+def ui_get_metrics():
+    from engine.ui_adapter import get_system_metrics
+    return get_system_metrics()
+
 def _find_msedge() -> str | None:
     """Find msedge.exe path. Checks registry App Paths, then common install dirs."""
     try:

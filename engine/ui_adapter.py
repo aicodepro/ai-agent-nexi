@@ -93,3 +93,39 @@ def get_ui_capabilities() -> dict[str, bool]:
         "command_suggestions": True,
         "action_categories": True,
     }
+
+def get_system_metrics() -> dict[str, str]:
+    """Real host metrics for the HUD.
+
+    Returns "--" for anything genuinely unavailable rather than a plausible
+    number: an assistant that fabricates telemetry cannot be trusted about
+    anything else it reports.
+    """
+    metrics = {"cpu": "--", "mem": "--", "net": "--", "gpu": "N/A", "tmp": "N/A"}
+    try:
+        import psutil
+    except Exception:
+        return metrics
+    try:
+        metrics["cpu"] = f"{psutil.cpu_percent(interval=None):.0f}%"
+    except Exception:
+        pass
+    try:
+        metrics["mem"] = f"{psutil.virtual_memory().percent:.0f}%"
+    except Exception:
+        pass
+    try:
+        import time
+        counters = psutil.net_io_counters()
+        total = counters.bytes_sent + counters.bytes_recv
+        now = time.monotonic()
+        previous = getattr(get_system_metrics, "_prev", None)
+        get_system_metrics._prev = (now, total)
+        if previous:
+            elapsed = now - previous[0]
+            if elapsed > 0:
+                rate_mb = (total - previous[1]) / elapsed / (1024 * 1024)
+                metrics["net"] = f"{max(0.0, rate_mb):.1f}MB/s"
+    except Exception:
+        pass
+    return metrics

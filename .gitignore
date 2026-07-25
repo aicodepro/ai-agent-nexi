@@ -28,10 +28,17 @@ dist/
 .mypy_cache/
 .ruff_cache/
 
-# --- Virtual environments ---
+# --- Virtual environments / secrets ---
+# Anchored to the repo root and NOT a bare `env*` glob: `env*` also matched
+# engine/**/environment.py and silently excluded real source from the repo,
+# so a fresh clone was missing modules the runtime imports.
 venv/
 .venv/
-env*
+/env
+/env/
+/.env
+/.env.*
+/env.*
 
 # --- Node / eel web UI ---
 node_modules/
