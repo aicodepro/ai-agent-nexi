@@ -135,6 +135,24 @@ _BARGE_IN_TRANSACTION_TIMEOUT_SECONDS = max(
     1.0,
     _env_float("NEXI_BARGE_IN_TRANSACTION_TIMEOUT_SECONDS", 15.0),
 )
+# The soft deadline above is renewed while TTS is still winding down, because a
+# transaction that expires mid-stop leaves NOTHING blocking the next candidate:
+# _pending_barge_in becomes None, the "barge_in_pending" guard stops firing, and
+# one spoken wake word opens a SECOND interrupt. Live trace:
+#   [BARGE_IN] transaction_expired -> [BARGE_IN] hotword_during_speaking (again)
+# The hard deadline is the absolute cap so a stuck TTS producer cannot pin the
+# transaction open forever.
+_BARGE_IN_HARD_TIMEOUT_SECONDS = max(
+    _BARGE_IN_TRANSACTION_TIMEOUT_SECONDS,
+    _env_float("NEXI_BARGE_IN_HARD_TIMEOUT_SECONDS", 45.0),
+)
+# After a transaction closes (captured OR expired), ignore wake candidates
+# briefly. One utterance of "hey nexi" spans many frames; without this the tail
+# of the SAME utterance immediately opens the next transaction.
+_BARGE_IN_REFRACTORY_SECONDS = max(
+    0.0,
+    _env_float("NEXI_BARGE_IN_REFRACTORY_SECONDS", 2.0),
+)
 VAD_MAX_COMMAND_SECONDS = COMMAND_LISTEN_TIMEOUT_SECONDS
 ASR_MAX_RECORD_SECONDS = _env_float("ASR_MAX_RECORD_SECONDS", VAD_MAX_COMMAND_SECONDS)
 ASR_SILENCE_TIMEOUT_MS = _env_int("ASR_SILENCE_TIMEOUT_MS", VAD_SILENCE_END_MS)
@@ -352,6 +370,7 @@ class AudioWakePipeline:
         self._last_capture_stats: dict = {}
         self._pending_session_finishes: dict[str, str] = {}
         self._pending_barge_in: dict | None = None
+        self._barge_in_refractory_until = 0.0
         self._pending_tts_watchdog: dict | None = None
 
         # Per-frame wake state
@@ -438,15 +457,32 @@ class AudioWakePipeline:
         session_id = str(pending.get("session_id") or "")
         self._pending_session_finishes.pop(session_id, None)
         self._pending_barge_in = None
+        self._barge_in_refractory_until = time.time() + _BARGE_IN_REFRACTORY_SECONDS
         return bool(self._capture_barge_in(pending))
 
     def _expire_pending_barge_in(self) -> bool:
         pending = self._pending_barge_in
-        if not pending or time.time() < float(pending.get("deadline") or 0.0):
+        if not pending:
+            return False
+        now = time.time()
+        if now < float(pending.get("deadline") or 0.0):
+            return False
+        manager = get_session_manager()
+        # TTS has not acknowledged the stop yet. Expiring here would clear the
+        # only thing rejecting further candidates, so renew instead - bounded by
+        # the hard deadline.
+        hard_deadline = float(pending.get("hard_deadline") or 0.0)
+        if now < hard_deadline and (manager.is_tts_active() or manager.is_tts_cooldown_active()):
+            pending["deadline"] = now + _BARGE_IN_TRANSACTION_TIMEOUT_SECONDS
+            if not pending.get("renew_logged"):
+                pending["renew_logged"] = True
+                _safe_log("[BARGE_IN] transaction_renewed reason=tts_not_acknowledged")
             return False
         session_id = str(pending.get("session_id") or "")
         self._pending_barge_in = None
-        manager = get_session_manager()
+        # A closed transaction must still suppress the tail of the utterance
+        # that opened it, or the next frame starts transaction number two.
+        self._barge_in_refractory_until = now + _BARGE_IN_REFRACTORY_SECONDS
         _safe_log(f"[BARGE_IN] transaction_expired id={session_id}")
         if session_id and manager.is_current(session_id):
             if manager.is_tts_active() or manager.is_tts_cooldown_active():
@@ -739,6 +775,10 @@ class AudioWakePipeline:
         if _is_speaking():
             if self._pending_barge_in is not None:
                 return {"wake": False, "source": None, "reason": "barge_in_pending", "score": 0.0}
+            if time.time() < self._barge_in_refractory_until:
+                # A transaction just closed. The tail of the same utterance must
+                # not open another one.
+                return {"wake": False, "source": None, "reason": "barge_in_refractory", "score": 0.0}
             score = self._wake_scorer.score(frame_int16) if self._wake_scorer is not None else 0.0
             if score >= OWW_THRESHOLD:
                 self._consecutive_hits = 0
@@ -768,6 +808,7 @@ class AudioWakePipeline:
                         "cooldown": False,
                         "created_at": time.time(),
                         "deadline": time.time() + _BARGE_IN_TRANSACTION_TIMEOUT_SECONDS,
+                        "hard_deadline": time.time() + _BARGE_IN_HARD_TIMEOUT_SECONDS,
                     }
                 except Exception as e:
                     _safe_log(f"[BARGE_IN] request_failed reason={type(e).__name__}")

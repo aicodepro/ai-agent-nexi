@@ -37,6 +37,28 @@ def _ok(message: str, **extra: Any) -> dict[str, Any]:
             "tool": extra.pop("tool", "nexi_agency"), "message": message, **extra}
 
 
+def _accepted(message: str, **extra: Any) -> dict[str, Any]:
+    """A workflow was STARTED. Nothing has been verified yet.
+
+    Starting is not completing. _ok() hardcodes verified=True, and the
+    background branch used it for a run whose agents had not executed - the live
+    trace emitted `verified=true` and `[TOOL] success` before PlannerAgent even
+    started, then the planner/research/report agents ran afterwards. The
+    verified flag is what downstream treats as evidence of a real outcome, so a
+    start must never set it.
+
+    The wording must also avoid reading as a completion claim: the unverified-
+    action guard rewrites any message matching "Started ...", which is correct
+    behaviour once verified=False.
+    """
+    return {"handled": True, "ok": True, "success": True, "verified": False,
+            "tool": extra.pop("tool", "nexi_agency"), "message": message, **extra}
+
+
+# Only these run statuses count as a verified terminal success.
+_TERMINAL_SUCCESS = frozenset({"completed", "complete", "done", "success", "succeeded"})
+
+
 def _run(wtype: str, tool: str, slots: dict | None) -> dict[str, Any]:
     goal = str((slots or {}).get("goal") or (slots or {}).get("input") or (slots or {}).get("text") or wtype.replace("_", " ")).strip()
     background = _we.autonomy_enabled()
@@ -49,13 +71,23 @@ def _run(wtype: str, tool: str, slots: dict | None) -> dict[str, Any]:
         return {"handled": True, "ok": False, "success": False, "verified": False, "tool": tool,
                 "expects_user_reply": True, "run_id": run.run_id,
                 "message": f"Starting the {wtype.replace('_', ' ')} workflow — what should I focus on?"}
+    label = wtype.replace("_", " ")
     if background:  # autonomous: return immediately, work continues in the background
-        return _ok(f"Started the {wtype.replace('_', ' ')} agent workflow ({run.run_id}). "
-                   f"I'll work on it in the background — ask for agent activity or logs anytime.",
-                   tool=tool, run_id=run.run_id, status=run.status)
-    return _ok(f"{wtype.replace('_', ' ').capitalize()} agent workflow {run.run_id} done — {run.result} "
+        return _accepted(
+            f"I've begun the {label} workflow in the background ({run.run_id}). "
+            f"I'll report the result once it finishes and is verified — "
+            f"ask for agent activity or logs anytime.",
+            tool=tool, run_id=run.run_id, status=run.status, job_state="RUNNING")
+
+    # Synchronous run: only a terminal-successful run is a verified outcome.
+    if str(run.status or "").strip().lower() not in _TERMINAL_SUCCESS:
+        return _accepted(
+            f"The {label} workflow {run.run_id} ended with status {run.status}. "
+            f"Ask for the agent logs for detail.",
+            tool=tool, run_id=run.run_id, status=run.status, job_state=str(run.status or "").upper())
+    return _ok(f"{label.capitalize()} agent workflow {run.run_id} done — {run.result} "
                f"Ask for the agent report for detail.",
-               tool=tool, run_id=run.run_id, status=run.status,
+               tool=tool, run_id=run.run_id, status=run.status, job_state="COMPLETED",
                plan_steps=len(run.plan), artifacts=len(run.artifacts))
 
 
