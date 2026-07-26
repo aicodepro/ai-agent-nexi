@@ -34,6 +34,31 @@ _PRE_SPEECH_GRACE_SECONDS = max(
     _env_float("NEXI_SESSION_PRE_SPEECH_GRACE_SECONDS", 60.0),
 )
 
+# When NEXI has ASKED the user something, the 3-second post-speech re-arm is
+# wrong: it sleeps before a human can answer, and the timeout path then discards
+# the pending question. "Create a folder" -> "What should I name it?" -> asleep
+# in 3s made every clarification a dead end. A question deserves a human answer
+# window; this is still bounded so a missed answer cannot pin detectors open.
+_AWAITING_ANSWER_TIMEOUT_SECONDS = max(
+    _AUTO_FINISH_TIMEOUT_SECONDS,
+    _env_float("NEXI_SESSION_AWAITING_ANSWER_SECONDS", 20.0),
+)
+
+
+def _question_is_pending() -> bool:
+    """True when NEXI asked something and is still awaiting the user's reply."""
+    try:
+        from engine.clarification_manager import has_pending_clarification
+        if has_pending_clarification():
+            return True
+    except Exception:
+        pass
+    try:
+        from engine.followup_manager import has_pending_followup
+        return bool(has_pending_followup())
+    except Exception:
+        return False
+
 # TTS is a renewable lease, not an unbounded state. Heartbeats may extend the
 # soft deadline, but never beyond the hard deadline for one audible response.
 _TTS_LEASE_SECONDS = max(1.0, _env_float("NEXI_TTS_LEASE_SECONDS", 15.0))
@@ -470,9 +495,15 @@ class WakeSessionManager:
             if self._watchdog_stop is not None:
                 return False
             idle = time.time() - self._last_event_at
-            # After speech: short re-arm. Before speech (still thinking): long
-            # grace so the session never finishes mid-turn.
-            timeout = _AUTO_FINISH_TIMEOUT_SECONDS if self._has_spoken else _PRE_SPEECH_GRACE_SECONDS
+            # Before speech (still thinking): long grace so the session never
+            # finishes mid-turn. After a QUESTION: a human answer window. After a
+            # plain statement: short re-arm.
+            if not self._has_spoken:
+                timeout = _PRE_SPEECH_GRACE_SECONDS
+            elif _question_is_pending():
+                timeout = _AWAITING_ANSWER_TIMEOUT_SECONDS
+            else:
+                timeout = _AUTO_FINISH_TIMEOUT_SECONDS
             if idle >= timeout:
                 sid = self._session_id
                 spoke = self._has_spoken

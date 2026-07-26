@@ -92,6 +92,17 @@ def is_dangerous_location(text: str) -> bool:
     return any(k in t for k in dangerous)
 
 
+# Saying the command again is a restart, not a name. Live regression: the user
+# said "Create a folder" at the name prompt and it was saved as the folder's
+# name. The follow-up layer had already flagged it (switch_detected) but the
+# workflow validated and stored it anyway.
+_COMMAND_NOT_A_NAME = frozenset({
+    "create a folder", "create folder", "create a new folder", "create new folder",
+    "make a folder", "make folder", "make a new folder", "make new folder",
+    "new folder", "folder", "create", "make",
+})
+
+
 def validate_folder_name(name):
     """Return None if valid, else a user-facing rejection message."""
     if name is None:
@@ -99,6 +110,8 @@ def validate_folder_name(name):
     n = name.strip()
     if not n or n in (".", ".."):
         return "That's not a valid folder name. What should I name the folder?"
+    if n.lower().rstrip(".?!") in _COMMAND_NOT_A_NAME:
+        return "That's the command, not a name. What should I call the folder?"
     if any(c in _INVALID_CHARS for c in n):
         return "That folder name has characters I can't use. What should I name the folder?"
     base = n.split(".")[0].strip().lower()
