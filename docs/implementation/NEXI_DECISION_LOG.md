@@ -147,3 +147,49 @@ or fixture error proves the API changed, not that the defect is fixed.
 **Consequence for acceptance tests:** they must be version-tolerant (use
 `getattr` fallbacks for new helpers) so they can execute against the old runtime
 and fail on assertions rather than on collection.
+
+---
+
+## D-007 — Schema validation is conservative, and bounded
+
+**Date:** 2026-07-26 · **Commit:** `f6da8ad`
+
+**Decision:** A reply is validated against the expected slot schema before it is
+accepted. A wrong-kind answer is re-asked, at most twice, then the question is
+abandoned.
+
+**Why conservative:** rejecting a good answer costs the user one re-ask;
+accepting a bad one silently creates a folder named "show me your diagnostics".
+The asymmetry is the whole argument.
+
+**Why bounded:** an unbounded reprompt loop is its own failure mode — NEXI would
+sit asking the same question at a user who cannot phrase an answer it accepts.
+
+**Why unknown schemas fall through:** a slot with no schema entry validates as
+free text rather than failing closed. A missing entry should leave NEXI
+unvalidated, never unusable.
+
+**Precedence note:** cancel and workflow-switch are checked BEFORE schema
+validation, so "open chrome" at a name prompt switches tasks rather than being
+re-asked as an invalid name. Two of my own tests initially failed against this
+correct behaviour because I picked a switch phrase as the example of an invalid
+answer.
+
+---
+
+## D-008 — Two dialogue stores must never disagree
+
+**Date:** 2026-07-26
+
+**Decision:** Every path that clears the legacy follow-up store also closes the
+`DialogueContext` — consume, cancel, switch, and schema-retry exhaustion.
+
+**Why:** the migration deliberately runs both stores at once (the directive
+forbids deleting the old systems in one commit). Two stores that can disagree
+about whether a question is still open would recreate the exact ownership bug
+this batch exists to fix, with the added difficulty that the two would blame
+each other.
+
+**Consequence:** `followup_manager` now calls into `dialogue_context` at every
+terminal point, best-effort. Best-effort is deliberate — a failure in the new
+layer must not be able to break an answer path that already worked.

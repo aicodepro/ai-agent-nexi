@@ -45,11 +45,22 @@ order-dependence: it passes in isolation and failed identically before this work
 
 | ID | Task | Status | Evidence |
 | --- | --- | --- | --- |
-| B2-1 | `DialogueContext` replacing 5 managers | `NOT_STARTED` | multi-day migration; see decision log |
-| B2-2 | Typed missing-information schemas | `NOT_STARTED` | — |
-| B2-3 | Session/workflow ownership binding | `NOT_STARTED` | stale workflow leaked into a new wake session |
-| B2-4 | Durable follow-up capture states | `NOT_STARTED` | boolean auto-listen still the source of truth |
-| B2-5 | Workflow switching and cancellation | `NOT_STARTED` | partial: command-as-name rejected |
+| B2-1 | `DialogueContext` introduced alongside the 5 managers | `PASS` | `tests/test_dialogue_context.py` (15) · `d33dfa7` |
+| B2-2 | Typed missing-information schemas | `PASS` | `tests/test_response_schemas.py` (29) + wiring — pre-fix: *"a command was accepted as the folder name"* · `f6da8ad` |
+| B2-3 | Session/workflow ownership binding | `PASS` | `tests/test_workflow_session_isolation.py` — pre-fix: *"a new conversation inherited the previous question"* · `d33dfa7` |
+| B2-4 | Durable follow-up capture states | `PASS` | `tests/test_followup_schema_and_capture.py` — request survives until the audio process acks · `f6da8ad` |
+| B2-5 | Workflow switching and cancellation | `PASS` | pre-fix: *"the dialogue survived a cancel"* / *"survived a workflow switch"* · `f6da8ad` |
+
+**Batch 2 complete.** Suite 651 + 2933 = 3584 passed. The folder family is the
+first migrated onto `DialogueContext`; the legacy `workflow_state` still drives
+execution and the dialogue layer is additive, per the directive's instruction not
+to delete the old systems in one commit.
+
+**Not yet migrated onto DialogueContext** (the remaining families, in the
+recommended order): browser navigation, form filling, application control,
+Spotify, email/calendar, developer workflows. `turn_manager`,
+`clarification_manager` and `workflow_state` still hold their own state and are
+kept in step by adapters rather than replaced.
 
 ## Batches 3-7
 
