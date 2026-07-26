@@ -105,3 +105,28 @@ def test_real_folder_names_still_pass():
 
     for name in ["project alpha", "Invoices 2026", "nexi-notes", "Folder Ideas"]:
         assert validate_folder_name(name) is None, f"{name!r} should be a valid name"
+
+
+# --- typed requests must also be answerable by voice ------------------------
+
+def test_typed_source_can_auto_listen():
+    """Regression: source="ui" was absent, so a clarification raised by a typed
+    request logged auto_listen and then returned silently - mic never opened."""
+    from engine.command import _FOLLOWUP_SOURCES
+
+    assert "ui" in _FOLLOWUP_SOURCES, "typed requests could not auto-listen"
+    for src in ("hotword", "voice", "ui_button", "mic_button"):
+        assert src in _FOLLOWUP_SOURCES, f"{src} regressed out of auto-listen"
+
+
+def test_unknown_source_is_logged_not_swallowed(capsys, monkeypatch):
+    """A skipped auto-listen must leave a trace; silence looks like a bug."""
+    import engine.command as command
+    from engine import turn_manager
+
+    monkeypatch.setattr(turn_manager, "should_auto_listen", lambda: True)
+    monkeypatch.setattr(turn_manager, "get_turn_state", lambda: {"reason": "assistant_question"})
+    monkeypatch.setattr("engine.command_bus.current_source", lambda: "some_new_surface")
+
+    command._maybe_start_auto_followup()
+    assert "auto_followup_skipped" in capsys.readouterr().out

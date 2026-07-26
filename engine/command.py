@@ -638,7 +638,12 @@ def _store_conversation_turn(query, response, result=None):
         pass
 
 
-_FOLLOWUP_SOURCES = {"hotword", "clap", "double_clap", "hotkey", "ui_button", "mic_button", "voice"}
+# "ui" is a typed command. It was missing here, so a clarification raised by a
+# typed request logged "auto_listen requested" and then returned silently - the
+# mic never opened and the question was a dead end. NEXI is hands-free first:
+# once it has ASKED something, the user must be able to answer by voice however
+# the request started.
+_FOLLOWUP_SOURCES = {"hotword", "clap", "double_clap", "hotkey", "ui", "ui_button", "mic_button", "voice"}
 
 
 def _active_workflow_id() -> str:
@@ -671,6 +676,9 @@ def _maybe_start_auto_followup() -> None:
         except Exception:
             source = "legacy"
         if source not in _FOLLOWUP_SOURCES:
+            # Never fail silently here: a swallowed auto-listen looks exactly
+            # like a broken assistant from the outside.
+            print(f"[LISTEN] auto_followup_skipped source={source or 'unknown'}", flush=True)
             return
         from engine.runtime_bridge import request_followup_capture
         if not request_followup_capture(source=source, reason=listen_source):
