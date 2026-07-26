@@ -684,6 +684,14 @@ def _maybe_start_auto_followup() -> None:
         if not request_followup_capture(source=source, reason=listen_source):
             print("[LISTEN] auto_followup_deferred reason=audio_bridge_unavailable", flush=True)
             return
+        try:
+            # Marks the pending question as "microphone requested", which is what
+            # lets the session started for this capture adopt it instead of
+            # discarding it as belonging to an earlier conversation.
+            from engine.followup_manager import mark_capture_requested
+            mark_capture_requested()
+        except Exception:
+            pass
         consume_auto_listen_request()
         print(f"[LISTEN] auto_followup_requested source={listen_source}", flush=True)
     except Exception as e:

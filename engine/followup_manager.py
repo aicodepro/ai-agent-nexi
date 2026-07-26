@@ -14,6 +14,14 @@ _SWITCH_STARTS = (
 _WEBSITE_ANSWERS = {"youtube", "gmail", "github"}
 
 
+def _current_session_id() -> str:
+    try:
+        from engine.runtime_bridge import current_bridge_session_id
+        return str(current_bridge_session_id() or "")
+    except Exception:
+        return ""
+
+
 def set_pending_followup(question: str, followup_type: str, source: str) -> None:
     global _pending
     _pending = {
@@ -23,8 +31,52 @@ def set_pending_followup(question: str, followup_type: str, source: str) -> None
         "source": (source or "assistant").strip() or "assistant",
         "created_at": time.time(),
         "ttl_seconds": _TTL_SECONDS,
+        # Which session asked. Without this a question raised in one session was
+        # visible - and answerable - in the next, so a fresh "Create a folder"
+        # was consumed as the ANSWER to a question asked before the user walked
+        # away, and became the folder's name.
+        "session_id": _current_session_id(),
+        # A typed request opens the question before any session exists. Only a
+        # question with an outstanding microphone request may be adopted by the
+        # session that starts to capture it; anything else is stale.
+        "capture_requested": False,
     }
     print(f"[FOLLOWUP] set type={_pending['followup_type']}", flush=True)
+
+
+def mark_capture_requested() -> None:
+    """The microphone has been asked for on behalf of this question."""
+    if _pending:
+        _pending["capture_requested"] = True
+
+
+def on_session_started(session_id: str) -> None:
+    """A new session began. Adopt the pending question or discard it.
+
+    Adopt only when a capture was requested for it - that is the typed-request
+    path, where the session exists precisely to hear this answer. Otherwise the
+    question belongs to a conversation the user has already left.
+    """
+    if not _pending or not session_id:
+        return
+    owner = str(_pending.get("session_id") or "")
+    if owner == session_id:
+        return
+    if not owner and _pending.get("capture_requested"):
+        _pending["session_id"] = session_id
+        print(f"[FOLLOWUP] adopted_by_session id={session_id}", flush=True)
+        return
+    clear_followup(f"stale_for_session:{session_id}")
+
+
+def _owned_by_current_session() -> bool:
+    owner = str(_pending.get("session_id") or "")
+    if not owner:
+        return True  # not yet owned; a capture may still adopt it
+    current = _current_session_id()
+    if not current:
+        return True  # no session context available (typed turn) - do not block
+    return owner == current
 
 
 def _expired() -> bool:
@@ -36,6 +88,9 @@ def _expired() -> bool:
 def has_pending_followup() -> bool:
     if _expired():
         clear_followup("expired")
+        return False
+    if not _owned_by_current_session():
+        print("[FOLLOWUP] foreign_session_ignored", flush=True)
         return False
     return bool(_pending.get("waiting"))
 

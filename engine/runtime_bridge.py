@@ -697,6 +697,25 @@ def handle_bridge_event(event: dict) -> None:
         if not _accept_session_generation(event):
             _safe_log(f"[BRIDGE] stale_session_start_ignored id={event_session_id}")
             return
+        # A new conversation began. A question left over from an earlier one must
+        # not consume this session's first command - that is how "Create a
+        # folder" became the previous question's ANSWER, and the folder's name.
+        try:
+            from engine.followup_manager import on_session_started
+            on_session_started(event_session_id)
+        except Exception:
+            pass
+        try:
+            # An unowned dialogue is adopted ONLY when a microphone request is
+            # outstanding for it - that is the typed-request path, where this
+            # session exists precisely to hear the answer. A dialogue owned by
+            # another session needs no action: get_active() already refuses to
+            # return it to a session that does not own it.
+            from engine import dialogue_context as _dc
+            if _dc.capture_is_pending():
+                _dc.adopt_session(event_session_id)
+        except Exception:
+            pass
     if etype == EVENT_COMMAND_TEXT:
         source = str(event.get("source") or "bridge")
         is_voice_source = source in {"hotword", "clap", "double_clap", "hotkey", "ui_button", "mic_button", "voice"}
