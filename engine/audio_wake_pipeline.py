@@ -1044,7 +1044,11 @@ class AudioWakePipeline:
             "max_rms": max_rms,
             "source": source,
         }
-        self._post_status("speech_ended", source=source)
+        # Speech that never started cannot have ended. Emitting "speech_ended"
+        # from LISTENING produced `transition_failed reason=no_valid_transition`
+        # and drove the UI to "Recognising speech..." when there was no speech -
+        # actively misleading for a screen-reader user.
+        self._post_status("speech_ended" if speech_started else "no_speech_timeout", source=source)
         return b"".join(captured)
 
     def handle_recognized_text(self, text: str, source: str = "voice", session_id: str = "") -> bool:

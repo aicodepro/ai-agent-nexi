@@ -200,6 +200,13 @@ class VoiceStateMachine:
             (VoiceState.LISTENING, "speech_started"): VoiceState.RECORDING_UTTERANCE,
             (VoiceState.LISTENING, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.LISTENING, BARGE_IN_COMMAND_CAPTURE_STARTED): VoiceState.RECORDING_UTTERANCE,
+            # Capture ended without speech ever starting. This is a real
+            # outcome, not an error: acknowledge it in LISTENING and let the
+            # session_finish that follows move to sleep. Previously the pipeline
+            # emitted "speech_ended" here, which has no transition from
+            # LISTENING and logged transition_failed on every silent follow-up.
+            (VoiceState.LISTENING, "no_speech_timeout"): VoiceState.LISTENING,
+            (VoiceState.RECORDING_UTTERANCE, "no_speech_timeout"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, "speech_ended"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, "asr_started"): VoiceState.RECOGNIZING,
             (VoiceState.RECORDING_UTTERANCE, BARGE_IN_COMMAND_FINALIZED): VoiceState.RECOGNIZING,

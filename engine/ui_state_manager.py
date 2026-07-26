@@ -30,6 +30,10 @@ STATE_ALIASES = {
     "listening": "listening",
     "speech_started": "recognising",
     "speech_ended": "recognising",
+    # No speech was captured, so there is nothing to recognise. Staying on
+    # "listening" keeps the announced state truthful; the session_finish that
+    # follows moves it to sleep.
+    "no_speech_timeout": "listening",
     "transcribing": "recognising",
     "asr_started": "recognising",
     "asr_result": "thinking",
@@ -207,6 +211,7 @@ class UIStateManager:
                 "waiting_for_speech": "listening_started",
                 "speech_started": "speech_started",
                 "speech_ended": "speech_ended",
+                "no_speech_timeout": "no_speech_timeout",
                 "asr_started": "asr_started",
                 "asr_result": "asr_result",
                 "speaking_started": "tts_started",
