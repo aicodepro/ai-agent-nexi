@@ -30,11 +30,16 @@ they are added to the repository.
 
 | ID | Task | Status | Evidence |
 | --- | --- | --- | --- |
-| B1-A | Single barge-in transaction (no double interrupt) | `PASS` | `tests/test_barge_in_single_transaction.py` — 3 behavioural tests fail pre-fix |
-| B1-B | Async workflow start is not verified completion | `PASS` | `tests/test_workflow_start_is_not_completion.py` — 8/9 fail pre-fix |
-| B1-C | Precise voice events (no `LISTENING -> SPEECH_ENDED`) | `NOT_STARTED` | — |
-| B1-D | Folder-flow replay acceptance test | `NOT_STARTED` | — |
-| B1-E | Session IDs for typed input | `NOT_STARTED` | log shows `session=` empty on UI turns |
+| B1-A | Single barge-in transaction (no double interrupt) | `PASS` | `tests/test_barge_in_single_transaction.py` — 3 behavioural tests fail pre-fix · `07b201b` |
+| B1-B | Async workflow start is not verified completion | `PASS` | `tests/test_workflow_start_is_not_completion.py` — 8/9 fail pre-fix · `07b201b` |
+| B1-C | Precise voice events (no `LISTENING -> SPEECH_ENDED`) | `PASS` | `tests/test_no_speech_transition.py` — 4/6 fail pre-fix · `d3df48a` |
+| B1-D | Folder-flow acceptance test | `PASS` | `tests/test_folder_flow_acceptance.py` — **9/10 fail against the original runtime** · `8e764f4` |
+| B1-E | Session for typed input | `PASS` | `tests/test_typed_input_gets_a_session.py` — 3/5 fail pre-fix · `8e764f4` |
+
+**Batch 1 complete.** Suite verified in two complementary chunks (844 + 2680 =
+3524 passed, 0 real failures) because three consecutive full runs were killed by
+the environment. The single `test_demo_check` failure is pre-existing
+order-dependence: it passes in isolation and failed identically before this work.
 
 ## Batch 2 — conversation continuity
 

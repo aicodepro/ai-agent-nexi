@@ -105,3 +105,45 @@ piece of the DialogueContext design and is already in place.
 **Migration order when resumed:** folder/file workflows → browser navigation →
 form filling → application control → Spotify → email/calendar → developer
 workflows, behind compatibility adapters, one family per commit.
+
+---
+
+## D-005 — Verify pre-fix behaviour by file copy, never `git stash`
+
+**Date:** 2026-07-26
+
+**Decision:** All "does this test actually catch the bug?" checks use
+`git show HEAD:<path> > <path>`, run, then restore from a saved copy.
+
+**Why:** a `git stash push <file>` during an earlier check silently failed to
+apply. The test then "passed against the buggy code", and that was reported as
+"the test does not catch the misroute" — a false conclusion drawn from a tool
+that appeared to work. Re-checked by file copy, the same test failed 6 times
+against the pre-fix registry.
+
+**Also:** never run these swaps while a full suite is executing in the
+background. Doing so swapped eight engine files out from under a live run and
+invalidated it.
+
+---
+
+## D-006 — A green unit test is not evidence the feature works
+
+**Date:** 2026-07-26
+
+**Observation, recorded because it has now happened four times in this repo:**
+
+| Case | Test was green while… |
+| --- | --- |
+| `test_hotword_barge_in_during_speaking` | barge-in was completely unreachable — it set `is_global_tts_active=False`, a state that never occurs in production |
+| `test_react_provider_failures_are_errors` | NEXI spoke `provider_failed http_429` aloud — the test asserted the raw code reached the user |
+| `_FOLLOWUP_SOURCES` gaining `"ui"` | the capture was still dropped one layer down on `not session_id` |
+| first draft of `test_folder_flow_acceptance` | it "failed" pre-fix only because a fixture called a missing helper |
+
+**Rule adopted:** a fix is not `PASS` until its test is observed to FAIL against
+the pre-fix code for a *behavioural* reason. An `AttributeError`, import error
+or fixture error proves the API changed, not that the defect is fixed.
+
+**Consequence for acceptance tests:** they must be version-tolerant (use
+`getattr` fallbacks for new helpers) so they can execute against the old runtime
+and fail on assertions rather than on collection.
