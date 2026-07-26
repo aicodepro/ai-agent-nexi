@@ -58,7 +58,10 @@ def test_yes_creates_folder(home):
     handle_workflow_reply("Batch Three Test Folder")
     handle_workflow_reply("Desktop")
     msg = handle_workflow_reply("yes")
-    assert msg == "Done. Folder created."
+    # The confirmation must name what was created and where. "Done. Folder
+    # created." told a user who cannot see the screen nothing at all.
+    assert "Batch Three Test Folder" in msg
+    assert "Desktop" in msg
     assert (home / "Desktop" / "Batch Three Test Folder").is_dir()
     assert workflow_state.has_active_workflow() is False
 

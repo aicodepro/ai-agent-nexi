@@ -50,7 +50,8 @@ def test_create_folder_slot_and_execution_logs(tmp_path, monkeypatch, capsys):
     handle_workflow_turn("Desktop", "typed")
     result = handle_workflow_turn("yes", "typed")
     out = capsys.readouterr().out
-    assert result["response"] == "Done. Folder created."
+    # Names what was created; a bare "Done." is useless without a screen.
+    assert "Demo Website" in result["response"]
     assert "[WORKFLOW] slot_saved name=folder_name" in out
     assert "[WORKFLOW] slot_saved name=location" in out
     assert "[WORKFLOW] executed id=create_folder" in out

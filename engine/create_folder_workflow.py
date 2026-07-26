@@ -182,12 +182,51 @@ def _create_folder(name: str, label: str) -> str:
             return "That folder already exists."
         target.mkdir(parents=True, exist_ok=False)
         print(f"[WORKFLOW] folder created: {target}")
-        return "Done. Folder created."
+        # Independent postcondition check, not the mkdir call's own say-so.
+        if not target.is_dir():
+            return "I tried to create that folder but couldn't confirm it exists."
+        _journal_created_folder(name, label, target)
+        return f"Done. I created {name} in your {label}."
     except FileExistsError:
         return "That folder already exists."
     except Exception as e:
         print(f"[WORKFLOW] create folder error: {e}")
         return "Sorry, I couldn't create that folder."
+
+
+def _undo_created_folder(path: str = "", **_) -> tuple[bool, str]:
+    """Remove a folder NEXI created, only while it is still empty.
+
+    Refusing to delete a non-empty folder is the point: between creation and
+    "undo that" the user may have put something in it, and an undo must never
+    destroy work NEXI did not create.
+    """
+    target = Path(path)
+    if not target.is_dir():
+        return False, "That folder isn't there any more, so there's nothing to undo."
+    if any(target.iterdir()):
+        return False, f"I left {target.name} alone - it isn't empty any more."
+    try:
+        target.rmdir()
+    except Exception as exc:
+        print(f"[WORKFLOW] undo_create_folder failed: {type(exc).__name__}", flush=True)
+        return False, f"I couldn't remove {target.name}."
+    return True, f"I removed the empty {target.name} folder I created in your {target.parent.name}."
+
+
+def _journal_created_folder(name: str, label: str, target) -> None:
+    try:
+        from engine import undo_journal
+        undo_journal.register_undo_handler("delete_empty_folder", _undo_created_folder)
+        undo_journal.record(
+            action="create_folder",
+            description=f"created {name} in your {label}",
+            undo_action="delete_empty_folder",
+            undo_args={"path": str(target)},
+            before={"exists": False}, after={"exists": True, "path": str(target)},
+            evidence=f"is_dir() == True for {target}")
+    except Exception:
+        pass
 
 
 #: Every field this workflow can ask for, and the schema that validates it.
