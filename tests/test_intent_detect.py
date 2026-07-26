@@ -137,3 +137,37 @@ def test_opencode_passthrough_keeps_external_directory_denied():
     code = "\n".join(ln.split("#", 1)[0] for ln in block.splitlines())
     assert "external_directory" not in code, "opt-in must not touch the directory boundary"
     assert 'config.pop("permission"' not in code, "permission block must survive the opt-in"
+
+
+def test_provider_failure_reports_the_real_reason(capsys, monkeypatch):
+    """Regression: the studio's failure path crashed inside itself.
+
+    llm_detect read res.reason, but ProviderResult exposes error_code. On every
+    provider failure the AttributeError was caught by the outer handler and
+    logged as reason=AttributeError, hiding the real cause (a rate-limited key)
+    on every single voice turn.
+    """
+    from engine.providers.base import ProviderResult
+    from engine.studio import intent_detect
+
+    class _Failing:
+        def is_available(self):
+            return True
+
+        def route_with_schema(self, *_a, **_k):
+            return ProviderResult.failure("rate_limited")
+
+    monkeypatch.setattr("engine.providers.get_intent_provider", lambda: _Failing())
+    assert intent_detect.llm_detect("build me a csv tool") is None
+
+    out = capsys.readouterr().out
+    assert "AttributeError" not in out, "failure path crashed instead of reporting"
+    assert "rate_limited" in out, "the real provider reason must reach the log"
+
+
+def test_provider_result_has_no_reason_attribute():
+    """Guard the attribute this bug depended on."""
+    from engine.providers.base import ProviderResult
+
+    assert not hasattr(ProviderResult.failure("x"), "reason")
+    assert hasattr(ProviderResult.failure("x"), "error_code")

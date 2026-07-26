@@ -159,8 +159,14 @@ def test_react_executes_clear_compound_tools_without_provider(monkeypatch):
     assert plan.verified_tool_results == 2
 
 
-@pytest.mark.parametrize("error_code", ["http_500", "model_failure"])
-def test_react_provider_failures_are_errors(monkeypatch, error_code):
+@pytest.mark.parametrize("error_code", ["http_500", "model_failure", "rate_limited"])
+def test_react_provider_failures_are_errors(monkeypatch, error_code, capsys):
+    """A provider failure must fail the plan and stay speakable.
+
+    plan.error is spoken aloud, so the raw code must not reach it - a
+    rate-limited key once made Nexi say "provider_failed http_429" out loud.
+    The code still has to be recoverable from the log for debugging.
+    """
     from engine.providers.base import ProviderResult
     from engine.react_planner import ReActPlanner
     import engine.providers as providers
@@ -175,7 +181,10 @@ def test_react_provider_failures_are_errors(monkeypatch, error_code):
     monkeypatch.setattr(providers, "get_intent_provider", lambda: FailedProvider())
     plan = ReActPlanner().plan("research this and then summarize the result")
     assert plan.status == "error"
-    assert error_code in plan.error
+    assert error_code not in plan.error, "raw provider code leaked into spoken text"
+    assert plan.error.endswith("."), "spoken error must be a sentence"
+    assert "_" not in plan.error, "machine identifier leaked into spoken text"
+    assert error_code in capsys.readouterr().out, "code must stay debuggable in the log"
 
 
 @pytest.mark.parametrize("arguments", ["not-an-object", ["bad"], 42, None])

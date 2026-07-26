@@ -79,6 +79,23 @@ def _sanitize_public_text(text: str) -> str:
     return value[:1200]
 
 
+def _provider_error_text(code: str) -> str:
+    """Human sentence for a provider failure.
+
+    The raw error code reached the user's ears - a rate-limited key made Nexi
+    say "provider_failed http_429" out loud. Codes stay in the log; the user
+    hears what happened and whether to retry.
+    """
+    value = str(code or "").strip().lower()
+    if value in ("rate_limited", "http_429"):
+        return "My language model is rate limited right now. Try again in a moment."
+    if value in ("missing_api_key", "provider_unavailable"):
+        return "My language model isn't configured right now, so I can't plan that."
+    if value.startswith("http_5") or value == "timeout":
+        return "My language model isn't responding right now. Try again in a moment."
+    return "I couldn't reach my language model to plan that."
+
+
 def _redact_provider_observation(text: str) -> str:
     value = redact_sensitive(str(text or ""))
     value = re.sub(r"(?i)\b(api[_ -]?key|token|password|secret|cookie|authorization)\b\s*(?:is|:|=)\s*\S+", r"\1=[REDACTED]", value)
@@ -476,9 +493,12 @@ class ReActPlanner:
                 tool_choice="auto",
             )
         except Exception as exc:
-            return {"action": "error", "error": f"provider_failed:{type(exc).__name__}"}
+            print(f"[REACT] provider_failed reason={type(exc).__name__}", flush=True)
+            return {"action": "error", "error": _provider_error_text("")}
         if not result.ok:
-            return {"action": "error", "error": f"provider_failed:{result.error_code or 'unknown'}"}
+            code = result.error_code or "unknown"
+            print(f"[REACT] provider_failed reason={code}", flush=True)
+            return {"action": "error", "error": _provider_error_text(code)}
         if result.tool_call is not None:
             call = result.tool_call
             if not isinstance(call, dict):

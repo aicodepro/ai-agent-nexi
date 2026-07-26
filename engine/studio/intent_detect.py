@@ -167,7 +167,11 @@ def llm_detect(text: str, generate_fn=None) -> dict | None:
                 [{"role": "user", "content": prompt}], {},
                 model=model, timeout=float(os.getenv("NEXI_INTENT_DETECT_TIMEOUT", "6")))
             if not res.ok:
-                raise RuntimeError(res.reason or "provider failed")
+                # ProviderResult exposes error_code, not reason. Reading .reason
+                # here raised AttributeError inside the failure path itself, so
+                # every provider failure was logged as "AttributeError" and the
+                # real cause (rate limit, missing key) was invisible.
+                raise RuntimeError(res.error_code or "provider failed")
             return res.raw_text or json.dumps(res.decision or {})
 
     try:
@@ -183,7 +187,11 @@ def llm_detect(text: str, generate_fn=None) -> dict | None:
             "confidence": max(0.0, min(1.0, float(data.get("confidence") or 0.0))),
         }
     except Exception as exc:
-        print(f"[INTENT_DETECT] llm_tier_skipped reason={type(exc).__name__}", flush=True)
+        # Log the message, not just the class: "RuntimeError" tells you nothing,
+        # "rate_limited" tells you to rotate/wait. Class name kept for crashes
+        # that carry no message.
+        detail = str(exc).strip() or type(exc).__name__
+        print(f"[INTENT_DETECT] llm_tier_skipped reason={detail}", flush=True)
         return None
 
 

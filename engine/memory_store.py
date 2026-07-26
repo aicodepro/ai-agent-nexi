@@ -210,13 +210,47 @@ def show_notes() -> str:
     return "Your notes: " + "; ".join(notes)
 
 
+# A second command tacked onto a "remember ..." utterance. The prefix match
+# below is greedy, so "remember that my deadline is friday, then tell me what
+# you remember about deadlines" stored the WHOLE tail as the fact and the
+# recall half never ran.
+_TRAILING_COMMAND_RE = re.compile(
+    r"[,;]?\s+(?:and\s+then|then|and\s+also|after\s+that|and)\s+"
+    r"(tell|show|give|list|what|read|remind|open|search|find|play|check)\b",
+    re.IGNORECASE,
+)
+
+
+def _split_trailing_command(fact: str) -> tuple[str, str]:
+    """Return (fact_clause, trailing_command). trailing_command is '' if none."""
+    match = _TRAILING_COMMAND_RE.search(fact)
+    if not match:
+        return fact.strip(), ""
+    return fact[: match.start()].strip().rstrip(",;"), fact[match.start():].strip()
+
+
+def _remember_possibly_compound(fact: str):
+    """Store the fact clause; hand a trailing second command back to the router.
+
+    Returning None makes _handle_memory_command fall through so the rest of the
+    utterance is actually executed. The fact is stored first so it survives even
+    if the downstream router is unavailable.
+    """
+    clause, trailing = _split_trailing_command(fact)
+    if not trailing:
+        return remember_fact(fact)
+    remember_fact(clause)
+    _log("[MEMORY] compound_detected deferring_second_clause")
+    return None
+
+
 def parse_memory_command(query: str):
     q = (query or "").strip()
     low = q.lower()
     if low.startswith("remember that "):
-        return remember_fact(q[14:].strip())
+        return _remember_possibly_compound(q[14:].strip())
     if low.startswith("remember "):
-        return remember_fact(q[9:].strip())
+        return _remember_possibly_compound(q[9:].strip())
     if low.startswith(("from now on ", "always ", "i prefer ", "i want ", "don't ", "do not ")):
         try:
             from engine.adaptive_memory import maybe_extract_memory
