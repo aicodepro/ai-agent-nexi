@@ -109,12 +109,15 @@
 
     // Show user message immediately in activity log
     if (window.senderText) window.senderText(text);
-    if (window.setOrbState) window.setOrbState('thinking');
+    // Go through the ordered reducer, not setOrbState directly: the reducer is
+    // what rejects stale/out-of-order events. Bypassing it lets a typed command
+    // overwrite the state of a newer voice session.
+    if (window.updateNexiState) window.updateNexiState({ state: 'thinking', source: 'typed' });
 
     eel.ui_submit_text(text)(function (result) {
       if (result && result.ok === false) {
         if (window.addLogEntry) window.addLogEntry('err', 'Command failed');
-        if (window.setOrbState) window.setOrbState('idle');
+        if (window.updateNexiState) window.updateNexiState({ state: 'sleep', source: 'typed' });
       }
     });
   }
@@ -219,11 +222,18 @@
 
   // === METRICS ===
   function updateMetrics() {
-    setMetric('cpu', Math.floor(Math.random() * 20 + 5) + '%');
-    setMetric('mem', Math.floor(Math.random() * 30 + 40) + '%');
-    setMetric('net', (Math.random() * 5).toFixed(1) + 'MB/s');
-    setMetric('gpu', 'N/A');
-    setMetric('tmp', 'N/A');
+    // Real host metrics from the backend. Never fabricate these: an assistant
+    // that invents telemetry can't be trusted about anything else it reports.
+    if (typeof eel === 'undefined' || !eel.ui_get_metrics) {
+      ['cpu', 'mem', 'net', 'gpu', 'tmp'].forEach(function (k) { setMetric(k, '--'); });
+      return;
+    }
+    eel.ui_get_metrics()(function (m) {
+      m = m || {};
+      ['cpu', 'mem', 'net', 'gpu', 'tmp'].forEach(function (k) {
+        setMetric(k, m[k] || '--');
+      });
+    });
   }
 
   function setMetric(id, val) {

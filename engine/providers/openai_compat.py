@@ -27,6 +27,33 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+# A single voice turn calls this module 4-6 times (router semantic tier, V2
+# pre-router, tool-RAG, ReAct, studio intent). When the key is rate-limited each
+# of those was a separate dead round-trip, so one turn paid ~6x the timeout and
+# still fell back. The first 429 now opens a short breaker and the rest of the
+# turn short-circuits locally.
+# ponytail: process-local dict, no lock - worst case two threads both probe once.
+_BREAKER_UNTIL: dict[str, float] = {}
+_BREAKER_DEFAULT_S = 20.0
+
+
+def _breaker_open_for(provider_name: str) -> float:
+    """Seconds remaining on this provider's cooldown, 0.0 if it may be called."""
+    return max(0.0, _BREAKER_UNTIL.get(provider_name, 0.0) - time.monotonic())
+
+
+def _trip_breaker(provider_name: str, retry_after: str | None) -> None:
+    cooldown = _BREAKER_DEFAULT_S
+    try:
+        # Providers report the real reset window; prefer it over our guess.
+        if retry_after:
+            cooldown = max(1.0, min(300.0, float(retry_after)))
+    except (TypeError, ValueError):
+        pass
+    _BREAKER_UNTIL[provider_name] = time.monotonic() + cooldown
+    print(f"[{provider_name.upper()}] breaker_open cooldown={cooldown:.0f}s", flush=True)
+
+
 def chat_completion(
     *,
     base_url: str,
@@ -50,6 +77,11 @@ def chat_completion(
     """
     if not api_key:
         return ProviderResult.failure("missing_api_key", provider=provider_name, model=model)
+
+    cooling = _breaker_open_for(provider_name)
+    if cooling > 0:
+        print(f"[{provider_name.upper()}] breaker_skip retry_in={cooling:.0f}s", flush=True)
+        return ProviderResult.failure("rate_limited", provider=provider_name, model=model)
 
     payload: dict[str, Any] = {
         "model": model,
@@ -88,7 +120,8 @@ def chat_completion(
                     time.sleep(backoff)
                     continue
                 print(f"[{provider_name.upper()}] rate_limited status=429 fast_fallback", flush=True)
-                return ProviderResult.failure("http_429", provider=provider_name, model=model)
+                _trip_breaker(provider_name, response.headers.get("Retry-After"))
+                return ProviderResult.failure("rate_limited", provider=provider_name, model=model)
             if response.status_code >= 400:
                 print(f"[{provider_name.upper()}] http_failed status={response.status_code}", flush=True)
                 return ProviderResult.failure(f"http_{response.status_code}", provider=provider_name, model=model)

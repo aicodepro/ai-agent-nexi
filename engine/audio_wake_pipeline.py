@@ -727,13 +727,15 @@ class AudioWakePipeline:
         now = self._clock()
         result = {"wake": False, "source": None, "score": 0.0, "cooldown": False, "reason": "none"}
 
-        if get_session_manager().is_global_tts_active():
-            result["reason"] = "global_tts_active"
-            return result
-
         # --- Barge-in: a wake word spoken WHILE Nexi is talking interrupts
-        # the TTS instead of being captured as a command. Checked before the
-        # detectors-paused gate because detectors are paused during "saying".
+        # the TTS instead of being captured as a command.
+        #
+        # This MUST precede BOTH the global-TTS and detectors-paused gates.
+        # Every one of them is true at exactly the moment Nexi is speaking, so
+        # any of them checked first makes barge-in unreachable - the frame
+        # returns with score 0.0 and the wake scorer never runs. That left the
+        # user unable to interrupt a long answer at all: barge-in only fired in
+        # the narrow race before the global TTS lease was applied.
         if _is_speaking():
             if self._pending_barge_in is not None:
                 return {"wake": False, "source": None, "reason": "barge_in_pending", "score": 0.0}
@@ -772,6 +774,12 @@ class AudioWakePipeline:
                     return {"wake": False, "source": None, "reason": "barge_in_request_failed", "score": float(score)}
                 return {"wake": False, "source": "hotword", "reason": "barge_in_requested", "score": float(score)}
             return {"wake": False, "source": None, "reason": "speaking", "score": float(score)}
+
+        # Not speaking, but audio is still owned by a TTS lease (another
+        # session/process): suppress capture so Nexi never hears itself.
+        if get_session_manager().is_global_tts_active():
+            result["reason"] = "global_tts_active"
+            return result
 
         if get_session_manager().are_detectors_paused():
             result["reason"] = "session_active"

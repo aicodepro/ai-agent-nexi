@@ -40,7 +40,7 @@ def q():
 def test_post_command_puts_pickle_safe_event(q):
     ok = post_command(q, "what is 2+2", source="hotword")
     assert ok is True
-    event = q.get_nowait()
+    event = q.get(timeout=2)
     assert isinstance(event, dict)
     assert event["type"] == EVENT_COMMAND_TEXT
     assert event["text"] == "what is 2+2"
@@ -68,7 +68,7 @@ def test_post_command_rejects_none_queue():
 def test_post_status_puts_event(q):
     ok = post_status(q, "listening", source="clap", text="preview")
     assert ok is True
-    event = q.get_nowait()
+    event = q.get(timeout=2)
     assert event["type"] == EVENT_STATUS
     assert event["status"] == "listening"
     assert event["text"] == "preview"
@@ -91,7 +91,7 @@ def test_followup_capture_is_scheduled_after_cooldown_with_boundary_margin(q):
 def test_post_error_puts_event(q):
     ok = post_error(q, "mic failed", source="audio")
     assert ok is True
-    event = q.get_nowait()
+    event = q.get(timeout=2)
     assert event["type"] == EVENT_ERROR
     assert event["error"] == "mic failed"
 

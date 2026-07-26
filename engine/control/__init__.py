@@ -11,10 +11,20 @@ from engine.control.window_controller import register_window_controls
 from engine.control.file_controller import register_file_controls
 from engine.control.chrome_controller import register_chrome_controls
 
-register_desktop_controls(registry)
-register_window_controls(registry)
-register_file_controls(registry)
-register_chrome_controls(registry)
+# Registration must not be able to break `import engine.control`. A desktop
+# driver that needs a display (pyautogui/win32) fails on a headless CI box, and
+# an unguarded call here took the whole package down with it - so pure policy
+# code like ActionGate became unimportable. Degrade per-controller instead.
+for _name, _register in (
+    ("desktop", register_desktop_controls),
+    ("window", register_window_controls),
+    ("file", register_file_controls),
+    ("chrome", register_chrome_controls),
+):
+    try:
+        _register(registry)
+    except Exception as _exc:  # pragma: no cover - environment dependent
+        print(f"[CONTROL] {_name} controls unavailable: {type(_exc).__name__}", flush=True)
 
 gate = ActionGate(registry)
 

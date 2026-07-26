@@ -1,0 +1,84 @@
+[project]
+name = "nexi-access"
+version = "1.0.0"
+description = "Nexi Access - a voice-first autonomous desktop assistant for blind, low-vision, mobility-impaired and hands-free users."
+requires-python = ">=3.11"
+
+# Core: what the app needs to start, route, think and respond.
+dependencies = [
+    "eel",
+    "python-dotenv",
+    "requests",
+    "beautifulsoup4",
+    "numpy",
+    "psutil",
+    "typing_extensions",
+    "defusedxml",
+]
+
+[project.optional-dependencies]
+# Wake word, VAD, mic capture, ASR and TTS.
+voice = [
+    "openwakeword",
+    "sounddevice",
+    "scipy",
+    "SpeechRecognition",
+    "pyaudio",
+    "pyttsx3",
+    "edge-tts",
+    "playsound",
+]
+
+# Windows desktop control (UI Automation first, input as fallback).
+windows = [
+    "pywin32; sys_platform == 'win32'",
+    "uiautomation; sys_platform == 'win32'",
+    "comtypes; sys_platform == 'win32'",
+    "pyautogui",
+    "pyperclip",
+    "keyboard",
+    "pynput",
+]
+
+# Browser control and browser-rendered search.
+browser = [
+    "playwright",
+    "crawl4ai",
+]
+
+# Camera / vision (hand, eye, face).
+vision = [
+    "opencv-contrib-python",
+    "mediapipe",
+    "pillow",
+]
+
+# Semantic routing / embeddings.
+brain = [
+    "sentence-transformers",
+]
+
+# Wake-word model training only. Not needed to run the assistant.
+training = [
+    "torch",
+    "scipy",
+]
+
+test = [
+    "pytest",
+]
+
+dev = [
+    "pytest",
+    "ruff",
+]
+
+# Everything needed to actually run the assistant on Windows.
+all = [
+    "nexi-access[voice,windows,browser,vision,brain]",
+]
+
+[tool.setuptools]
+# Source lives in engine/; this project is run in-place (python run.py), not
+# installed as a library, so no package auto-discovery is attempted.
+packages = []

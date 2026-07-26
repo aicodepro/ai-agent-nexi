@@ -37,6 +37,19 @@ def speak_with_provider(
         value = build_spoken_text(value, max_chars=max_chars)
 
     for provider in _provider_order():
+        if provider in {"edge", "edge_tts", "edgetts"}:
+            from engine import edge_tts_provider
+            if not edge_tts_provider.is_configured():
+                print("[TTS] edge unavailable, trying next provider", flush=True)
+                continue
+            if on_display:
+                on_display(shown)
+            result = edge_tts_provider.speak_text(value)
+            if result.ok:
+                return TTSProviderResult(provider="edge", ok=True, fallback_used=False)
+            error_hint = result.error[:60] if result.error else "unknown"
+            print(f"[TTS] edge_failed:{error_hint} — trying next provider", flush=True)
+            continue
         if provider == "groq":
             from engine import groq_tts
             if not groq_tts.is_configured():

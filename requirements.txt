@@ -33,3 +33,19 @@ playwright
 
 # Transitive deps for the above (kept for clarity)
 typing_extensions
+edge-tts
+
+# --- Voice wake pipeline (required for run.py hotword/VAD/mic) ---
+openwakeword
+sounddevice
+scipy
+
+# --- Vision / camera control (hand, eye, face) ---
+opencv-contrib-python
+mediapipe
+
+# --- Windows semantic desktop control (accessibility-first click/type) ---
+uiautomation; sys_platform == "win32"
+
+# --- Safe XML parsing ---
+defusedxml

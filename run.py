@@ -50,7 +50,10 @@ def _face_auth_gate() -> bool:
         ``False`` if auth failed (camera error, missing model, or user
         pressed q) — the caller MUST exit when this returns ``False``.
     """
-    if not _env_bool("FACE_RECOGNITION_ON_STARTUP", True):
+    # Default OFF. Nexi is a blind-first assistant: a visual auth gate that a
+    # user cannot see must never be the default path into the app. Opt in with
+    # FACE_RECOGNITION_ON_STARTUP=true when a sighted user actually wants it.
+    if not _env_bool("FACE_RECOGNITION_ON_STARTUP", False):
         print("[FACE] disabled by env — skipping auth gate")
         return True
     auth_gate = os.getenv("FACE_RECOGNITION_AUTH_GATE", "true").lower() == "true"
@@ -80,7 +83,9 @@ def _face_auth_gate() -> bool:
         # Calibration knobs (all backward-compatible defaults):
         cam_index = int(os.getenv("FACE_RECOGNITION_CAMERA_INDEX", "0"))
         warmup = max(0, int(os.getenv("FACE_RECOGNITION_WARMUP_FRAMES", "5")))
-        timeout_s = float(os.getenv("FACE_RECOGNITION_TIMEOUT_S", "0"))  # 0 = wait forever
+        # Finite by default: an unbounded wait strands a user who cannot see the
+        # camera prompt with no way to proceed. Set 0 to explicitly wait forever.
+        timeout_s = float(os.getenv("FACE_RECOGNITION_TIMEOUT_S", "45"))
         required = max(1, int(os.getenv("FACE_RECOGNITION_REQUIRED_MATCHES", "1")))
 
         # DirectShow opens far faster than the default backend on Windows.
@@ -120,7 +125,10 @@ def _face_auth_gate() -> bool:
                 for face in faces_detected:
                     x, y, w, h = face
                     fr.draw_rect(frame, face)
-                    roi_gray = gray_img[y:y + w, x:x + h]
+                    # rows are Y/height, cols are X/width -- the old
+                    # [y:y+w, x:x+h] cropped a wrong-shaped region on any
+                    # non-square detection and skewed recognition confidence.
+                    roi_gray = gray_img[y:y + h, x:x + w]
                     if roi_gray.size == 0:
                         continue
                     try:

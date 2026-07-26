@@ -62,7 +62,11 @@ def infer_followup_type(text: str) -> str:
         return "essay_topic"
     if "name the file" in lower:
         return "file_name"
-    if "name the folder" in lower or "name it" in lower:
+    # Only bind a folder slot when the prompt actually names a folder. A bare
+    # "name it" matched any prose ("...want to name it?" from a saved report),
+    # so the NEXT unrelated utterance was swallowed as a folder name. The real
+    # create-folder path sets followup_type explicitly and never relied on this.
+    if "folder" in lower and "name" in lower:
         return "folder_name"
     if "where should" in lower or "where do" in lower:
         return "folder_location"

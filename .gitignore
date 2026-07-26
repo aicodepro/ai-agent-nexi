@@ -28,10 +28,17 @@ dist/
 .mypy_cache/
 .ruff_cache/
 
-# --- Virtual environments ---
+# --- Virtual environments / secrets ---
+# Anchored to the repo root and NOT a bare `env*` glob: `env*` also matched
+# engine/**/environment.py and silently excluded real source from the repo,
+# so a fresh clone was missing modules the runtime imports.
 venv/
 .venv/
-env*
+/env
+/env/
+/.env
+/.env.*
+/env.*
 
 # --- Node / eel web UI ---
 node_modules/
@@ -68,3 +75,17 @@ Thumbs.db
 # --- Temp / logs ---
 *.tmp
 *.log
+
+# Machine-specific MCP config (absolute paths). Copy .mcp.json.example -> .mcp.json
+.mcp.json
+.mcp.json.bak-*
+
+# --- Private / generated runtime data (never distribute) ---
+# Personal voice recordings, biometric models, local databases and generated
+# training data. Kept locally; see docs for how to regenerate or download.
+hey_nexi_clips/
+datasets/
+artifacts/
+trainingData.yml
+*.db
+*.zip

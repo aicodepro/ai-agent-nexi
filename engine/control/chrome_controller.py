@@ -8,7 +8,7 @@ from engine.control.browser_session import BrowserSession
 try:
     import pyautogui
     HAS_PYAUTOGUI = True
-except ImportError:
+except Exception:
     HAS_PYAUTOGUI = False
 
 

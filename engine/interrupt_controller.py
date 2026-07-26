@@ -41,6 +41,31 @@ def clear_interrupt() -> None:
         _interrupt.clear()
 
 
+def interrupt_and_wait(source: str, reason: str = "", timeout: float = 2.0) -> bool:
+    """Interrupt the speaker and clear only once it has actually stopped.
+
+    Callers used to do request_interrupt() immediately followed by
+    clear_interrupt(). The stop is asynchronous, so clearing straight away
+    could drop the flag while audio was still winding down - producing
+    overlapping TTS, speech that continued past a barge-in, and wake events
+    landing during audio decay. Waiting for the producer to report
+    is_speaking() == False is that missing acknowledgement.
+
+    Returns True if the speaker stopped within `timeout`.
+    """
+    import time as _time
+
+    request_interrupt(source=source, reason=reason)
+    deadline = _time.monotonic() + max(0.0, timeout)
+    while is_speaking() and _time.monotonic() < deadline:
+        _time.sleep(0.02)
+    stopped = not is_speaking()
+    if not stopped:
+        print(f"[INTERRUPT] speaker did not stop within {timeout:.1f}s source={source}", flush=True)
+    clear_interrupt()
+    return stopped
+
+
 def is_speaking() -> bool:
     with _lock:
         return _speaking

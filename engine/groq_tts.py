@@ -130,6 +130,10 @@ def synthesize_speech(text: str) -> bytes:
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            # Without an explicit UA, Cloudflare in front of api.groq.com rejects
+            # urllib's default agent with 403 (code 1010) - which looked like an
+            # auth/terms failure and silently forced the robotic pyttsx3 voice.
+            "User-Agent": "Nexi-Access/1.0",
         },
         method="POST",
     )
