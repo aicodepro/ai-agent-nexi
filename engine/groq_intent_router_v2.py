@@ -157,7 +157,9 @@ _SIMPLE_ALIAS_TOOLS = {
     "screen_read": ("desktop", ("read my screen", "read the screen", "read screen", "whats on my screen", "what is on my screen", "what is on the screen", "whats on the screen")),
     "list_feature_requests": ("system", ("list feature requests", "show feature requests", "pending features", "what features did i request", "feature requests")),
     "nexi_run_router_audit": ("workflow", ("run an agent audit of the router", "start an agent audit of the intent router", "run an agent audit of the intent router", "agent audit of the intent router", "audit the router with agents", "run router audit workflow")),
-    "nexi_run_codebase_research": ("workflow", ("research this repo with agents", "run codebase research", "research the codebase with agents", "agent research workflow")),
+    # Every phrase here must carry explicit repo/codebase context. A bare
+    # "research ..." is public-web research and belongs to web_search.
+    "nexi_run_codebase_research": ("workflow", ("research this repo with agents", "run codebase research", "research the codebase with agents", "research this codebase", "analyse this repository", "agent research workflow")),
     "nexi_run_test_generation": ("workflow", ("generate tests with agents", "run test generation workflow", "agent test generation")),
     "nexi_run_integration_plan": ("workflow", ("create an integration plan", "run integration plan workflow", "plan the integration with agents")),
     "nexi_workflow_status": ("workflow", ("workflow status", "show workflow status", "agent workflow status", "whats the workflow status")),

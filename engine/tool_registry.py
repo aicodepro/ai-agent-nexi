@@ -48,7 +48,22 @@ def _spec(name: str, description: str, required: list[str] | None = None, safety
 _TOOLS: dict[str, ToolSpec] = {
     "open_app": _spec("open_app", "Open a Windows application", ["app_name"], handler="engine.local_skills.open_app"),
     "open_website": _spec("open_website", "Open a website", ["url"], handler="engine.local_skills.open_website"),
-    "web_search": _spec("web_search", "Search the live web with citations", ["query"], optional=["mode"], handler="engine.local_skills.web_search"),
+    # Research about the PUBLIC world lives here. This had no examples and no
+    # aliases, while nexi_run_codebase_research claimed the word "research"
+    # through four of them - so "research the top three python web frameworks"
+    # retrieved the repository-analysis workflow and started a 5-step codebase
+    # plan instead of answering. Retrieval can only choose what is described.
+    "web_search": _spec(
+        "web_search", "Research or search the live public web (news, products, comparisons, external facts) with citations",
+        ["query"], optional=["mode"], handler="engine.local_skills.web_search",
+        aliases=("search the web", "look up", "research", "find out about", "search online",
+                 "look it up", "google", "what is the latest on", "compare"),
+        examples=["research the top three python web frameworks and compare them",
+                  "look up the latest news on AI regulation",
+                  "compare the iphone and pixel cameras",
+                  "what's the best laptop for programming",
+                  "find out who won the match"],
+        category="web"),
     "create_folder": _spec("create_folder", "Create a folder", ["folder_name"], safety="medium"),
     "create_project_folder": _spec("create_project_folder", "Create a project folder", ["folder_name"], safety="medium"),
     "create_file": _spec("create_file", "Create a file", ["file_name"], optional=["content"], safety="medium"),
@@ -144,7 +159,19 @@ _TOOLS: dict[str, ToolSpec] = {
     "request_feature": _spec("request_feature", "Log a request for a capability Nexi does not have yet", optional=["capability"], handler="engine.feature_requests.request_feature", examples=["build a tool that watches my downloads"], category="system"),
     "list_feature_requests": _spec("list_feature_requests", "List logged feature requests", handler="engine.feature_requests.list_feature_requests", aliases=("list feature requests", "show feature requests", "pending features", "what features did i request"), examples=["list feature requests"], category="system"),
     "nexi_run_router_audit": _spec("nexi_run_router_audit", "Run a background Nexi agent audit of the intent router", optional=["goal"], handler="engine.agency.nexi_run_router_audit", aliases=("run an agent audit of the router", "start an agent audit of the intent router", "agent audit of the intent router", "audit the router with agents", "run router audit workflow"), examples=["start an agent audit of the intent router"], category="workflow"),
-    "nexi_run_codebase_research": _spec("nexi_run_codebase_research", "Run a background Nexi agent codebase-research workflow", optional=["goal"], handler="engine.agency.nexi_run_codebase_research", aliases=("research this repo with agents", "run codebase research", "research the codebase with agents", "agent research workflow"), examples=["research this repo with agents"], category="workflow"),
+    # Requires EXPLICIT repository context. Bare "research X" is about the
+    # public world and belongs to web_search; this tool only analyses the
+    # currently selected source repository.
+    "nexi_run_codebase_research": _spec(
+        "nexi_run_codebase_research",
+        "Analyse THIS source repository with background agents. Only for explicit repo/codebase requests - never for public-web research",
+        optional=["goal"], handler="engine.agency.nexi_run_codebase_research",
+        aliases=("research this repo with agents", "run codebase research",
+                 "research the codebase with agents", "research this codebase",
+                 "analyse this repository", "agent research workflow"),
+        examples=["research this repo with agents", "run codebase research on this project",
+                  "analyse this repository with agents"],
+        category="workflow"),
     "nexi_run_test_generation": _spec("nexi_run_test_generation", "Run a background Nexi agent test-generation workflow", optional=["goal"], handler="engine.agency.nexi_run_test_generation", aliases=("generate tests with agents", "run test generation workflow", "agent test generation"), examples=["generate tests with agents"], category="workflow"),
     "nexi_run_integration_plan": _spec("nexi_run_integration_plan", "Run a background Nexi agent integration-plan workflow", optional=["goal"], handler="engine.agency.nexi_run_integration_plan", aliases=("create an integration plan", "run integration plan workflow", "plan the integration with agents"), examples=["create an integration plan"], category="workflow"),
     "nexi_workflow_status": _spec("nexi_workflow_status", "Report the status of the current/last agent workflow", optional=["run_id"], handler="engine.agency.nexi_workflow_status", aliases=("workflow status", "show workflow status", "agent workflow status", "whats the workflow status"), examples=["workflow status"], category="workflow"),
