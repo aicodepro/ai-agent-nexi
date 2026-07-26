@@ -658,6 +658,10 @@ class AudioWakePipeline:
             if event_type == "capture_followup":
                 if session_id and manager.is_current(session_id):
                     self._capture_followup(event)
+                elif not session_id and event.get("start_session"):
+                    # Typed request: no voice session exists yet, but NEXI has
+                    # asked a question and must be able to hear the answer.
+                    self._capture_followup(event)
                 elif session_id:
                     _safe_log(f"[SESSION] stale_control_ignored id={session_id}")
                 continue
@@ -683,6 +687,12 @@ class AudioWakePipeline:
         session_id = str(event.get("session_id") or "")
         source = str(event.get("source") or "voice").strip() or "voice"
         manager = get_session_manager()
+        if not session_id and event.get("start_session"):
+            # Every input is a NEXI turn, including a typed one. Give the
+            # capture a real session so it owns lifecycle, ordering and
+            # timeout like any voice turn.
+            session_id = start_session(source)
+            _safe_log(f"[SESSION] started_for_followup id={session_id} source={source}")
         if not session_id or not manager.is_current(session_id):
             return False
 

@@ -645,12 +645,18 @@ def post_followup_capture(
     reason: str,
     delay_ms: int = 0,
 ) -> bool:
-    if control_queue is None or not session_id:
+    if control_queue is None:
         return False
     try:
         control_queue.put_nowait({
             "type": CONTROL_CAPTURE_FOLLOWUP,
             "session_id": session_id,
+            # A typed request has no voice session, so current_bridge_session_id()
+            # is empty and this used to return False - NEXI asked a question and
+            # then could never open the microphone to hear the answer. A typed
+            # request is still a NEXI turn: ask the audio process to start a
+            # session for the capture instead of dropping it.
+            "start_session": not session_id,
             "source": (source or "voice").strip() or "voice",
             "reason": (reason or "assistant_question").strip() or "assistant_question",
             "not_before": time.time() + (max(0, int(delay_ms)) / 1000.0),
