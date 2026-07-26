@@ -108,6 +108,38 @@ def clear_followup(reason: str = "") -> None:
     _pending = {}
 
 
+#: A wrong-typed answer is re-asked rather than accepted, but not forever - an
+#: endless reprompt loop is its own failure mode.
+_MAX_SCHEMA_RETRIES = 2
+
+
+def _validate_against_schema(schema_name: str, value: str):
+    """None when no schema applies, else a ValidationResult."""
+    try:
+        from engine.response_schemas import get_schema, validate_answer
+        if get_schema(schema_name) is None:
+            return None
+        return validate_answer(schema_name, value)
+    except Exception:
+        return None
+
+
+def _close_dialogue(reason: str, *, cancelled: bool) -> None:
+    """Keep the new DialogueContext in step with the legacy follow-up store.
+
+    Both exist during the migration; letting them disagree would recreate the
+    ownership bug this work is fixing.
+    """
+    try:
+        from engine import dialogue_context as dc
+        if cancelled:
+            dc.cancel_dialogue(reason)
+        else:
+            dc.close_dialogue(reason)
+    except Exception:
+        pass
+
+
 def _slot_for_followup_type(followup_type: str) -> str:
     try:
         from engine.clarification_manager import slot_for_followup_type
@@ -146,13 +178,42 @@ def consume_followup_answer(text: str, source: str) -> dict:
         print(f"[FOLLOWUP] answer_received slot={slot} value={value[:80]}", flush=True)
     if lower in _CANCEL:
         clear_followup("cancel")
+        _close_dialogue("user_cancelled", cancelled=True)
         return {"handled": True, "cancelled": True, "text": value, "route": "cancel", "followup_type": ftype}
     if lower.startswith(_SWITCH_STARTS) and ftype not in {"generic", "confirmation"}:
         clear_followup("switch")
+        _close_dialogue("switch", cancelled=True)
         route = lower.split(" ", 1)[0]
         print(f"[FOLLOWUP] switch_detected to={route}", flush=True)
         return {"handled": False, "text": value, "route": "switch", "followup_type": ftype}
+
+    # The reply must be the KIND of thing that was asked for. Without this a
+    # pending question accepted whatever arrived next, which is how
+    # "show me your diagnostics" was stored as a folder name.
+    slot_schema = slot or ftype
+    validation = _validate_against_schema(slot_schema, value)
+    if validation is not None and not validation.ok:
+        retries = int(_pending.get("retries", 0)) + 1
+        if retries <= _MAX_SCHEMA_RETRIES:
+            _pending["retries"] = retries
+            _pending["created_at"] = time.time()  # the user is engaged; keep waiting
+            from engine.response_schemas import reprompt_for
+            question = reprompt_for(slot_schema)
+            print(f"[FOLLOWUP] answer_rejected slot={slot_schema} "
+                  f"reason={validation.error} retry={retries}", flush=True)
+            return {"handled": True, "cancelled": False, "reprompt": True,
+                    "text": question, "answer": value, "route": "clarify",
+                    "followup_type": ftype, "question": question}
+        clear_followup("schema_retries_exhausted")
+        _close_dialogue("schema_retries_exhausted", cancelled=True)
+        print(f"[FOLLOWUP] answer_rejected slot={slot_schema} reason=retries_exhausted", flush=True)
+        return {"handled": False, "text": value, "route": "none", "followup_type": ftype}
+
+    if validation is not None and validation.value is not None:
+        value = validation.value if isinstance(validation.value, str) else value
+
     clear_followup("consumed")
+    _close_dialogue("consumed", cancelled=False)
     routed, route = _route_pending_answer(ftype, value)
     print(f"[FOLLOWUP] consumed type={ftype}", flush=True)
     return {

@@ -190,6 +190,47 @@ def _create_folder(name: str, label: str) -> str:
         return "Sorry, I couldn't create that folder."
 
 
+#: Every field this workflow can ask for, and the schema that validates it.
+#: The folder family is the first migrated onto DialogueContext, per the
+#: recommended migration order.
+FIELD_SCHEMAS = {"folder_name": "folder_name", "folder_location": "folder_location"}
+REQUIRED_FIELDS = ["folder_name", "folder_location"]
+
+
+def _open_dialogue(field: str, question: str, slots: dict) -> None:
+    """Register the question with the one dialogue owner.
+
+    Best-effort: the legacy workflow_state store still drives execution during
+    the migration, so a failure here must not break folder creation.
+    """
+    try:
+        from engine import dialogue_context as dc
+        from engine.runtime_bridge import current_bridge_session_id
+        collected = {k: v for k, v in slots.items() if k in REQUIRED_FIELDS and v}
+        ctx = dc.open_dialogue(
+            question=question,
+            session_id=str(current_bridge_session_id() or ""),
+            workflow_id=WORKFLOW_NAME,
+            goal="create a folder",
+            required_fields=list(REQUIRED_FIELDS),
+            expected_response_schema={"fields": dict(FIELD_SCHEMAS), "expecting": field},
+            source="workflow",
+        )
+        for key, value in collected.items():
+            ctx.collected_fields[key] = value
+    except Exception:
+        pass
+
+
+def _collect(field: str, value) -> None:
+    try:
+        from engine import dialogue_context as dc
+        from engine.runtime_bridge import current_bridge_session_id
+        dc.collect_field(field, value, session_id=str(current_bridge_session_id() or ""))
+    except Exception:
+        pass
+
+
 # --- Public entrypoints -----------------------------------------------------
 
 def start_create_folder(query: str, pre_slots: dict | None = None) -> str:
@@ -231,11 +272,14 @@ def start_create_folder(query: str, pre_slots: dict | None = None) -> str:
 
     if name and label:
         start_workflow(WORKFLOW_NAME, "confirm", slots)
+        _open_dialogue("confirmation", f"Create {name} on {label}?", slots)
         return f"Create {name} on {label}?"
     if name and not label:
         start_workflow(WORKFLOW_NAME, "ask_location", slots)
+        _open_dialogue("folder_location", f"Where should I create {name}?", slots)
         return f"Where should I create {name}?"
     start_workflow(WORKFLOW_NAME, "ask_name", slots)
+    _open_dialogue("folder_name", "What should I name the folder?", slots)
     return "What should I name the folder?"
 
 
@@ -272,10 +316,12 @@ def _reply_name(reply: str, slots: dict) -> str:
         return err
     slots["folder_name"] = name
     print("[WORKFLOW] slot_saved name=folder_name", flush=True)
+    _collect("folder_name", name)
     if slots.get("location_label"):
         update_workflow(step="confirm", slots=slots)
         return f"Create {name} on {slots['location_label']}?"
     update_workflow(step="ask_location", slots=slots)
+    _open_dialogue("folder_location", f"Where should I create {name}?", slots)
     return f"Where should I create {name}?"
 
 

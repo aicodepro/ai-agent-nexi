@@ -692,6 +692,15 @@ def _maybe_start_auto_followup() -> None:
             mark_capture_requested()
         except Exception:
             pass
+        try:
+            # Durable capture state. The boolean was consumed HERE, at request
+            # time, so if the audio process never actually started capturing,
+            # the request vanished with nothing recording it. The request now
+            # stays outstanding until FOLLOWUP_CAPTURE_STARTED is acknowledged.
+            from engine.dialogue_context import CaptureState, set_capture_state
+            set_capture_state(CaptureState.QUEUED, reason=listen_source)
+        except Exception:
+            pass
         consume_auto_listen_request()
         print(f"[LISTEN] auto_followup_requested source={listen_source}", flush=True)
     except Exception as e:

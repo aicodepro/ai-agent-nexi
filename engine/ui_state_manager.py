@@ -200,6 +200,21 @@ class UIStateManager:
             play_earcon(canonical)
         except Exception:
             pass
+        # Acknowledge the durable capture request. The audio process only emits
+        # these once it has really taken the microphone, so this - not the act of
+        # asking - is what closes out FOLLOWUP_REQUESTED/QUEUED.
+        try:
+            from engine.dialogue_context import CaptureState, set_capture_state
+            _capture_ack = {
+                "listening_started": CaptureState.CAPTURE_STARTED,
+                "speech_started": CaptureState.SPEECH_STARTED,
+                "asr_result": CaptureState.COMPLETED,
+                "no_speech_timeout": CaptureState.NO_SPEECH,
+            }.get(safe_status.lower())
+            if _capture_ack is not None:
+                set_capture_state(_capture_ack, reason=safe_status.lower())
+        except Exception:
+            pass
         # Drive the strict voice state machine from the canonical UI state so the
         # command-acceptance gate always reflects the real lifecycle.
         try:
